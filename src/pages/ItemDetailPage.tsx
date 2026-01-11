@@ -19,7 +19,7 @@ import {
   Button,
 } from '@chakra-ui/react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import type { PMIntake, ProductDesignInputs, ContentDesignInputs } from '../domain/types'
 import PMIntakeForm from '../components/PMIntakeForm'
 import PDInputsForm from '../components/PDInputsForm'
@@ -97,12 +97,21 @@ function ItemDetailPage() {
   const [pdInputs, setPDInputs] = useState<ProductDesignInputs>(getDefaultPDInputs())
   const [cdInputs, setCDInputs] = useState<ContentDesignInputs>(getDefaultCDInputs())
 
-  // Load data from context or demo when itemId changes
+  // Track the last saved values as JSON string to prevent infinite loop between
+  // the load and save effects. When we load data, we set this ref to match what
+  // we loaded. When we save, we only save if the current data differs from this ref.
+  // This breaks the cycle: load -> setState -> save -> context update -> load (but data unchanged -> no save)
+  const lastSavedInputsJsonRef = useRef<string>('')
+
+  // Load data from context or demo when itemId/sessionId changes.
+  // This effect runs when navigating to a new item or when getInputsForItem reference changes.
+  // IMPORTANT: We update lastSavedInputsJsonRef to match what we load, so the save effect
+  // knows these values are already saved and won't trigger unnecessarily.
   useEffect(() => {
     if (!itemId) return
 
     if (sessionId === 'demo') {
-      // Load demo data
+      // Demo mode: load from demo data, no saving needed
       const demoIntake = demoIntakes.find((i) => i.roadmap_item_id === itemId)
       const demoPD = demoProductDesignInputs.find((p) => p.roadmap_item_id === itemId)
       const demoCD = demoContentDesignInputs.find((c) => c.roadmap_item_id === itemId)
@@ -124,31 +133,49 @@ function ItemDetailPage() {
       } else {
         setCDInputs(getDefaultCDInputs())
       }
+      // Reset ref for demo (demo data doesn't get saved)
+      lastSavedInputsJsonRef.current = ''
     } else {
-      // Load from context
+      // Real session: load from context
       const inputs = getInputsForItem(itemId)
       if (inputs) {
+        // Data exists in context: load it and mark as saved
         setPMIntake({ ...inputs.intake })
         setPDInputs({ ...inputs.pd })
         setCDInputs({ ...inputs.cd })
+        lastSavedInputsJsonRef.current = JSON.stringify(inputs)
       } else {
-        // Use defaults if no inputs found
+        // No data in context: use defaults and mark as unsaved (empty string means not saved yet)
         setPMIntake(getDefaultPMIntake())
         setPDInputs(getDefaultPDInputs())
         setCDInputs(getDefaultCDInputs())
+        lastSavedInputsJsonRef.current = ''
       }
     }
   }, [sessionId, itemId, getInputsForItem])
 
-  // Save inputs to context when they change (except for demo)
+  // Save inputs to context when user edits form fields (except for demo mode).
+  // We compare current data with lastSavedInputsJsonRef to avoid saving unchanged data.
+  // This prevents infinite loops when getInputsForItem reference changes but data is the same.
   useEffect(() => {
     if (!itemId || sessionId === 'demo') return
 
-    setInputsForItem(itemId, {
+    const currentInputs = {
       intake: pmIntake,
       pd: pdInputs,
       cd: cdInputs,
-    })
+    }
+    const currentInputsJson = JSON.stringify(currentInputs)
+
+    // Only save if data has actually changed (user made edits)
+    // This comparison prevents the save effect from triggering when:
+    // - The load effect runs and sets state (ref already matches)
+    // - getInputsForItem reference changes but data is unchanged
+    if (currentInputsJson !== lastSavedInputsJsonRef.current) {
+      setInputsForItem(itemId, currentInputs)
+      // Update ref after saving so we don't save again until data changes
+      lastSavedInputsJsonRef.current = currentInputsJson
+    }
   }, [itemId, sessionId, pmIntake, pdInputs, cdInputs, setInputsForItem])
 
   // Calculate sizing estimates (updates automatically when form fields change)
