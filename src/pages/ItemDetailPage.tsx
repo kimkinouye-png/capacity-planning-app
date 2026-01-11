@@ -103,12 +103,22 @@ function ItemDetailPage() {
   // This breaks the cycle: load -> setState -> save -> context update -> load (but data unchanged -> no save)
   const lastSavedInputsJsonRef = useRef<string>('')
 
+  // Track the last loaded itemId to avoid reloading when getInputsForItem reference changes
+  // but we're still on the same item
+  const lastLoadedItemIdRef = useRef<string | null>(null)
+
   // Load data from context or demo when itemId/sessionId changes.
-  // This effect runs when navigating to a new item or when getInputsForItem reference changes.
+  // This effect runs when navigating to a new item.
   // IMPORTANT: We update lastSavedInputsJsonRef to match what we load, so the save effect
   // knows these values are already saved and won't trigger unnecessarily.
   useEffect(() => {
     if (!itemId) return
+
+    // Only reload if itemId actually changed (not just getInputsForItem reference)
+    if (lastLoadedItemIdRef.current === itemId) {
+      return
+    }
+    lastLoadedItemIdRef.current = itemId
 
     if (sessionId === 'demo') {
       // Demo mode: load from demo data, no saving needed
