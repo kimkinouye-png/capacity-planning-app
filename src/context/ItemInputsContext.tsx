@@ -14,7 +14,7 @@ interface ItemInputsContextType {
 
 const ItemInputsContext = createContext<ItemInputsContextType | undefined>(undefined)
 
-const STORAGE_KEY = 'designCapacity.inputs'
+const STORAGE_KEY = 'designCapacity.itemInputs'
 
 function loadInputsFromStorage(): Record<string, ItemInputs> {
   if (typeof window === 'undefined') {
