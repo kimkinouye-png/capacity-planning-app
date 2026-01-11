@@ -27,7 +27,6 @@ export const demoItems: RoadmapItem[] = [
     short_key: 'F1',
     name: 'New Payment Method: Buy Now Pay Later',
     initiative: 'Revenue',
-    team_name: 'Payments',
     priority: 1,
     status: 'ready_for_sizing',
     uxSizeBand: 'L',
@@ -43,7 +42,6 @@ export const demoItems: RoadmapItem[] = [
     short_key: 'F2',
     name: 'Enhanced Checkout Flow',
     initiative: 'New Users',
-    team_name: 'Payments',
     priority: 2,
     status: 'ready_for_sizing',
     uxSizeBand: 'M',
@@ -59,7 +57,6 @@ export const demoItems: RoadmapItem[] = [
     short_key: 'F3',
     name: 'Payment Security Dashboard Updates',
     initiative: 'Revenue',
-    team_name: 'Payments',
     priority: 3,
     status: 'ready_for_sizing',
     uxSizeBand: 'S',
@@ -83,7 +80,7 @@ export const demoIntakes: PMIntake[] = [
     requirements_business: 'Integrate with third-party BNPL provider',
     requirements_technical: 'API integration, payment gateway updates',
     requirements_design: 'New payment method selection UI, terms and conditions flow',
-    surfaces_in_scope: ['Checkout', 'Web App', 'Mobile App'], // Array format with new surface options
+    surfaces_in_scope: ['Mobile iOS', 'Mobile Android', 'Web'], // Array format with flat surface options
     new_or_existing: 'new',
   },
   {
@@ -97,7 +94,7 @@ export const demoIntakes: PMIntake[] = [
     requirements_business: 'Streamline checkout process',
     requirements_technical: 'Frontend optimization, payment validation improvements',
     requirements_design: 'Simplified form design, better error handling',
-    surfaces_in_scope: ['Checkout', 'Web App', 'Mobile App'], // Array format with new surface options
+    surfaces_in_scope: ['Mobile iOS', 'Mobile Android', 'Web'], // Array format with flat surface options
     new_or_existing: 'existing',
   },
   {
@@ -111,7 +108,7 @@ export const demoIntakes: PMIntake[] = [
     requirements_business: 'Display new fraud detection metrics',
     requirements_technical: 'Backend API for fraud data',
     requirements_design: 'Dashboard updates, new data visualizations',
-    surfaces_in_scope: ['Web App'], // Array format with new surface options
+    surfaces_in_scope: ['Web'], // Array format with flat surface options
     new_or_existing: 'existing',
   },
 ]

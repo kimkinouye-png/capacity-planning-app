@@ -137,18 +137,21 @@ function ItemDetailPage() {
       const demoCD = demoContentDesignInputs.find((c) => c.roadmap_item_id === itemId)
 
       if (demoIntake) {
-        // Demo data should already be in new format, but handle legacy format just in case
+        // Demo data should already be in new flat format, but handle legacy formats just in case
         const intake = { ...demoIntake }
         if (typeof intake.surfaces_in_scope === 'string') {
-          // Legacy format: try to parse JSON and convert to array
+          // Legacy JSON string format: try to parse JSON and convert to flat array
           try {
             const surfaces = JSON.parse(intake.surfaces_in_scope || '{}')
             const surfaceArray: string[] = []
-            if (surfaces.mobile && Array.isArray(surfaces.mobile) && surfaces.mobile.length > 0) {
-              surfaceArray.push('Mobile app')
+            if (surfaces.mobile && Array.isArray(surfaces.mobile)) {
+              // Convert hierarchical mobile options to flat format
+              if (surfaces.mobile.includes('iOS')) surfaceArray.push('Mobile iOS')
+              if (surfaces.mobile.includes('Android')) surfaceArray.push('Mobile Android')
+              if (surfaces.mobile.includes('Mobile Web')) surfaceArray.push('Mobile Web')
             }
             if (surfaces.web === true || surfaces.web === 'true') {
-              surfaceArray.push('Web app')
+              surfaceArray.push('Web')
             }
             if (surfaces.other && Array.isArray(surfaces.other)) {
               surfaceArray.push(...surfaces.other)
@@ -157,6 +160,21 @@ function ItemDetailPage() {
           } catch {
             intake.surfaces_in_scope = []
           }
+        } else if (Array.isArray(intake.surfaces_in_scope)) {
+          // Migrate from old hierarchical array format to new flat format
+          const migrated: string[] = []
+          intake.surfaces_in_scope.forEach((surface: string) => {
+            if (surface === 'iOS') {
+              migrated.push('Mobile iOS')
+            } else if (surface === 'Android') {
+              migrated.push('Mobile Android')
+            } else if (surface === 'Mobile Web' || surface === 'Web') {
+              migrated.push(surface) // Keep as-is
+            } else {
+              migrated.push(surface) // Keep other values as-is
+            }
+          })
+          intake.surfaces_in_scope = migrated
         }
         setPMIntake(intake)
       } else {
@@ -195,19 +213,21 @@ function ItemDetailPage() {
       const inputs = getInputsForItem(itemId)
       if (inputs) {
         // Data exists in context: load it and mark as saved
-        // Migrate old JSON string format to new array format if needed
+        // Migrate old formats to new flat array format if needed
         const intake = { ...inputs.intake }
         if (typeof intake.surfaces_in_scope === 'string') {
-          // Legacy format: try to parse JSON and convert to array
+          // Legacy JSON string format: try to parse JSON and convert to flat array
           try {
             const surfaces = JSON.parse(intake.surfaces_in_scope || '{}')
             const surfaceArray: string[] = []
-            // Map old format to new format
-            if (surfaces.mobile && Array.isArray(surfaces.mobile) && surfaces.mobile.length > 0) {
-              surfaceArray.push('Mobile app')
+            if (surfaces.mobile && Array.isArray(surfaces.mobile)) {
+              // Convert hierarchical mobile options to flat format
+              if (surfaces.mobile.includes('iOS')) surfaceArray.push('Mobile iOS')
+              if (surfaces.mobile.includes('Android')) surfaceArray.push('Mobile Android')
+              if (surfaces.mobile.includes('Mobile Web')) surfaceArray.push('Mobile Web')
             }
             if (surfaces.web === true || surfaces.web === 'true') {
-              surfaceArray.push('Web app')
+              surfaceArray.push('Web')
             }
             if (surfaces.other && Array.isArray(surfaces.other)) {
               surfaceArray.push(...surfaces.other)
@@ -217,6 +237,21 @@ function ItemDetailPage() {
             // If parsing fails, default to empty array
             intake.surfaces_in_scope = []
           }
+        } else if (Array.isArray(intake.surfaces_in_scope)) {
+          // Migrate from old hierarchical array format to new flat format
+          const migrated: string[] = []
+          intake.surfaces_in_scope.forEach((surface: string) => {
+            if (surface === 'iOS') {
+              migrated.push('Mobile iOS')
+            } else if (surface === 'Android') {
+              migrated.push('Mobile Android')
+            } else if (surface === 'Mobile Web' || surface === 'Web') {
+              migrated.push(surface) // Keep as-is
+            } else {
+              migrated.push(surface) // Keep other values as-is
+            }
+          })
+          intake.surfaces_in_scope = migrated
         }
         setPMIntake(intake)
         // Ensure factor scores are present, defaulting to 3 if missing
