@@ -34,11 +34,11 @@ export default function FactorScoreInput({
   const currentValue = value || 3
 
   return (
-    <FormControl>
-      <FormLabel mb={2}>
-        <HStack spacing={2}>
-          <Text>{factor.label}</Text>
-          <Text as="span" fontSize="xs" color="gray.500" fontWeight="normal">
+    <FormControl textAlign="left">
+      <FormLabel mb={2} textAlign="left">
+        <HStack spacing={2} justify="flex-start" align="start">
+          <Text textAlign="left">{factor.label}</Text>
+          <Text as="span" fontSize="xs" color="gray.500" fontWeight="normal" textAlign="left">
             (×{factor.weight.toFixed(1)})
           </Text>
         </HStack>
@@ -50,10 +50,10 @@ export default function FactorScoreInput({
         onChange={(value) => onChange(parseInt(value, 10))}
         mb={2}
       >
-        <HStack spacing={4} wrap="wrap">
+        <HStack spacing={4} wrap="wrap" justify="flex-start" align="start">
           {[1, 2, 3, 4, 5].map((score) => (
             <Radio key={score} value={score.toString()} size="md">
-              <Text fontSize="sm" ml={1}>
+              <Text fontSize="sm" ml={1} textAlign="left">
                 {score === 1 ? '1 - Low' : score === 3 ? '3 - Medium' : score === 5 ? '5 - High' : score}
               </Text>
             </Radio>
@@ -62,7 +62,7 @@ export default function FactorScoreInput({
       </RadioGroup>
       
       {/* Helper text explaining what the factor measures */}
-      <Text fontSize="xs" color="gray.600" mt={1}>
+      <Text fontSize="xs" color="gray.600" mt={1} textAlign="left">
         {factor.description}
       </Text>
     </FormControl>
