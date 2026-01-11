@@ -13,9 +13,6 @@ function App() {
           <ChakraLink as={Link} to="/" color="blue.500">
             Home
           </ChakraLink>
-          <ChakraLink as={Link} to="/sessions/demo" color="blue.500">
-            Demo Session
-          </ChakraLink>
         </Stack>
       </Box>
       <Routes>
