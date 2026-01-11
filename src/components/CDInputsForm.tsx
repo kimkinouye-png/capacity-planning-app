@@ -40,8 +40,8 @@ export default function CDInputsForm({ value, onChange, sizeBand }: CDInputsForm
 
   return (
     <Stack spacing={4}>
-      <FormControl>
-        <FormLabel>Is Content Required</FormLabel>
+      <FormControl textAlign="left">
+        <FormLabel textAlign="left">Is Content Required</FormLabel>
         <Select
           value={value.is_content_required || 'yes'}
           onChange={(e) =>
@@ -54,7 +54,7 @@ export default function CDInputsForm({ value, onChange, sizeBand }: CDInputsForm
         </Select>
       </FormControl>
 
-      <FormControl>
+      <FormControl textAlign="left">
         <Checkbox
           isChecked={value.financial_or_regulated_language || false}
           onChange={(e) =>
@@ -65,7 +65,7 @@ export default function CDInputsForm({ value, onChange, sizeBand }: CDInputsForm
         </Checkbox>
       </FormControl>
 
-      <FormControl>
+      <FormControl textAlign="left">
         <Checkbox
           isChecked={value.user_commitments_or_confirmations || false}
           onChange={(e) =>
@@ -76,7 +76,7 @@ export default function CDInputsForm({ value, onChange, sizeBand }: CDInputsForm
         </Checkbox>
       </FormControl>
 
-      <FormControl>
+      <FormControl textAlign="left">
         <Checkbox
           isChecked={value.claims_guarantees_or_promises || false}
           onChange={(e) =>
@@ -87,7 +87,7 @@ export default function CDInputsForm({ value, onChange, sizeBand }: CDInputsForm
         </Checkbox>
       </FormControl>
 
-      <FormControl>
+      <FormControl textAlign="left">
         <Checkbox
           isChecked={value.trust_sensitive_moments || false}
           onChange={(e) => handleCheckboxChange('trust_sensitive_moments', e.target.checked)}
@@ -96,7 +96,7 @@ export default function CDInputsForm({ value, onChange, sizeBand }: CDInputsForm
         </Checkbox>
       </FormControl>
 
-      <FormControl>
+      <FormControl textAlign="left">
         <Checkbox
           isChecked={value.ai_driven_or_personalized_decisions || false}
           onChange={(e) =>
@@ -107,7 +107,7 @@ export default function CDInputsForm({ value, onChange, sizeBand }: CDInputsForm
         </Checkbox>
       </FormControl>
 
-      <FormControl>
+      <FormControl textAlign="left">
         <Checkbox
           isChecked={value.ranking_recommendations_or_explanations || false}
           onChange={(e) =>
@@ -118,8 +118,8 @@ export default function CDInputsForm({ value, onChange, sizeBand }: CDInputsForm
         </Checkbox>
       </FormControl>
 
-      <FormControl>
-        <FormLabel>Legal Policy or Compliance Review</FormLabel>
+      <FormControl textAlign="left">
+        <FormLabel textAlign="left">Legal Policy or Compliance Review</FormLabel>
         <Select
           value={value.legal_policy_or_compliance_review || 'no'}
           onChange={(e) =>
@@ -135,7 +135,7 @@ export default function CDInputsForm({ value, onChange, sizeBand }: CDInputsForm
         </Select>
       </FormControl>
 
-      <FormControl>
+      <FormControl textAlign="left">
         <Checkbox
           isChecked={value.introducing_new_terminology || false}
           onChange={(e) =>
@@ -146,8 +146,8 @@ export default function CDInputsForm({ value, onChange, sizeBand }: CDInputsForm
         </Checkbox>
       </FormControl>
 
-      <FormControl>
-        <FormLabel>Guidance Needed</FormLabel>
+      <FormControl textAlign="left">
+        <FormLabel textAlign="left">Guidance Needed</FormLabel>
         <Select
           value={value.guidance_needed || 'minimal'}
           onChange={(e) =>
@@ -161,9 +161,9 @@ export default function CDInputsForm({ value, onChange, sizeBand }: CDInputsForm
       </FormControl>
 
       <Stack spacing={4} mt={6} pt={6} borderTop="1px" borderColor="gray.200">
-        <Box>
-          <HStack spacing={3} mb={4}>
-            <Heading size="sm" as="h3">
+        <Box textAlign="left">
+          <HStack spacing={3} mb={4} justify="flex-start" align="start">
+            <Heading size="sm" as="h3" textAlign="left">
               Content Effort Factors
             </Heading>
             {sizeBand && (
@@ -172,7 +172,7 @@ export default function CDInputsForm({ value, onChange, sizeBand }: CDInputsForm
               </Badge>
             )}
           </HStack>
-          <Text fontSize="sm" color="gray.600" mb={4}>
+          <Text fontSize="sm" color="gray.600" mb={4} textAlign="left">
             Score each factor from 1 (Low) to 5 (High) to estimate Content design effort.
           </Text>
         </Box>

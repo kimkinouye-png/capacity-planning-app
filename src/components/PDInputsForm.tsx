@@ -37,7 +37,7 @@ export default function PDInputsForm({ value, onChange, sizeBand }: PDInputsForm
 
   return (
     <Stack spacing={4}>
-      <FormControl>
+      <FormControl textAlign="left">
         <Checkbox
           isChecked={value.net_new_patterns || false}
           onChange={(e) => handleCheckboxChange('net_new_patterns', e.target.checked)}
@@ -46,7 +46,7 @@ export default function PDInputsForm({ value, onChange, sizeBand }: PDInputsForm
         </Checkbox>
       </FormControl>
 
-      <FormControl>
+      <FormControl textAlign="left">
         <Checkbox
           isChecked={value.changes_to_information_architecture || false}
           onChange={(e) =>
@@ -57,7 +57,7 @@ export default function PDInputsForm({ value, onChange, sizeBand }: PDInputsForm
         </Checkbox>
       </FormControl>
 
-      <FormControl>
+      <FormControl textAlign="left">
         <Checkbox
           isChecked={value.multiple_user_states_or_paths || false}
           onChange={(e) =>
@@ -68,7 +68,7 @@ export default function PDInputsForm({ value, onChange, sizeBand }: PDInputsForm
         </Checkbox>
       </FormControl>
 
-      <FormControl>
+      <FormControl textAlign="left">
         <Checkbox
           isChecked={value.significant_edge_cases_or_error_handling || false}
           onChange={(e) =>
@@ -79,7 +79,7 @@ export default function PDInputsForm({ value, onChange, sizeBand }: PDInputsForm
         </Checkbox>
       </FormControl>
 
-      <FormControl>
+      <FormControl textAlign="left">
         <Checkbox
           isChecked={value.responsive_or_adaptive_layouts || false}
           onChange={(e) =>
@@ -90,8 +90,8 @@ export default function PDInputsForm({ value, onChange, sizeBand }: PDInputsForm
         </Checkbox>
       </FormControl>
 
-      <FormControl>
-        <FormLabel>Other</FormLabel>
+      <FormControl textAlign="left">
+        <FormLabel textAlign="left">Other</FormLabel>
         <Textarea
           value={value.other || ''}
           onChange={(e) => handleTextChange('other', e.target.value)}
@@ -100,9 +100,9 @@ export default function PDInputsForm({ value, onChange, sizeBand }: PDInputsForm
       </FormControl>
 
       <Stack spacing={4} mt={6} pt={6} borderTop="1px" borderColor="gray.200">
-        <Box>
-          <HStack spacing={3} mb={4}>
-            <Heading size="sm" as="h3">
+        <Box textAlign="left">
+          <HStack spacing={3} mb={4} justify="flex-start" align="start">
+            <Heading size="sm" as="h3" textAlign="left">
               UX Complexity Factors
             </Heading>
             {sizeBand && (
@@ -111,7 +111,7 @@ export default function PDInputsForm({ value, onChange, sizeBand }: PDInputsForm
               </Badge>
             )}
           </HStack>
-          <Text fontSize="sm" color="gray.600" mb={4}>
+          <Text fontSize="sm" color="gray.600" mb={4} textAlign="left">
             Score each factor from 1 (Low) to 5 (High) to estimate UX design complexity.
           </Text>
         </Box>
