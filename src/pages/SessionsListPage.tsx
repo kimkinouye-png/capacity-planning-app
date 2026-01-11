@@ -36,8 +36,12 @@ import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
 import { useItemInputs } from '../context/ItemInputsContext'
 import type { PlanningSession, PlanningPeriod } from '../domain/types'
+import { getWeeksForPeriod } from '../config/quarterConfig'
 
 const QUARTER_OPTIONS: PlanningPeriod[] = ['2026-Q1', '2026-Q2', '2026-Q3', '2026-Q4']
+
+// Sprint length is fixed at 2 weeks (not user-configurable)
+const SPRINT_LENGTH_WEEKS = 2
 import {
   demoItems,
   demoIntakes,
@@ -151,33 +155,29 @@ function SessionsListPage() {
   const [formData, setFormData] = useState({
     name: '',
     planningPeriod: '2026-Q4' as PlanningPeriod, // Default to Q4 2026
-    weeks_per_period: 13,
-    sprint_length_weeks: 2,
     ux_designers: 3,
     content_designers: 2,
-    created_by: '',
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    // Calculate weeks_per_period from the selected planning period
+    const weeksPerPeriod = getWeeksForPeriod(formData.planningPeriod)
+    
     const newSession = createSession({
       name: formData.name,
       planningPeriod: formData.planningPeriod,
-      weeks_per_period: formData.weeks_per_period,
-      sprint_length_weeks: formData.sprint_length_weeks,
+      weeks_per_period: weeksPerPeriod,
+      sprint_length_weeks: SPRINT_LENGTH_WEEKS, // Fixed constant
       ux_designers: formData.ux_designers,
       content_designers: formData.content_designers,
-      created_by: formData.created_by || undefined,
     })
     onClose()
     setFormData({
       name: '',
       planningPeriod: '2026-Q4',
-      weeks_per_period: 13,
-      sprint_length_weeks: 2,
       ux_designers: 3,
       content_designers: 2,
-      created_by: '',
     })
     navigate(`/sessions/${newSession.id}`)
   }
@@ -187,15 +187,15 @@ function SessionsListPage() {
     const currentYear = new Date().getFullYear()
     const currentQuarter = Math.ceil((new Date().getMonth() + 1) / 3)
     const defaultPeriod: PlanningPeriod = `${currentYear}-Q${currentQuarter}` as PlanningPeriod
+    const weeksPerPeriod = getWeeksForPeriod(defaultPeriod)
     
     const newSession = createSession({
       name: 'Demo Session',
       planningPeriod: defaultPeriod,
-      weeks_per_period: 12,
-      sprint_length_weeks: 2,
+      weeks_per_period: weeksPerPeriod,
+      sprint_length_weeks: SPRINT_LENGTH_WEEKS, // Fixed constant
       ux_designers: 3,
       content_designers: 1,
-      created_by: 'demo-helper',
     })
 
     // Seed 2-3 roadmap items from demo data (using first 2 items)
@@ -390,41 +390,12 @@ function SessionsListPage() {
                       </option>
                     ))}
                   </Select>
-                </FormControl>
-
-                <FormControl isRequired>
-                  <FormLabel>Weeks per Period</FormLabel>
-                  <NumberInput
-                    value={formData.weeks_per_period}
-                    onChange={(_, valueAsNumber) =>
-                      setFormData({ ...formData, weeks_per_period: valueAsNumber || 13 })
-                    }
-                    min={1}
-                  >
-                    <NumberInputField />
-                    <NumberInputStepper>
-                      <NumberIncrementStepper />
-                      <NumberDecrementStepper />
-                    </NumberInputStepper>
-                  </NumberInput>
-                </FormControl>
-
-                <FormControl isRequired>
-                  <FormLabel>Sprint Length (weeks)</FormLabel>
-                  <NumberInput
-                    value={formData.sprint_length_weeks}
-                    onChange={(_, valueAsNumber) =>
-                      setFormData({ ...formData, sprint_length_weeks: valueAsNumber || 2 })
-                    }
-                    min={1}
-                    step={0.5}
-                  >
-                    <NumberInputField />
-                    <NumberInputStepper>
-                      <NumberIncrementStepper />
-                      <NumberDecrementStepper />
-                    </NumberInputStepper>
-                  </NumberInput>
+                  <Text fontSize="sm" color="gray.500" mt={1}>
+                    {getWeeksForPeriod(formData.planningPeriod)} weeks per period
+                  </Text>
+                  <Text fontSize="sm" color="gray.500" mt={1}>
+                    Assumes {SPRINT_LENGTH_WEEKS}-week sprints (about {Math.floor(getWeeksForPeriod(formData.planningPeriod) / SPRINT_LENGTH_WEEKS)} sprints per quarter).
+                  </Text>
                 </FormControl>
 
                 <FormControl isRequired>
@@ -459,15 +430,6 @@ function SessionsListPage() {
                       <NumberDecrementStepper />
                     </NumberInputStepper>
                   </NumberInput>
-                </FormControl>
-
-                <FormControl>
-                  <FormLabel>Created By (optional)</FormLabel>
-                  <Input
-                    value={formData.created_by}
-                    onChange={(e) => setFormData({ ...formData, created_by: e.target.value })}
-                    placeholder="Your name"
-                  />
                 </FormControl>
               </Stack>
             </ModalBody>
