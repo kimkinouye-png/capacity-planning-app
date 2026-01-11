@@ -1,7 +1,10 @@
+export type PlanningPeriod = '2026-Q1' | '2026-Q2' | '2026-Q3' | '2026-Q4'
+
 export interface PlanningSession {
   id: string
   name: string
-  planning_period: string
+  planning_period?: string // Legacy field, kept for backwards compatibility
+  planningPeriod?: PlanningPeriod // Single selected quarter
   weeks_per_period: number
   sprint_length_weeks: number
   ux_designers: number

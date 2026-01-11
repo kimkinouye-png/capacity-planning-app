@@ -9,7 +9,8 @@ import type {
 export const demoSession: PlanningSession = {
   id: 'demo',
   name: 'Payments Q2 2026',
-  planning_period: '2026-Q2',
+  planning_period: '2026-Q2', // Legacy field for backwards compatibility
+  planningPeriod: '2026-Q2', // Single selected quarter
   weeks_per_period: 13,
   sprint_length_weeks: 2,
   ux_designers: 3,

@@ -2,9 +2,6 @@ import {
   Box,
   Heading,
   Stack,
-  List,
-  ListItem,
-  Link as ChakraLink,
   Button,
   Modal,
   ModalOverlay,
@@ -22,12 +19,25 @@ import {
   NumberInputStepper,
   NumberIncrementStepper,
   NumberDecrementStepper,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  TableContainer,
+  Text,
+  Link as ChakraLink,
+  Select,
 } from '@chakra-ui/react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
 import { useItemInputs } from '../context/ItemInputsContext'
+import type { PlanningSession, PlanningPeriod } from '../domain/types'
+
+const QUARTER_OPTIONS: PlanningPeriod[] = ['2026-Q1', '2026-Q2', '2026-Q3', '2026-Q4']
 import {
   demoItems,
   demoIntakes,
@@ -35,16 +45,112 @@ import {
   demoContentDesignInputs,
 } from '../demo/demoSession'
 
+interface ScenarioMetrics {
+  uxFocusCapacity: number
+  uxFocusDemand: number | null
+  contentFocusCapacity: number
+  contentFocusDemand: number | null
+  uxWorkCapacity: number
+  uxWorkDemand: number | null
+  contentWorkCapacity: number
+  contentWorkDemand: number | null
+  status: 'Within capacity' | 'Over capacity' | null
+}
+
+// Calculate capacity and demand metrics for a scenario
+function calculateScenarioMetrics(
+  session: PlanningSession,
+  items: ReturnType<typeof useRoadmapItems>['getItemsForSession']
+): ScenarioMetrics {
+  // Safely calculate capacities with defaults
+  const uxDesigners = session.ux_designers ?? 0
+  const contentDesigners = session.content_designers ?? 0
+  const weeksPerPeriod = session.weeks_per_period ?? 0
+  
+  const uxFocusCapacity = uxDesigners * weeksPerPeriod
+  const contentFocusCapacity = contentDesigners * weeksPerPeriod
+  const uxWorkCapacity = weeksPerPeriod // Calendar weeks
+  const contentWorkCapacity = weeksPerPeriod // Calendar weeks
+
+  // Calculate demands from items - safely handle undefined/null
+  let sessionItems: ReturnType<typeof items> = []
+  try {
+    sessionItems = items(session.id) || []
+  } catch (error) {
+    console.error('Error getting items for session:', error)
+    sessionItems = []
+  }
+  
+  if (!sessionItems || sessionItems.length === 0) {
+    return {
+      uxFocusCapacity,
+      uxFocusDemand: null,
+      contentFocusCapacity,
+      contentFocusDemand: null,
+      uxWorkCapacity,
+      uxWorkDemand: null,
+      contentWorkCapacity,
+      contentWorkDemand: null,
+      status: null,
+    }
+  }
+
+  let uxFocusDemand = 0
+  let contentFocusDemand = 0
+  let uxWorkDemand = 0
+  let contentWorkDemand = 0
+  let hasValidData = false
+
+  sessionItems.forEach((item) => {
+    // Check if we have valid focus/work weeks data
+    if (
+      typeof item.uxFocusWeeks === 'number' &&
+      typeof item.uxWorkWeeks === 'number' &&
+      typeof item.contentFocusWeeks === 'number' &&
+      typeof item.contentWorkWeeks === 'number'
+    ) {
+      uxFocusDemand += item.uxFocusWeeks
+      contentFocusDemand += item.contentFocusWeeks
+      uxWorkDemand = Math.max(uxWorkDemand, item.uxWorkWeeks) // Work weeks is calendar span, so take max
+      contentWorkDemand = Math.max(contentWorkDemand, item.contentWorkWeeks)
+      hasValidData = true
+    }
+  })
+
+  // Determine status
+  let status: 'Within capacity' | 'Over capacity' | null = null
+  if (hasValidData) {
+    const isOverCapacity =
+      uxFocusDemand > uxFocusCapacity ||
+      contentFocusDemand > contentFocusCapacity ||
+      uxWorkDemand > uxWorkCapacity ||
+      contentWorkDemand > contentWorkCapacity
+    status = isOverCapacity ? 'Over capacity' : 'Within capacity'
+  }
+
+  return {
+    uxFocusCapacity,
+    uxFocusDemand: hasValidData ? uxFocusDemand : null,
+    contentFocusCapacity,
+    contentFocusDemand: hasValidData ? contentFocusDemand : null,
+    uxWorkCapacity,
+    uxWorkDemand: hasValidData ? uxWorkDemand : null,
+    contentWorkCapacity,
+    contentWorkDemand: hasValidData ? contentWorkDemand : null,
+    status,
+  }
+}
+
 function SessionsListPage() {
   const { sessions, createSession } = usePlanningSessions()
-  const { createItem } = useRoadmapItems()
+  const { createItem, getItemsForSession } = useRoadmapItems()
   const { setInputsForItem } = useItemInputs()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const navigate = useNavigate()
 
   const [formData, setFormData] = useState({
     name: '',
-    planning_period: '',
+    planningPeriod: '2026-Q4' as PlanningPeriod, // Default to Q4 2026
     weeks_per_period: 13,
     sprint_length_weeks: 2,
     ux_designers: 3,
@@ -55,13 +161,18 @@ function SessionsListPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const newSession = createSession({
-      ...formData,
+      name: formData.name,
+      planningPeriod: formData.planningPeriod,
+      weeks_per_period: formData.weeks_per_period,
+      sprint_length_weeks: formData.sprint_length_weeks,
+      ux_designers: formData.ux_designers,
+      content_designers: formData.content_designers,
       created_by: formData.created_by || undefined,
     })
     onClose()
     setFormData({
       name: '',
-      planning_period: '',
+      planningPeriod: '2026-Q4',
       weeks_per_period: 13,
       sprint_length_weeks: 2,
       ux_designers: 3,
@@ -73,9 +184,13 @@ function SessionsListPage() {
 
   const handleCreateDemoSession = () => {
     // Create a new session with default capacity
+    const currentYear = new Date().getFullYear()
+    const currentQuarter = Math.ceil((new Date().getMonth() + 1) / 3)
+    const defaultPeriod: PlanningPeriod = `${currentYear}-Q${currentQuarter}` as PlanningPeriod
+    
     const newSession = createSession({
       name: 'Demo Session',
-      planning_period: new Date().getFullYear() + '-Q' + Math.ceil((new Date().getMonth() + 1) / 3),
+      planningPeriod: defaultPeriod,
       weeks_per_period: 12,
       sprint_length_weeks: 2,
       ux_designers: 3,
@@ -114,43 +229,141 @@ function SessionsListPage() {
     navigate(`/sessions/${newSession.id}`)
   }
 
+  // Calculate metrics for each scenario - safely handle undefined/null
+  const scenarioMetrics = useMemo(() => {
+    if (!sessions || sessions.length === 0) {
+      return []
+    }
+    return sessions
+      .filter((session) => session != null) // Filter out null/undefined sessions
+      .map((session) => {
+        try {
+          return {
+            session,
+            metrics: calculateScenarioMetrics(session, getItemsForSession),
+          }
+        } catch (error) {
+          console.error('Error calculating metrics for session:', session?.id, error)
+          // Return safe defaults if calculation fails
+          return {
+            session,
+            metrics: {
+              uxFocusCapacity: 0,
+              uxFocusDemand: null,
+              contentFocusCapacity: 0,
+              contentFocusDemand: null,
+              uxWorkCapacity: 0,
+              uxWorkDemand: null,
+              contentWorkCapacity: 0,
+              contentWorkDemand: null,
+              status: null,
+            },
+          }
+        }
+      })
+  }, [sessions, getItemsForSession])
+
   return (
     <Box p={8}>
       <Stack direction="row" justify="space-between" align="center" mb={6}>
-        <Heading size="lg">Planning Sessions</Heading>
+        <Heading size="lg">Planning Scenarios</Heading>
         <Stack direction="row" spacing={3}>
-          <Button variant="outline" colorScheme="blue" onClick={handleCreateDemoSession}>
+          <Button variant="outline" colorScheme="gray" onClick={handleCreateDemoSession}>
             Create demo session
           </Button>
           <Button colorScheme="blue" onClick={onOpen}>
-            New planning session
+            New scenario
           </Button>
         </Stack>
       </Stack>
 
-      <List spacing={2}>
-        {sessions.length === 0 ? (
-          <ListItem>
-            <Box p={4} textAlign="center" color="gray.500">
-              No planning sessions yet. Create one to get started.
-            </Box>
-          </ListItem>
-        ) : (
-          sessions.map((session) => (
-            <ListItem key={session.id}>
-              <ChakraLink as={Link} to={`/sessions/${session.id}`} color="blue.500">
-                {session.name} ({session.planning_period})
-              </ChakraLink>
-            </ListItem>
-          ))
-        )}
-      </List>
+      <TableContainer>
+        <Table variant="simple">
+          <Thead>
+            <Tr>
+              <Th>Scenario Name</Th>
+              <Th>Planning Period</Th>
+              <Th>UX: Focus Capacity vs Demand</Th>
+              <Th>Content: Focus Capacity vs Demand</Th>
+              <Th>UX: Work Capacity vs Demand</Th>
+              <Th>Content: Work Capacity vs Demand</Th>
+              <Th>Status</Th>
+            </Tr>
+          </Thead>
+          <Tbody>
+            {sessions.length === 0 ? (
+              <Tr>
+                <Td colSpan={7} textAlign="center" color="gray.500" py={8}>
+                  No planning scenarios yet. Create one to get started.
+                </Td>
+              </Tr>
+            ) : (
+              scenarioMetrics.map(({ session, metrics }) => (
+                <Tr key={session?.id || 'unknown'}>
+                  <Td>
+                    {session?.id ? (
+                      <ChakraLink as={Link} to={`/sessions/${session.id}`} color="blue.500">
+                        {session.name || 'Unnamed Scenario'}
+                      </ChakraLink>
+                    ) : (
+                      <Text>{session?.name || 'Unnamed Scenario'}</Text>
+                    )}
+                  </Td>
+                  <Td>
+                    {session?.planningPeriod || session?.planning_period || '—'}
+                  </Td>
+                  <Td>
+                    {metrics && typeof metrics.uxFocusCapacity === 'number' && metrics.uxFocusDemand !== null && typeof metrics.uxFocusDemand === 'number'
+                      ? `${metrics.uxFocusCapacity.toFixed(1)} / ${metrics.uxFocusDemand.toFixed(1)}`
+                      : metrics && typeof metrics.uxFocusCapacity === 'number'
+                      ? `${metrics.uxFocusCapacity.toFixed(1)} / —`
+                      : '—'}
+                  </Td>
+                  <Td>
+                    {metrics && typeof metrics.contentFocusCapacity === 'number' && metrics.contentFocusDemand !== null && typeof metrics.contentFocusDemand === 'number'
+                      ? `${metrics.contentFocusCapacity.toFixed(1)} / ${metrics.contentFocusDemand.toFixed(1)}`
+                      : metrics && typeof metrics.contentFocusCapacity === 'number'
+                      ? `${metrics.contentFocusCapacity.toFixed(1)} / —`
+                      : '—'}
+                  </Td>
+                  <Td>
+                    {metrics && typeof metrics.uxWorkCapacity === 'number' && metrics.uxWorkDemand !== null && typeof metrics.uxWorkDemand === 'number'
+                      ? `${metrics.uxWorkCapacity.toFixed(1)} / ${metrics.uxWorkDemand.toFixed(1)}`
+                      : metrics && typeof metrics.uxWorkCapacity === 'number'
+                      ? `${metrics.uxWorkCapacity.toFixed(1)} / —`
+                      : '—'}
+                  </Td>
+                  <Td>
+                    {metrics && typeof metrics.contentWorkCapacity === 'number' && metrics.contentWorkDemand !== null && typeof metrics.contentWorkDemand === 'number'
+                      ? `${metrics.contentWorkCapacity.toFixed(1)} / ${metrics.contentWorkDemand.toFixed(1)}`
+                      : metrics && typeof metrics.contentWorkCapacity === 'number'
+                      ? `${metrics.contentWorkCapacity.toFixed(1)} / —`
+                      : '—'}
+                  </Td>
+                  <Td>
+                    {metrics && metrics.status ? (
+                      <Text
+                        color={metrics.status === 'Within capacity' ? 'green.600' : 'red.600'}
+                        fontWeight="medium"
+                      >
+                        {metrics.status}
+                      </Text>
+                    ) : (
+                      '—'
+                    )}
+                  </Td>
+                </Tr>
+              ))
+            )}
+          </Tbody>
+        </Table>
+      </TableContainer>
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent>
           <form onSubmit={handleSubmit}>
-            <ModalHeader>Create New Planning Session</ModalHeader>
+            <ModalHeader>Create New Scenario</ModalHeader>
             <ModalCloseButton />
             <ModalBody>
               <Stack spacing={4}>
@@ -165,13 +378,18 @@ function SessionsListPage() {
 
                 <FormControl isRequired>
                   <FormLabel>Planning Period</FormLabel>
-                  <Input
-                    value={formData.planning_period}
+                  <Select
+                    value={formData.planningPeriod}
                     onChange={(e) =>
-                      setFormData({ ...formData, planning_period: e.target.value })
+                      setFormData({ ...formData, planningPeriod: e.target.value as PlanningPeriod })
                     }
-                    placeholder="e.g., 2026-Q2"
-                  />
+                  >
+                    {QUARTER_OPTIONS.map((period) => (
+                      <option key={period} value={period}>
+                        {period}
+                      </option>
+                    ))}
+                  </Select>
                 </FormControl>
 
                 <FormControl isRequired>
@@ -259,7 +477,7 @@ function SessionsListPage() {
                 Cancel
               </Button>
               <Button colorScheme="blue" type="submit">
-                Create Session
+                Create Scenario
               </Button>
             </ModalFooter>
           </form>
