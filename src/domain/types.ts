@@ -32,14 +32,14 @@ export interface PMIntake {
   roadmap_item_id: string
   objective: string
   kpis: string
-  goals: string
+  goals?: string // Hidden from UI but preserved for backwards compatibility
   market: string
   audience: string
   timeline: string
   requirements_business: string
   requirements_technical: string
   requirements_design: string
-  surfaces_in_scope: string
+  surfaces_in_scope: string[] // Changed from string (JSON) to string array
   new_or_existing: 'new' | 'existing'
 }
 

@@ -82,11 +82,7 @@ export const demoIntakes: PMIntake[] = [
     requirements_business: 'Integrate with third-party BNPL provider',
     requirements_technical: 'API integration, payment gateway updates',
     requirements_design: 'New payment method selection UI, terms and conditions flow',
-    surfaces_in_scope: JSON.stringify({
-      mobile: ['iOS', 'Android'],
-      web: true,
-      other: [],
-    }),
+    surfaces_in_scope: ['Web app', 'Mobile app'], // New array format
     new_or_existing: 'new',
   },
   {
@@ -100,11 +96,7 @@ export const demoIntakes: PMIntake[] = [
     requirements_business: 'Streamline checkout process',
     requirements_technical: 'Frontend optimization, payment validation improvements',
     requirements_design: 'Simplified form design, better error handling',
-    surfaces_in_scope: JSON.stringify({
-      mobile: ['iOS', 'Android'],
-      web: true,
-      other: [],
-    }),
+    surfaces_in_scope: ['Web app', 'Mobile app'], // New array format
     new_or_existing: 'existing',
   },
   {
@@ -118,11 +110,7 @@ export const demoIntakes: PMIntake[] = [
     requirements_business: 'Display new fraud detection metrics',
     requirements_technical: 'Backend API for fraud data',
     requirements_design: 'Dashboard updates, new data visualizations',
-    surfaces_in_scope: JSON.stringify({
-      mobile: [],
-      web: true,
-      other: [],
-    }),
+    surfaces_in_scope: ['Web app'], // New array format
     new_or_existing: 'existing',
   },
 ]

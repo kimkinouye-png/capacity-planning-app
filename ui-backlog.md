@@ -13,6 +13,16 @@
   - Desired: 
   - Priority: [ ]
 
+- [ ] **Single-roadmap focus: De-emphasize multi-session list visually**
+  - Current: Multi-session list is primary focus
+  - Desired: Smaller list styling, clearer primary CTA to open the current roadmap. Clarify that users typically work in one active roadmap at a time.
+  - Priority: [Should]
+
+- [ ] **Portfolio-style overview for multiple sessions**
+  - Current: Simple list view
+  - Desired: More advanced overview once single-roadmap flow is solid
+  - Priority: [Nice]
+
 - [ ] **Empty state design (no sessions)**
   - Current: 
   - Desired: 
@@ -152,13 +162,23 @@
 
 - [ ] **Form field labels and descriptions**
   - Current: 
-  - Desired: 
-  - Priority: [ ]
+  - Desired: Review copy for PM Intake labels and descriptions to align with focus-time/work-week conceptual model (clarifying this is about planning effort, not just documenting features)
+  - Priority: [Should]
 
 - [ ] **Input placeholders and helper text**
   - Current: 
   - Desired: 
   - Priority: [ ]
+
+- [ ] **Surfaces in Scope: Convert to checkbox list**
+  - Current: Free-text input field
+  - Desired: List of checkboxes for common surfaces (checkout, account, emails, notifications, mobile app, web app), storing selections as an array
+  - Priority: [Must]
+
+- [ ] **Remove or hide 'Goal' section**
+  - Current: 'Goal' field is visible
+  - Desired: Remove or hide for now so PMs primarily use 'Objectives and KPIs'. Keep underlying data type available for future use.
+  - Priority: [Must]
 
 #### Product Design Tab
 - [ ] **Tab label and helper text**
@@ -176,6 +196,21 @@
   - Desired: 
   - Priority: [ ]
 
+- [ ] **Make UX factor weights configurable**
+  - Current: Factor weights are hardcoded
+  - Desired: Configurable via central effortModel config file, with clear labels and comments explaining each factor and its default weight
+  - Priority: [Must]
+
+- [ ] **Improve UX factor inputs layout**
+  - Current: Factor inputs (1-5 scores) are in a simple list
+  - Desired: Grouped sections, consistent control type, helper text under each factor for easier scanning and editing
+  - Priority: [Should]
+
+- [ ] **Visual indicator for calculated UX size band**
+  - Current: Size band shown in summary box below form
+  - Desired: Add small visual indicators (e.g., pill or badge) for calculated UX size band (XS–XL) next to the factor section
+  - Priority: [Nice]
+
 #### Content Design Tab
 - [ ] **Tab label and helper text**
   - Current: 
@@ -192,6 +227,21 @@
   - Desired: 
   - Priority: [ ]
 
+- [ ] **Mirror UX factor model structure for Content**
+  - Current: Content factors may not be fully structured
+  - Desired: Clearly defined factors and weights in the same config file as UX factors
+  - Priority: [Must]
+
+- [ ] **Align layout with Product Design tab**
+  - Current: Content Design tab may have different layout/interaction patterns
+  - Desired: Consistent experience between UX and Content designers
+  - Priority: [Should]
+
+- [ ] **Add explanation of content size band mapping**
+  - Current: Size bands are shown but mapping may not be clear
+  - Desired: Concise explanation of how content size bands map to focus-time weeks and work-week spans
+  - Priority: [Nice]
+
 #### Size Estimates Section
 - [ ] **Section heading and description**
   - Current: 
@@ -207,6 +257,16 @@
   - Current: 
   - Desired: 
   - Priority: [ ]
+
+- [ ] **Compact summary block on Item Detail page**
+  - Current: Size estimates shown in separate cards below tabs
+  - Desired: Add compact summary block showing UX size + weeks and Content size + weeks in plain language (e.g., 'UX: L · ~1.5 focus weeks over 4 work weeks')
+  - Priority: [Should]
+
+- [ ] **Visual representation for focus-time vs work-weeks**
+  - Current: Text-based display
+  - Desired: Explore more visual representation (e.g., mini bars or timeline chips) for focus-time vs work-weeks once base copy is validated
+  - Priority: [Nice]
 
 ### Visual Styling
 - [ ] **Color scheme and branding**
@@ -323,13 +383,23 @@
 
 - [ ] **Table column headers**
   - Current: 
-  - Desired: 
-  - Priority: [ ]
+  - Desired: Clarify column headings and grouping so PM/UX/Content stakeholders can quickly see which numbers belong to which role
+  - Priority: [Should]
 
 - [ ] **Tooltip text for "T-shirt size", "designer-weeks", "cut line"**
   - Current: 
   - Desired: 
   - Priority: [ ]
+
+- [ ] **Display UX and Content size bands, focus-time weeks, and work-week spans**
+  - Current: Table shows size bands and focus/work weeks
+  - Desired: Ensure each item row displays UX and Content size bands, focus-time weeks, and work-week spans pulled from the new effort model, even if presentation is simple at first
+  - Priority: [Must]
+
+- [ ] **Advanced visualizations for capacity planning**
+  - Current: Simple table view
+  - Desired: Consider more advanced visualizations (stacked bars, utilization heatmap) after core quarter-capacity view is implemented
+  - Priority: [Nice]
 
 - [ ] **Empty state messaging**
   - Current: 

@@ -52,7 +52,7 @@ const getDefaultPMIntake = (itemId: string): PMIntake => ({
   requirements_business: '',
   requirements_technical: '',
   requirements_design: '',
-  surfaces_in_scope: '{}',
+    surfaces_in_scope: [],
   new_or_existing: 'existing',
 })
 

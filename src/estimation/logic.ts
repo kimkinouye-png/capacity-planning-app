@@ -40,28 +40,36 @@ export function sizeUx(
   // 3. Work spans 3+ platforms or heavily responsive layouts
   if (inputs.responsive_or_adaptive_layouts) {
     // Check if surfaces_in_scope indicates 3+ platforms
-    try {
-      const surfaces = JSON.parse(intake.surfaces_in_scope || '{}')
-      const platforms: string[] = []
-      if (surfaces.mobile && Array.isArray(surfaces.mobile)) {
-        platforms.push(...surfaces.mobile.map((p: string) => `mobile-${p}`))
+    // Handle both new array format and legacy JSON string format for backwards compatibility
+    let platformCount = 0
+    if (Array.isArray(intake.surfaces_in_scope)) {
+      // New format: string array
+      platformCount = intake.surfaces_in_scope.length
+    } else if (typeof intake.surfaces_in_scope === 'string') {
+      // Legacy format: JSON string - parse and count platforms
+      try {
+        const surfaces = JSON.parse(intake.surfaces_in_scope || '{}')
+        const platforms: string[] = []
+        if (surfaces.mobile && Array.isArray(surfaces.mobile)) {
+          platforms.push(...surfaces.mobile.map((p: string) => `mobile-${p}`))
+        }
+        if (surfaces.web === true || surfaces.web === 'true') {
+          platforms.push('web')
+        }
+        if (surfaces.other && Array.isArray(surfaces.other)) {
+          platforms.push(...surfaces.other)
+        }
+        platformCount = platforms.length
+      } catch {
+        // If parsing fails, just check responsive layouts
+        platformCount = 0
       }
-      if (surfaces.web === true || surfaces.web === 'true') {
-        platforms.push('web')
-      }
-      if (surfaces.other && Array.isArray(surfaces.other)) {
-        platforms.push(...surfaces.other)
-      }
-      if (platforms.length >= 3) {
-        incrementCount++
-      } else if (inputs.responsive_or_adaptive_layouts) {
-        incrementCount += 0.5 // Heavily responsive layouts
-      }
-    } catch {
-      // If parsing fails, just check responsive layouts
-      if (inputs.responsive_or_adaptive_layouts) {
-        incrementCount += 0.5
-      }
+    }
+    
+    if (platformCount >= 3) {
+      incrementCount++
+    } else if (inputs.responsive_or_adaptive_layouts) {
+      incrementCount += 0.5 // Heavily responsive layouts
     }
   }
 
@@ -85,17 +93,27 @@ export function sizeUx(
       !inputs.net_new_patterns &&
       !inputs.responsive_or_adaptive_layouts
     ) {
-      try {
-        const surfaces = JSON.parse(intake.surfaces_in_scope || '{}')
-        const platformCount =
-          (surfaces.mobile && Array.isArray(surfaces.mobile) ? surfaces.mobile.length : 0) +
-          (surfaces.web === true || surfaces.web === 'true' ? 1 : 0) +
-          (surfaces.other && Array.isArray(surfaces.other) ? surfaces.other.length : 0)
-        if (platformCount === 1) {
-          size = 'XS'
+      // Handle both new array format and legacy JSON string format for backwards compatibility
+      let platformCount = 0
+      if (Array.isArray(intake.surfaces_in_scope)) {
+        // New format: string array - count surfaces
+        platformCount = intake.surfaces_in_scope.length
+      } else if (typeof intake.surfaces_in_scope === 'string') {
+        // Legacy format: JSON string - parse and count platforms
+        try {
+          const surfaces = JSON.parse(intake.surfaces_in_scope || '{}')
+          platformCount =
+            (surfaces.mobile && Array.isArray(surfaces.mobile) ? surfaces.mobile.length : 0) +
+            (surfaces.web === true || surfaces.web === 'true' ? 1 : 0) +
+            (surfaces.other && Array.isArray(surfaces.other) ? surfaces.other.length : 0)
+        } catch {
+          // If parsing fails, default to checking single surface
+          platformCount = 1
         }
-      } catch {
-        // If parsing fails, keep baseline S
+      }
+      
+      if (platformCount === 1) {
+        size = 'XS'
       }
     }
   }

@@ -5,6 +5,7 @@ import {
   Textarea,
   Select,
   Stack,
+  Checkbox,
 } from '@chakra-ui/react'
 import type { PMIntake } from '../domain/types'
 
@@ -13,9 +14,28 @@ interface PMIntakeFormProps {
   onChange: (value: PMIntake) => void
 }
 
+// Common surfaces for the checkbox list
+const SURFACE_OPTIONS = [
+  'Checkout',
+  'Account',
+  'Notifications',
+  'Emails',
+  'Web app',
+  'Mobile app',
+  'Internal tools',
+] as const
+
 export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
   const handleChange = (field: keyof PMIntake, fieldValue: string) => {
     onChange({ ...value, [field]: fieldValue })
+  }
+
+  const handleSurfacesChange = (surface: string, isChecked: boolean) => {
+    const currentSurfaces = value.surfaces_in_scope || []
+    const updatedSurfaces = isChecked
+      ? [...currentSurfaces, surface]
+      : currentSurfaces.filter((s) => s !== surface)
+    onChange({ ...value, surfaces_in_scope: updatedSurfaces })
   }
 
   return (
@@ -38,14 +58,17 @@ export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
         />
       </FormControl>
 
-      <FormControl>
-        <FormLabel>Goals</FormLabel>
-        <Textarea
-          value={value.goals || ''}
-          onChange={(e) => handleChange('goals', e.target.value)}
-          placeholder="Describe the goals"
-        />
-      </FormControl>
+      {/* Goals field hidden from UI but preserved in data structure for backwards compatibility */}
+      {/* {value.goals !== undefined && (
+        <FormControl>
+          <FormLabel>Goals</FormLabel>
+          <Textarea
+            value={value.goals || ''}
+            onChange={(e) => handleChange('goals', e.target.value)}
+            placeholder="Describe the goals"
+          />
+        </FormControl>
+      )} */}
 
       <FormControl>
         <FormLabel>Market</FormLabel>
@@ -103,11 +126,17 @@ export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
 
       <FormControl>
         <FormLabel>Surfaces in Scope</FormLabel>
-        <Textarea
-          value={value.surfaces_in_scope || ''}
-          onChange={(e) => handleChange('surfaces_in_scope', e.target.value)}
-          placeholder='JSON format, e.g., {"mobile":["iOS","Android"],"web":true,"other":[]}'
-        />
+        <Stack spacing={2} mt={2}>
+          {SURFACE_OPTIONS.map((surface) => (
+            <Checkbox
+              key={surface}
+              isChecked={(value.surfaces_in_scope || []).includes(surface)}
+              onChange={(e) => handleSurfacesChange(surface, e.target.checked)}
+            >
+              {surface}
+            </Checkbox>
+          ))}
+        </Stack>
       </FormControl>
 
       <FormControl>

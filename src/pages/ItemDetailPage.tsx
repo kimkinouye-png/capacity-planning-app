@@ -62,14 +62,14 @@ function ItemDetailPage() {
     roadmap_item_id: itemId || '',
     objective: '',
     kpis: '',
-    goals: '',
+    goals: '', // Preserved for backwards compatibility but not shown in UI
     market: '',
     audience: '',
     timeline: '',
     requirements_business: '',
     requirements_technical: '',
     requirements_design: '',
-    surfaces_in_scope: '{}',
+    surfaces_in_scope: [], // Changed to empty array
     new_or_existing: 'existing',
   })
 
@@ -142,7 +142,28 @@ function ItemDetailPage() {
       const demoCD = demoContentDesignInputs.find((c) => c.roadmap_item_id === itemId)
 
       if (demoIntake) {
-        setPMIntake({ ...demoIntake })
+        // Demo data should already be in new format, but handle legacy format just in case
+        const intake = { ...demoIntake }
+        if (typeof intake.surfaces_in_scope === 'string') {
+          // Legacy format: try to parse JSON and convert to array
+          try {
+            const surfaces = JSON.parse(intake.surfaces_in_scope || '{}')
+            const surfaceArray: string[] = []
+            if (surfaces.mobile && Array.isArray(surfaces.mobile) && surfaces.mobile.length > 0) {
+              surfaceArray.push('Mobile app')
+            }
+            if (surfaces.web === true || surfaces.web === 'true') {
+              surfaceArray.push('Web app')
+            }
+            if (surfaces.other && Array.isArray(surfaces.other)) {
+              surfaceArray.push(...surfaces.other)
+            }
+            intake.surfaces_in_scope = surfaceArray
+          } catch {
+            intake.surfaces_in_scope = []
+          }
+        }
+        setPMIntake(intake)
       } else {
         setPMIntake(getDefaultPMIntake())
       }
@@ -179,7 +200,30 @@ function ItemDetailPage() {
       const inputs = getInputsForItem(itemId)
       if (inputs) {
         // Data exists in context: load it and mark as saved
-        setPMIntake({ ...inputs.intake })
+        // Migrate old JSON string format to new array format if needed
+        const intake = { ...inputs.intake }
+        if (typeof intake.surfaces_in_scope === 'string') {
+          // Legacy format: try to parse JSON and convert to array
+          try {
+            const surfaces = JSON.parse(intake.surfaces_in_scope || '{}')
+            const surfaceArray: string[] = []
+            // Map old format to new format
+            if (surfaces.mobile && Array.isArray(surfaces.mobile) && surfaces.mobile.length > 0) {
+              surfaceArray.push('Mobile app')
+            }
+            if (surfaces.web === true || surfaces.web === 'true') {
+              surfaceArray.push('Web app')
+            }
+            if (surfaces.other && Array.isArray(surfaces.other)) {
+              surfaceArray.push(...surfaces.other)
+            }
+            intake.surfaces_in_scope = surfaceArray
+          } catch {
+            // If parsing fails, default to empty array
+            intake.surfaces_in_scope = []
+          }
+        }
+        setPMIntake(intake)
         // Ensure factor scores are present, defaulting to 3 if missing
         setPDInputs({
           ...inputs.pd,
@@ -275,7 +319,7 @@ function ItemDetailPage() {
   // Calculate sizing estimates (updates automatically when form fields change)
   const uxEstimate = useMemo(() => {
     try {
-      if (pmIntake && pdInputs && pmIntake.surfaces_in_scope !== undefined) {
+      if (pmIntake && pdInputs) {
         return sizeUx(pdInputs, pmIntake)
       }
     } catch (error) {

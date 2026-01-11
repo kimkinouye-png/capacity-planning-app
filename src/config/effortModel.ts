@@ -26,23 +26,62 @@ export interface EffortResult {
   weightedScore: number
 }
 
-// UX Factor Models
+/**
+ * UX Factor Models
+ * 
+ * Each factor represents a dimension of UX design complexity.
+ * Weights determine how much each factor influences the final effort calculation.
+ * Default base weight is 1.0; adjust up (>1.0) for factors that typically increase
+ * effort more, or down (<1.0) for factors that have less impact.
+ */
 export const uxFactors: Record<string, Omit<Factor, 'score'>> = {
+  /**
+   * Product Risk (weight: 1.2)
+   * 
+   * Higher weight because high-risk designs require more careful consideration,
+   * additional review cycles, and often more detailed documentation.
+   * When product risk is high, UX work tends to be more thorough and time-consuming.
+   */
   productRisk: {
     weight: 1.2,
     label: 'Product Risk',
     description: 'Level of business or product risk if design fails (1=low, 5=critical)',
   },
+  
+  /**
+   * Problem Ambiguity (weight: 1.0)
+   * 
+   * Base weight factor. Ambiguity directly correlates with discovery and iteration needs,
+   * so it serves as the reference point for other factors.
+   * Clear problems require less discovery work; ambiguous problems require more.
+   */
   problemAmbiguity: {
     weight: 1.0,
     label: 'Problem Ambiguity',
     description: 'How well-defined the problem is (1=clear, 5=highly ambiguous)',
   },
+  
+  /**
+   * Platform Complexity (weight: 1.1)
+   * 
+   * Slightly higher weight because supporting multiple platforms or complex
+   * technical requirements increases design iteration, testing, and adaptation work.
+   * Multi-platform work often requires platform-specific considerations and validation.
+   */
   platformComplexity: {
     weight: 1.1,
     label: 'Platform Complexity',
     description: 'Number of platforms and technical complexity (1=single platform, 5=multiple complex platforms)',
   },
+  
+  /**
+   * Discovery Depth (weight: 0.9)
+   * 
+   * Slightly lower weight because while discovery is important, it doesn't always
+   * scale linearly with overall design effort. Some projects need extensive discovery
+   * but simpler execution; others need less discovery but more complex implementation.
+   * This weight balances discovery impact with execution complexity.
+   */
   discoveryDepth: {
     weight: 0.9,
     label: 'Discovery Depth',
@@ -50,23 +89,61 @@ export const uxFactors: Record<string, Omit<Factor, 'score'>> = {
   },
 }
 
-// Content Factor Models
+/**
+ * Content Factor Models
+ * 
+ * Each factor represents a dimension of Content design complexity.
+ * Weights determine how much each factor influences the final effort calculation.
+ * Default base weight is 1.0; adjust up (>1.0) for factors that typically increase
+ * effort more, or down (<1.0) for factors that have less impact.
+ */
 export const contentFactors: Record<string, Omit<Factor, 'score'>> = {
+  /**
+   * Content Surface Area (weight: 1.3)
+   * 
+   * Highest weight because the volume of content directly drives effort.
+   * More content means more writing, editing, review, and maintenance work.
+   * This is often the primary driver of Content design time.
+   */
   contentSurfaceArea: {
     weight: 1.3,
     label: 'Content Surface Area',
     description: 'Volume and breadth of content needed (1=small, 5=very large)',
   },
+  
+  /**
+   * Localization Scope (weight: 1.0)
+   * 
+   * Base weight factor. Localization multiplies content work linearly,
+   * so it serves as the reference point for other factors.
+   * Each additional language/region adds proportional effort.
+   */
   localizationScope: {
     weight: 1.0,
     label: 'Localization Scope',
     description: 'Number of languages and regions (1=single language, 5=many languages/regions)',
   },
+  
+  /**
+   * Regulatory & Brand Risk (weight: 1.2)
+   * 
+   * Higher weight because high-risk content requires more careful crafting,
+   * additional review cycles (legal, brand, compliance), and often more
+   * detailed documentation. Risk-sensitive content is slower to finalize.
+   */
   regulatoryBrandRisk: {
     weight: 1.2,
     label: 'Regulatory & Brand Risk',
     description: 'Risk level for regulatory compliance and brand safety (1=low, 5=high)',
   },
+  
+  /**
+   * Legal Compliance Dependency (weight: 1.1)
+   * 
+   * Slightly higher weight because legal review cycles add significant time
+   * and iteration overhead. Projects with heavy legal dependencies require
+   * more coordination, documentation, and revision cycles.
+   */
   legalComplianceDependency: {
     weight: 1.1,
     label: 'Legal Compliance Dependency',
