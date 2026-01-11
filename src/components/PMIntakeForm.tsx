@@ -14,17 +14,6 @@ interface PMIntakeFormProps {
   onChange: (value: PMIntake) => void
 }
 
-// Common surfaces for the checkbox list
-const SURFACE_OPTIONS = [
-  'Checkout',
-  'Account',
-  'Notifications',
-  'Emails',
-  'Web app',
-  'Mobile app',
-  'Internal tools',
-] as const
-
 export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
   const handleChange = (field: keyof PMIntake, fieldValue: string) => {
     onChange({ ...value, [field]: fieldValue })
@@ -127,15 +116,44 @@ export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
       <FormControl>
         <FormLabel>Surfaces in Scope</FormLabel>
         <Stack spacing={2} mt={2}>
-          {SURFACE_OPTIONS.map((surface) => (
+          <Checkbox
+            isChecked={(value.surfaces_in_scope || []).includes('Mobile')}
+            onChange={(e) => handleSurfacesChange('Mobile', e.target.checked)}
+          >
+            Mobile
+          </Checkbox>
+          <Stack spacing={2} pl={6}>
             <Checkbox
-              key={surface}
-              isChecked={(value.surfaces_in_scope || []).includes(surface)}
-              onChange={(e) => handleSurfacesChange(surface, e.target.checked)}
+              isChecked={(value.surfaces_in_scope || []).includes('iOS')}
+              onChange={(e) => handleSurfacesChange('iOS', e.target.checked)}
             >
-              {surface}
+              iOS
             </Checkbox>
-          ))}
+            <Checkbox
+              isChecked={(value.surfaces_in_scope || []).includes('Android')}
+              onChange={(e) => handleSurfacesChange('Android', e.target.checked)}
+            >
+              Android
+            </Checkbox>
+            <Checkbox
+              isChecked={(value.surfaces_in_scope || []).includes('Mobile Web')}
+              onChange={(e) => handleSurfacesChange('Mobile Web', e.target.checked)}
+            >
+              Mobile Web
+            </Checkbox>
+          </Stack>
+          <Checkbox
+            isChecked={(value.surfaces_in_scope || []).includes('Web')}
+            onChange={(e) => handleSurfacesChange('Web', e.target.checked)}
+          >
+            Web
+          </Checkbox>
+          <Checkbox
+            isChecked={(value.surfaces_in_scope || []).includes('Other (please specify)')}
+            onChange={(e) => handleSurfacesChange('Other (please specify)', e.target.checked)}
+          >
+            Other (please specify)
+          </Checkbox>
         </Stack>
       </FormControl>
 
