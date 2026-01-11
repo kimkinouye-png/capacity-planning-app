@@ -24,7 +24,7 @@ import {
   HStack,
   Divider,
 } from '@chakra-ui/react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useMemo } from 'react'
 import { InfoIcon } from '@chakra-ui/icons'
 import { summarizeSession } from '../estimation/logic'
@@ -222,9 +222,14 @@ function SessionSummaryPage() {
 
       <Stack direction="row" justify="space-between" align="center" mb={8}>
         <Heading size="lg">{session.name} - Planning Dashboard</Heading>
-        <Button colorScheme="blue" onClick={() => window.location.reload()}>
-          Recalculate
-        </Button>
+        <Stack direction="row" spacing={3}>
+          <Button as={Link} to={`/sessions/${id}/items`} colorScheme="blue" variant="outline">
+            View items
+          </Button>
+          <Button colorScheme="blue" onClick={() => window.location.reload()}>
+            Recalculate
+          </Button>
+        </Stack>
       </Stack>
 
       {/* Summary Cards */}

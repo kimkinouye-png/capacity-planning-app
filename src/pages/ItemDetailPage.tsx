@@ -16,8 +16,9 @@ import {
   TabPanels,
   Tab,
   TabPanel,
+  Button,
 } from '@chakra-ui/react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useMemo } from 'react'
 import type { PMIntake, ProductDesignInputs, ContentDesignInputs } from '../domain/types'
 import PMIntakeForm from '../components/PMIntakeForm'
@@ -35,6 +36,7 @@ import {
 
 function ItemDetailPage() {
   const { id: sessionId, itemId } = useParams<{ id: string; itemId: string }>()
+  const navigate = useNavigate()
   const { getItemsForSession } = useRoadmapItems()
   const { getInputsForItem, setInputsForItem } = useItemInputs()
 
@@ -202,6 +204,24 @@ function ItemDetailPage() {
 
   return (
     <Box p={8}>
+      {/* Breadcrumb navigation */}
+      <Stack direction="row" spacing={3} mb={4}>
+        <Button
+          variant="link"
+          colorScheme="blue"
+          onClick={() => navigate(`/sessions/${sessionId}`)}
+        >
+          ← Back to session
+        </Button>
+        <Button
+          variant="link"
+          colorScheme="blue"
+          onClick={() => navigate(`/sessions/${sessionId}/items`)}
+        >
+          ← Back to items
+        </Button>
+      </Stack>
+
       {/* Item key/name at the top */}
       <Heading size="lg" mb={6}>
         {item.short_key} - {item.name}
