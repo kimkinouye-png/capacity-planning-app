@@ -29,6 +29,12 @@ export const demoItems: RoadmapItem[] = [
     team_name: 'Payments',
     priority: 1,
     status: 'ready_for_sizing',
+    uxSizeBand: 'L',
+    uxFocusWeeks: 0,
+    uxWorkWeeks: 0,
+    contentSizeBand: 'L',
+    contentFocusWeeks: 0,
+    contentWorkWeeks: 0,
   },
   {
     id: 'item-2',
@@ -39,6 +45,12 @@ export const demoItems: RoadmapItem[] = [
     team_name: 'Payments',
     priority: 2,
     status: 'ready_for_sizing',
+    uxSizeBand: 'M',
+    uxFocusWeeks: 0,
+    uxWorkWeeks: 0,
+    contentSizeBand: 'S',
+    contentFocusWeeks: 0,
+    contentWorkWeeks: 0,
   },
   {
     id: 'item-3',
@@ -49,6 +61,12 @@ export const demoItems: RoadmapItem[] = [
     team_name: 'Payments',
     priority: 3,
     status: 'ready_for_sizing',
+    uxSizeBand: 'S',
+    uxFocusWeeks: 0,
+    uxWorkWeeks: 0,
+    contentSizeBand: 'S',
+    contentFocusWeeks: 0,
+    contentWorkWeeks: 0,
   },
 ]
 

@@ -11,7 +11,7 @@ interface RoadmapItemsContextType {
   getItemsForSession: (sessionId: string) => RoadmapItem[]
   createItem: (
     sessionId: string,
-    input: Omit<RoadmapItem, 'id' | 'planning_session_id' | 'status'>
+    input: Omit<RoadmapItem, 'id' | 'planning_session_id' | 'status' | 'uxSizeBand' | 'uxFocusWeeks' | 'uxWorkWeeks' | 'contentSizeBand' | 'contentFocusWeeks' | 'contentWorkWeeks'>
   ) => RoadmapItem
   updateItem: (id: string, patch: Partial<RoadmapItem>) => void
   getInputsForItem: (itemId: string) => ItemInputs | undefined
@@ -108,13 +108,19 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
   const createItem = useCallback(
     (
       sessionId: string,
-      input: Omit<RoadmapItem, 'id' | 'planning_session_id' | 'status'>
+      input: Omit<RoadmapItem, 'id' | 'planning_session_id' | 'status' | 'uxSizeBand' | 'uxFocusWeeks' | 'uxWorkWeeks' | 'contentSizeBand' | 'contentFocusWeeks' | 'contentWorkWeeks'>
     ): RoadmapItem => {
       const newItem: RoadmapItem = {
         ...input,
         id: crypto.randomUUID(),
         planning_session_id: sessionId,
         status: 'draft',
+        uxSizeBand: 'M',
+        uxFocusWeeks: 0,
+        uxWorkWeeks: 0,
+        contentSizeBand: 'M',
+        contentFocusWeeks: 0,
+        contentWorkWeeks: 0,
       }
       setItemsBySession((prev) => ({
         ...prev,

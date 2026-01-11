@@ -27,6 +27,7 @@ import CDInputsForm from '../components/CDInputsForm'
 import { sizeUx, sizeContent } from '../estimation/logic'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
 import { useItemInputs } from '../context/ItemInputsContext'
+import { calculateEffort, type FactorScores } from '../config/effortModel'
 import {
   demoItems,
   demoIntakes,
@@ -37,20 +38,24 @@ import {
 function ItemDetailPage() {
   const { id: sessionId, itemId } = useParams<{ id: string; itemId: string }>()
   const navigate = useNavigate()
-  const { getItemsForSession } = useRoadmapItems()
+  const { getItemsForSession, updateItem } = useRoadmapItems()
   const { getInputsForItem, setInputsForItem } = useItemInputs()
 
-  // Load the RoadmapItem
+  // Load the RoadmapItem - reload when items change (e.g., after updateItem)
+  const items = useMemo(() => {
+    if (sessionId === 'demo') {
+      return demoItems
+    }
+    if (sessionId) {
+      return getItemsForSession(sessionId)
+    }
+    return []
+  }, [sessionId, getItemsForSession])
+
   const item = useMemo(() => {
-    if (sessionId === 'demo' && itemId) {
-      return demoItems.find((i) => i.id === itemId)
-    }
-    if (sessionId && itemId) {
-      const items = getItemsForSession(sessionId)
-      return items.find((i) => i.id === itemId)
-    }
-    return undefined
-  }, [sessionId, itemId, getItemsForSession])
+    if (!itemId) return undefined
+    return items.find((i) => i.id === itemId)
+  }, [itemId, items])
 
   // Initialize with sensible defaults
   const getDefaultPMIntake = (): PMIntake => ({
@@ -76,6 +81,11 @@ function ItemDetailPage() {
     significant_edge_cases_or_error_handling: false,
     responsive_or_adaptive_layouts: false,
     other: '',
+    // Initialize factor scores with default value of 3 (medium)
+    productRisk: 3,
+    problemAmbiguity: 3,
+    platformComplexity: 3,
+    discoveryDepth: 3,
   })
 
   const getDefaultCDInputs = (): ContentDesignInputs => ({
@@ -90,6 +100,11 @@ function ItemDetailPage() {
     legal_policy_or_compliance_review: 'no',
     introducing_new_terminology: false,
     guidance_needed: 'minimal',
+    // Initialize factor scores with default value of 3 (medium)
+    contentSurfaceArea: 3,
+    localizationScope: 3,
+    regulatoryBrandRisk: 3,
+    legalComplianceDependency: 3,
   })
 
   // Local state for form inputs
@@ -133,13 +148,27 @@ function ItemDetailPage() {
       }
 
       if (demoPD) {
-        setPDInputs({ ...demoPD })
+        // Ensure factor scores are present, defaulting to 3 if missing
+        setPDInputs({
+          ...demoPD,
+          productRisk: demoPD.productRisk ?? 3,
+          problemAmbiguity: demoPD.problemAmbiguity ?? 3,
+          platformComplexity: demoPD.platformComplexity ?? 3,
+          discoveryDepth: demoPD.discoveryDepth ?? 3,
+        })
       } else {
         setPDInputs(getDefaultPDInputs())
       }
 
       if (demoCD) {
-        setCDInputs({ ...demoCD })
+        // Ensure factor scores are present, defaulting to 3 if missing
+        setCDInputs({
+          ...demoCD,
+          contentSurfaceArea: demoCD.contentSurfaceArea ?? 3,
+          localizationScope: demoCD.localizationScope ?? 3,
+          regulatoryBrandRisk: demoCD.regulatoryBrandRisk ?? 3,
+          legalComplianceDependency: demoCD.legalComplianceDependency ?? 3,
+        })
       } else {
         setCDInputs(getDefaultCDInputs())
       }
@@ -151,8 +180,21 @@ function ItemDetailPage() {
       if (inputs) {
         // Data exists in context: load it and mark as saved
         setPMIntake({ ...inputs.intake })
-        setPDInputs({ ...inputs.pd })
-        setCDInputs({ ...inputs.cd })
+        // Ensure factor scores are present, defaulting to 3 if missing
+        setPDInputs({
+          ...inputs.pd,
+          productRisk: inputs.pd.productRisk ?? 3,
+          problemAmbiguity: inputs.pd.problemAmbiguity ?? 3,
+          platformComplexity: inputs.pd.platformComplexity ?? 3,
+          discoveryDepth: inputs.pd.discoveryDepth ?? 3,
+        })
+        setCDInputs({
+          ...inputs.cd,
+          contentSurfaceArea: inputs.cd.contentSurfaceArea ?? 3,
+          localizationScope: inputs.cd.localizationScope ?? 3,
+          regulatoryBrandRisk: inputs.cd.regulatoryBrandRisk ?? 3,
+          legalComplianceDependency: inputs.cd.legalComplianceDependency ?? 3,
+        })
         lastSavedInputsJsonRef.current = JSON.stringify(inputs)
       } else {
         // No data in context: use defaults and mark as unsaved (empty string means not saved yet)
@@ -187,6 +229,48 @@ function ItemDetailPage() {
       lastSavedInputsJsonRef.current = currentInputsJson
     }
   }, [itemId, sessionId, pmIntake, pdInputs, cdInputs, setInputsForItem])
+
+  // Calculate UX effort when UX factor scores change
+  // Factor scores are stored per-item in pdInputs and default to 3 if not set
+  useEffect(() => {
+    if (!itemId || sessionId === 'demo') return
+
+    // Use factor scores from pdInputs, defaulting to 3 if not set
+    const uxScores: FactorScores = {
+      productRisk: pdInputs.productRisk ?? 3,
+      problemAmbiguity: pdInputs.problemAmbiguity ?? 3,
+      platformComplexity: pdInputs.platformComplexity ?? 3,
+      discoveryDepth: pdInputs.discoveryDepth ?? 3,
+    }
+
+    const uxEffort = calculateEffort('ux', uxScores)
+    updateItem(itemId, {
+      uxSizeBand: uxEffort.sizeBand,
+      uxFocusWeeks: uxEffort.focusWeeks,
+      uxWorkWeeks: uxEffort.workWeeks,
+    })
+  }, [itemId, sessionId, pdInputs.productRisk, pdInputs.problemAmbiguity, pdInputs.platformComplexity, pdInputs.discoveryDepth, updateItem])
+
+  // Calculate Content effort when Content factor scores change
+  // Factor scores are stored per-item in cdInputs and default to 3 if not set
+  useEffect(() => {
+    if (!itemId || sessionId === 'demo') return
+
+    // Use factor scores from cdInputs, defaulting to 3 if not set
+    const contentScores: FactorScores = {
+      contentSurfaceArea: cdInputs.contentSurfaceArea ?? 3,
+      localizationScope: cdInputs.localizationScope ?? 3,
+      regulatoryBrandRisk: cdInputs.regulatoryBrandRisk ?? 3,
+      legalComplianceDependency: cdInputs.legalComplianceDependency ?? 3,
+    }
+
+    const contentEffort = calculateEffort('content', contentScores)
+    updateItem(itemId, {
+      contentSizeBand: contentEffort.sizeBand,
+      contentFocusWeeks: contentEffort.focusWeeks,
+      contentWorkWeeks: contentEffort.workWeeks,
+    })
+  }, [itemId, sessionId, cdInputs.contentSurfaceArea, cdInputs.localizationScope, cdInputs.regulatoryBrandRisk, cdInputs.legalComplianceDependency, updateItem])
 
   // Calculate sizing estimates (updates automatically when form fields change)
   const uxEstimate = useMemo(() => {
@@ -290,6 +374,13 @@ function ItemDetailPage() {
                 design considerations.
               </Text>
               <PDInputsForm value={pdInputs} onChange={setPDInputs} />
+              {item && (
+                <Box mt={6} p={4} bg="blue.50" borderRadius="md" borderLeft="4px" borderColor="blue.500">
+                  <Text fontSize="md" fontWeight="medium" color="gray.800">
+                    UX size: {item.uxSizeBand} · ~{item.uxFocusWeeks.toFixed(1)} focus weeks over {item.uxWorkWeeks.toFixed(1)} work weeks
+                  </Text>
+                </Box>
+              )}
             </TabPanel>
 
             {/* Content Design Inputs Tab */}
@@ -299,6 +390,13 @@ function ItemDetailPage() {
                 and guidance complexity.
               </Text>
               <CDInputsForm value={cdInputs} onChange={setCDInputs} />
+              {item && (
+                <Box mt={6} p={4} bg="green.50" borderRadius="md" borderLeft="4px" borderColor="green.500">
+                  <Text fontSize="md" fontWeight="medium" color="gray.800">
+                    Content size: {item.contentSizeBand} · ~{item.contentFocusWeeks.toFixed(1)} focus weeks over {item.contentWorkWeeks.toFixed(1)} work weeks
+                  </Text>
+                </Box>
+              )}
             </TabPanel>
           </TabPanels>
         </Tabs>

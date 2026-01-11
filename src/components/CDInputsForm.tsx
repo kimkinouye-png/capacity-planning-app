@@ -4,8 +4,14 @@ import {
   Select,
   Checkbox,
   Stack,
+  Text,
+  Tooltip,
+  HStack,
+  IconButton,
 } from '@chakra-ui/react'
+import { InfoIcon } from '@chakra-ui/icons'
 import type { ContentDesignInputs } from '../domain/types'
+import { getFactorsForRole } from '../config/effortModel'
 
 interface CDInputsFormProps {
   value: ContentDesignInputs
@@ -13,6 +19,8 @@ interface CDInputsFormProps {
 }
 
 export default function CDInputsForm({ value, onChange }: CDInputsFormProps) {
+  const contentFactors = getFactorsForRole('content')
+
   const handleSelectChange = (
     field: keyof ContentDesignInputs,
     fieldValue: string
@@ -22,6 +30,10 @@ export default function CDInputsForm({ value, onChange }: CDInputsFormProps) {
 
   const handleCheckboxChange = (field: keyof ContentDesignInputs, checked: boolean) => {
     onChange({ ...value, [field]: checked })
+  }
+
+  const handleFactorScoreChange = (factorName: string, score: number) => {
+    onChange({ ...value, [factorName]: score })
   }
 
   return (
@@ -145,6 +157,41 @@ export default function CDInputsForm({ value, onChange }: CDInputsFormProps) {
           <option value="minimal">Minimal</option>
         </Select>
       </FormControl>
+
+      <Stack spacing={4} mt={6} pt={6} borderTop="1px" borderColor="gray.200">
+        <Text fontWeight="bold" fontSize="md">
+          Content Effort Factors (Score 1-5)
+        </Text>
+        {Object.entries(contentFactors).map(([factorName, factor]) => (
+          <FormControl key={factorName}>
+            <HStack>
+              <FormLabel mb={0} flex={1}>
+                {factor.label}
+              </FormLabel>
+              <Tooltip label={factor.description} placement="top">
+                <IconButton
+                  aria-label="Factor description"
+                  icon={<InfoIcon />}
+                  size="xs"
+                  variant="ghost"
+                />
+              </Tooltip>
+            </HStack>
+            <Select
+              value={(value[factorName as keyof ContentDesignInputs] as number | undefined) || 3}
+              onChange={(e) =>
+                handleFactorScoreChange(factorName, parseInt(e.target.value, 10))
+              }
+            >
+              <option value={1}>1 - Low</option>
+              <option value={2}>2</option>
+              <option value={3}>3 - Medium</option>
+              <option value={4}>4</option>
+              <option value={5}>5 - High</option>
+            </Select>
+          </FormControl>
+        ))}
+      </Stack>
     </Stack>
   )
 }

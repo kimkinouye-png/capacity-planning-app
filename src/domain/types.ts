@@ -20,6 +20,12 @@ export interface RoadmapItem {
   team_name: string
   priority: number
   status: 'draft' | 'ready_for_sizing' | 'sized' | 'locked'
+  uxSizeBand: 'XS' | 'S' | 'M' | 'L' | 'XL'
+  uxFocusWeeks: number
+  uxWorkWeeks: number
+  contentSizeBand: 'XS' | 'S' | 'M' | 'L' | 'XL'
+  contentFocusWeeks: number
+  contentWorkWeeks: number
 }
 
 export interface PMIntake {
@@ -45,6 +51,11 @@ export interface ProductDesignInputs {
   significant_edge_cases_or_error_handling: boolean
   responsive_or_adaptive_layouts: boolean
   other: string
+  // Factor scores (1-5)
+  productRisk?: number
+  problemAmbiguity?: number
+  platformComplexity?: number
+  discoveryDepth?: number
 }
 
 export interface ContentDesignInputs {
@@ -59,6 +70,11 @@ export interface ContentDesignInputs {
   legal_policy_or_compliance_review: 'yes' | 'no' | 'unsure'
   introducing_new_terminology: boolean
   guidance_needed: 'high' | 'some' | 'minimal'
+  // Factor scores (1-5)
+  contentSurfaceArea?: number
+  localizationScope?: number
+  regulatoryBrandRisk?: number
+  legalComplianceDependency?: number
 }
 
 export interface Estimate {

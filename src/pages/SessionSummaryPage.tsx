@@ -132,7 +132,32 @@ function SessionSummaryPage() {
       return null
     }
     try {
-      return summarizeSession(session, itemsWithInputs)
+      const result = summarizeSession(session, itemsWithInputs)
+      // Ensure all items have the new fields with defaults if missing
+      if (result && result.items) {
+        return {
+          ...result,
+          items: result.items.map((itemEstimate) => {
+            // Safely get tshirt sizes with fallbacks
+            const uxTshirtSize = itemEstimate.uxSizing?.tshirtSize || 'M'
+            const contentTshirtSize = itemEstimate.contentSizing?.tshirtSize || 'M'
+            
+            return {
+              ...itemEstimate,
+              item: {
+                ...itemEstimate.item,
+                uxSizeBand: itemEstimate.item.uxSizeBand || uxTshirtSize,
+                uxFocusWeeks: typeof itemEstimate.item.uxFocusWeeks === 'number' ? itemEstimate.item.uxFocusWeeks : 0,
+                uxWorkWeeks: typeof itemEstimate.item.uxWorkWeeks === 'number' ? itemEstimate.item.uxWorkWeeks : 0,
+                contentSizeBand: itemEstimate.item.contentSizeBand || (contentTshirtSize === 'None' ? 'M' : contentTshirtSize),
+                contentFocusWeeks: typeof itemEstimate.item.contentFocusWeeks === 'number' ? itemEstimate.item.contentFocusWeeks : 0,
+                contentWorkWeeks: typeof itemEstimate.item.contentWorkWeeks === 'number' ? itemEstimate.item.contentWorkWeeks : 0,
+              },
+            }
+          }),
+        }
+      }
+      return result
     } catch (error) {
       console.error('Error calculating summary:', error)
       return null
@@ -141,7 +166,7 @@ function SessionSummaryPage() {
 
   // Find the cut line index for visual separation
   const cutLineIndex = useMemo(() => {
-    if (!summary) return -1
+    if (!summary || !summary.items) return -1
     for (let i = 0; i < summary.items.length; i++) {
       if (summary.items[i].aboveCutLineUX || summary.items[i].aboveCutLineContent) {
         return i
@@ -180,15 +205,18 @@ function SessionSummaryPage() {
   if (itemsWithInputs.length === 0) {
     return (
       <Box p={8}>
-        <Heading size="lg" mb={6}>
-          {session.name} - Summary
-        </Heading>
+        <Stack direction="row" justify="space-between" align="center" mb={6}>
+          <Heading size="lg">{session.name} - Summary</Heading>
+          <Button as={Link} to={`/sessions/${id}/items`} colorScheme="blue">
+            Add Roadmap Items
+          </Button>
+        </Stack>
         <Alert status="info">
           <AlertIcon />
-          <AlertTitle>No items with inputs</AlertTitle>
+          <AlertTitle>No roadmap items</AlertTitle>
           <AlertDescription>
-            This session has no roadmap items. Add items and fill in their inputs to see the
-            summary.
+            This session has no roadmap items yet. Click "Add Roadmap Items" above to create items
+            and fill in their inputs to see the summary.
           </AlertDescription>
         </Alert>
       </Box>
@@ -427,6 +455,22 @@ function SessionSummaryPage() {
                 </Th>
                 <Th>
                   <HStack spacing={1}>
+                    <Text>UX Focus/Work</Text>
+                    <Tooltip
+                      label="Focus weeks (dedicated time) and work weeks (calendar span) for UX effort."
+                      placement="top"
+                    >
+                      <IconButton
+                        aria-label="Info about focus/work weeks"
+                        icon={<InfoIcon />}
+                        size="xs"
+                        variant="ghost"
+                      />
+                    </Tooltip>
+                  </HStack>
+                </Th>
+                <Th>
+                  <HStack spacing={1}>
                     <Text>Content Size</Text>
                     <Tooltip
                       label="T-shirt size (XS, S, M, L, XL, None) representing the complexity of Content work, mapped to sprint counts."
@@ -457,11 +501,27 @@ function SessionSummaryPage() {
                     </Tooltip>
                   </HStack>
                 </Th>
+                <Th>
+                  <HStack spacing={1}>
+                    <Text>Content Focus/Work</Text>
+                    <Tooltip
+                      label="Focus weeks (dedicated time) and work weeks (calendar span) for Content effort."
+                      placement="top"
+                    >
+                      <IconButton
+                        aria-label="Info about focus/work weeks"
+                        icon={<InfoIcon />}
+                        size="xs"
+                        variant="ghost"
+                      />
+                    </Tooltip>
+                  </HStack>
+                </Th>
                 <Th>Status</Th>
               </Tr>
             </Thead>
             <Tbody>
-              {summary.items.map((itemEstimate, index) => {
+              {summary.items?.map((itemEstimate, index) => {
                 const isAboveCutLine =
                   itemEstimate.aboveCutLineUX || itemEstimate.aboveCutLineContent
                 const showDivider = index === cutLineIndex && cutLineIndex > 0
@@ -470,7 +530,7 @@ function SessionSummaryPage() {
                   <>
                     {showDivider && (
                       <Tr>
-                        <Td colSpan={8} p={0}>
+                        <Td colSpan={10} p={0}>
                           <Divider borderColor="red.300" borderWidth="2px" />
                         </Td>
                       </Tr>
@@ -484,13 +544,38 @@ function SessionSummaryPage() {
                       <Td>{itemEstimate.item.name}</Td>
                       <Td>{itemEstimate.item.initiative}</Td>
                       <Td>
-                        <Badge>{itemEstimate.uxSizing.tshirtSize}</Badge>
+                        <Badge>
+                          {itemEstimate.item.uxSizeBand || itemEstimate.uxSizing?.tshirtSize || 'M'}
+                        </Badge>
                       </Td>
-                      <Td>{itemEstimate.uxSizing.designerWeeks.toFixed(1)}</Td>
                       <Td>
-                        <Badge>{itemEstimate.contentSizing.tshirtSize}</Badge>
+                        {itemEstimate.uxSizing?.designerWeeks != null
+                          ? itemEstimate.uxSizing.designerWeeks.toFixed(1)
+                          : '—'}
                       </Td>
-                      <Td>{itemEstimate.contentSizing.designerWeeks.toFixed(1)}</Td>
+                      <Td fontSize="sm">
+                        {typeof itemEstimate.item.uxFocusWeeks === 'number' && typeof itemEstimate.item.uxWorkWeeks === 'number'
+                          ? `${itemEstimate.item.uxFocusWeeks.toFixed(1)} / ${itemEstimate.item.uxWorkWeeks.toFixed(1)}`
+                          : '—'}
+                      </Td>
+                      <Td>
+                        <Badge>
+                          {itemEstimate.item.contentSizeBand ||
+                            (itemEstimate.contentSizing?.tshirtSize === 'None'
+                              ? 'M'
+                              : itemEstimate.contentSizing?.tshirtSize || 'M')}
+                        </Badge>
+                      </Td>
+                      <Td>
+                        {itemEstimate.contentSizing?.designerWeeks != null
+                          ? itemEstimate.contentSizing.designerWeeks.toFixed(1)
+                          : '—'}
+                      </Td>
+                      <Td fontSize="sm">
+                        {typeof itemEstimate.item.contentFocusWeeks === 'number' && typeof itemEstimate.item.contentWorkWeeks === 'number'
+                          ? `${itemEstimate.item.contentFocusWeeks.toFixed(1)} / ${itemEstimate.item.contentWorkWeeks.toFixed(1)}`
+                          : '—'}
+                      </Td>
                       <Td>
                         <Stack direction="row" spacing={2}>
                           {itemEstimate.aboveCutLineUX && (
