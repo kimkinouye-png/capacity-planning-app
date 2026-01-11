@@ -37,11 +37,9 @@ import { useRoadmapItems } from '../context/RoadmapItemsContext'
 import { useItemInputs } from '../context/ItemInputsContext'
 import type { PlanningSession, PlanningPeriod } from '../domain/types'
 import { getWeeksForPeriod } from '../config/quarterConfig'
+import { SPRINT_LENGTH_WEEKS } from '../config/sprints'
 
 const QUARTER_OPTIONS: PlanningPeriod[] = ['2026-Q1', '2026-Q2', '2026-Q3', '2026-Q4']
-
-// Sprint length is fixed at 2 weeks (not user-configurable)
-const SPRINT_LENGTH_WEEKS = 2
 import {
   demoItems,
   demoIntakes,

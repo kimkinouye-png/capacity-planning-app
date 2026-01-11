@@ -152,6 +152,28 @@ export const contentFactors: Record<string, Omit<Factor, 'score'>> = {
 }
 
 /**
+ * Factor weights for UX factors
+ * Exported as a separate constant for easy reference and potential future configuration
+ */
+export const FACTOR_WEIGHTS_UX: Record<string, number> = {
+  productRisk: 1.2,
+  problemAmbiguity: 1.0,
+  platformComplexity: 1.1,
+  discoveryDepth: 0.9,
+}
+
+/**
+ * Factor weights for Content factors
+ * Exported as a separate constant for easy reference and potential future configuration
+ */
+export const FACTOR_WEIGHTS_CONTENT: Record<string, number> = {
+  contentSurfaceArea: 1.3,
+  localizationScope: 1.0,
+  regulatoryBrandRisk: 1.2,
+  legalComplianceDependency: 1.1,
+}
+
+/**
  * Calculate weighted score from factor scores
  * @param factorsWithScores Map of factor names to their scores (1-5)
  * @param factorDefinitions Factor definitions with weights

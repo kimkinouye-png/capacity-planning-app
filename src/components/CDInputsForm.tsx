@@ -5,20 +5,22 @@ import {
   Checkbox,
   Stack,
   Text,
-  Tooltip,
+  Heading,
+  Badge,
+  Box,
   HStack,
-  IconButton,
 } from '@chakra-ui/react'
-import { InfoIcon } from '@chakra-ui/icons'
 import type { ContentDesignInputs } from '../domain/types'
 import { getFactorsForRole } from '../config/effortModel'
+import FactorScoreInput from './FactorScoreInput'
 
 interface CDInputsFormProps {
   value: ContentDesignInputs
   onChange: (value: ContentDesignInputs) => void
+  sizeBand?: 'XS' | 'S' | 'M' | 'L' | 'XL' // Optional size band for visual indicator
 }
 
-export default function CDInputsForm({ value, onChange }: CDInputsFormProps) {
+export default function CDInputsForm({ value, onChange, sizeBand }: CDInputsFormProps) {
   const contentFactors = getFactorsForRole('content')
 
   const handleSelectChange = (
@@ -159,37 +161,29 @@ export default function CDInputsForm({ value, onChange }: CDInputsFormProps) {
       </FormControl>
 
       <Stack spacing={4} mt={6} pt={6} borderTop="1px" borderColor="gray.200">
-        <Text fontWeight="bold" fontSize="md">
-          Content Effort Factors (Score 1-5)
-        </Text>
+        <Box>
+          <HStack spacing={3} mb={4}>
+            <Heading size="sm" as="h3">
+              Content Effort Factors
+            </Heading>
+            {sizeBand && (
+              <Badge colorScheme="green" fontSize="md" px={2} py={1}>
+                Size: {sizeBand}
+              </Badge>
+            )}
+          </HStack>
+          <Text fontSize="sm" color="gray.600" mb={4}>
+            Score each factor from 1 (Low) to 5 (High) to estimate Content design effort.
+          </Text>
+        </Box>
         {Object.entries(contentFactors).map(([factorName, factor]) => (
-          <FormControl key={factorName}>
-            <HStack>
-              <FormLabel mb={0} flex={1}>
-                {factor.label} <Text as="span" fontSize="xs" color="gray.500" fontWeight="normal">(Weight: {factor.weight.toFixed(1)})</Text>
-              </FormLabel>
-              <Tooltip label={factor.description} placement="top">
-                <IconButton
-                  aria-label="Factor description"
-                  icon={<InfoIcon />}
-                  size="xs"
-                  variant="ghost"
-                />
-              </Tooltip>
-            </HStack>
-            <Select
-              value={(value[factorName as keyof ContentDesignInputs] as number | undefined) || 3}
-              onChange={(e) =>
-                handleFactorScoreChange(factorName, parseInt(e.target.value, 10))
-              }
-            >
-              <option value={1}>1 - Low</option>
-              <option value={2}>2</option>
-              <option value={3}>3 - Medium</option>
-              <option value={4}>4</option>
-              <option value={5}>5 - High</option>
-            </Select>
-          </FormControl>
+          <FactorScoreInput
+            key={factorName}
+            factorName={factorName}
+            factor={factor}
+            value={(value[factorName as keyof ContentDesignInputs] as number | undefined) || 3}
+            onChange={(score) => handleFactorScoreChange(factorName, score)}
+          />
         ))}
       </Stack>
     </Stack>

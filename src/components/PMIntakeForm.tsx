@@ -117,42 +117,46 @@ export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
         <FormLabel>Surfaces in Scope</FormLabel>
         <Stack spacing={2} mt={2}>
           <Checkbox
-            isChecked={(value.surfaces_in_scope || []).includes('Mobile')}
-            onChange={(e) => handleSurfacesChange('Mobile', e.target.checked)}
+            isChecked={(value.surfaces_in_scope || []).includes('Checkout')}
+            onChange={(e) => handleSurfacesChange('Checkout', e.target.checked)}
           >
-            Mobile
-          </Checkbox>
-          <Stack spacing={2} pl={6}>
-            <Checkbox
-              isChecked={(value.surfaces_in_scope || []).includes('iOS')}
-              onChange={(e) => handleSurfacesChange('iOS', e.target.checked)}
-            >
-              iOS
-            </Checkbox>
-            <Checkbox
-              isChecked={(value.surfaces_in_scope || []).includes('Android')}
-              onChange={(e) => handleSurfacesChange('Android', e.target.checked)}
-            >
-              Android
-            </Checkbox>
-            <Checkbox
-              isChecked={(value.surfaces_in_scope || []).includes('Mobile Web')}
-              onChange={(e) => handleSurfacesChange('Mobile Web', e.target.checked)}
-            >
-              Mobile Web
-            </Checkbox>
-          </Stack>
-          <Checkbox
-            isChecked={(value.surfaces_in_scope || []).includes('Web')}
-            onChange={(e) => handleSurfacesChange('Web', e.target.checked)}
-          >
-            Web
+            Checkout
           </Checkbox>
           <Checkbox
-            isChecked={(value.surfaces_in_scope || []).includes('Other (please specify)')}
-            onChange={(e) => handleSurfacesChange('Other (please specify)', e.target.checked)}
+            isChecked={(value.surfaces_in_scope || []).includes('Account')}
+            onChange={(e) => handleSurfacesChange('Account', e.target.checked)}
           >
-            Other (please specify)
+            Account
+          </Checkbox>
+          <Checkbox
+            isChecked={(value.surfaces_in_scope || []).includes('Emails')}
+            onChange={(e) => handleSurfacesChange('Emails', e.target.checked)}
+          >
+            Emails
+          </Checkbox>
+          <Checkbox
+            isChecked={(value.surfaces_in_scope || []).includes('Notifications')}
+            onChange={(e) => handleSurfacesChange('Notifications', e.target.checked)}
+          >
+            Notifications
+          </Checkbox>
+          <Checkbox
+            isChecked={(value.surfaces_in_scope || []).includes('Mobile App')}
+            onChange={(e) => handleSurfacesChange('Mobile App', e.target.checked)}
+          >
+            Mobile App
+          </Checkbox>
+          <Checkbox
+            isChecked={(value.surfaces_in_scope || []).includes('Web App')}
+            onChange={(e) => handleSurfacesChange('Web App', e.target.checked)}
+          >
+            Web App
+          </Checkbox>
+          <Checkbox
+            isChecked={(value.surfaces_in_scope || []).includes('Other')}
+            onChange={(e) => handleSurfacesChange('Other', e.target.checked)}
+          >
+            Other
           </Checkbox>
         </Stack>
       </FormControl>

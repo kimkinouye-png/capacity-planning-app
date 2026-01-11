@@ -390,7 +390,7 @@ function ItemDetailPage() {
                 Filled by the product designer to describe UX complexity factors, patterns, and
                 design considerations.
               </Text>
-              <PDInputsForm value={pdInputs} onChange={setPDInputs} />
+              <PDInputsForm value={pdInputs} onChange={setPDInputs} sizeBand={item.uxSizeBand} />
               {item && (
                 <Box mt={6} p={4} bg="blue.50" borderRadius="md" borderLeft="4px" borderColor="blue.500">
                   <Text fontSize="md" fontWeight="medium" color="gray.800">
@@ -406,7 +406,7 @@ function ItemDetailPage() {
                 Filled by the content designer to describe content requirements, compliance needs,
                 and guidance complexity.
               </Text>
-              <CDInputsForm value={cdInputs} onChange={setCDInputs} />
+              <CDInputsForm value={cdInputs} onChange={setCDInputs} sizeBand={item.contentSizeBand} />
               {item && (
                 <Box mt={6} p={4} bg="green.50" borderRadius="md" borderLeft="4px" borderColor="green.500">
                   <Text fontSize="md" fontWeight="medium" color="gray.800">

@@ -1,5 +1,44 @@
 # UI/UX Improvement Backlog
 
+## UI Backlog Highlights
+
+### Home / Scenarios
+- [ ] **De-emphasize demo sessions; focus on scenarios as primary entry points**
+  - Priority: [Should]
+
+- [ ] **Add richer portfolio/compare-scenarios view**
+  - Priority: [Nice]
+
+### PM Intake
+- [ ] **"Surfaces in Scope" as checkbox list; remove "Goal" section (keep Objectives/KPIs)**
+  - Priority: [Must]
+
+- [ ] **Align copy with focus-time/work-week concepts**
+  - Priority: [Should]
+
+### Product & Content Design tabs
+- [ ] **Factor weights defined centrally in effortModel and surfaced in UI as read-only "Weight: X" next to each factor**
+  - Priority: [Must]
+
+- [ ] **Clean layout and grouping of factor inputs; show UX and Content size badges**
+  - Priority: [Should]
+
+### Item Detail / Summary
+- [ ] **Compact summary showing UX and Content size + focus/work weeks in one block**
+  - Priority: [Should]
+
+- [ ] **Add startWeekInPeriod control for future timelines**
+  - Priority: [Should]
+
+- [ ] **Add small visual timelines or mini bars**
+  - Priority: [Nice]
+
+### Timeline / Gantt (future)
+- [ ] **Single-scenario Gantt view using start week + work-week spans for UX and Content, with hover/click into Item Detail and later simple adjustments**
+  - Priority: [Nice]
+
+---
+
 ## Sessions List Page
 
 ### Layout
