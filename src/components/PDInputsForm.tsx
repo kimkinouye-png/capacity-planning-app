@@ -106,7 +106,7 @@ export default function PDInputsForm({ value, onChange }: PDInputsFormProps) {
           <FormControl key={factorName}>
             <HStack>
               <FormLabel mb={0} flex={1}>
-                {factor.label}
+                {factor.label} <Text as="span" fontSize="xs" color="gray.500" fontWeight="normal">(Weight: {factor.weight.toFixed(1)})</Text>
               </FormLabel>
               <Tooltip label={factor.description} placement="top">
                 <IconButton

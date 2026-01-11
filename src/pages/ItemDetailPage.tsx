@@ -2,15 +2,11 @@ import {
   Box,
   Heading,
   Stack,
-  Divider,
   Text,
-  Badge,
   Alert,
   AlertIcon,
   AlertTitle,
   AlertDescription,
-  Card,
-  CardBody,
   Tabs,
   TabList,
   TabPanels,
@@ -24,7 +20,6 @@ import type { PMIntake, ProductDesignInputs, ContentDesignInputs } from '../doma
 import PMIntakeForm from '../components/PMIntakeForm'
 import PDInputsForm from '../components/PDInputsForm'
 import CDInputsForm from '../components/CDInputsForm'
-import { sizeUx, sizeContent } from '../estimation/logic'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
 import { useItemInputs } from '../context/ItemInputsContext'
 import { calculateEffort, type FactorScores } from '../config/effortModel'
@@ -316,28 +311,6 @@ function ItemDetailPage() {
     })
   }, [itemId, sessionId, cdInputs.contentSurfaceArea, cdInputs.localizationScope, cdInputs.regulatoryBrandRisk, cdInputs.legalComplianceDependency, updateItem])
 
-  // Calculate sizing estimates (updates automatically when form fields change)
-  const uxEstimate = useMemo(() => {
-    try {
-      if (pmIntake && pdInputs) {
-        return sizeUx(pdInputs, pmIntake)
-      }
-    } catch (error) {
-      console.error('Error calculating UX sizing:', error)
-    }
-    return null
-  }, [pmIntake, pdInputs])
-
-  const contentEstimate = useMemo(() => {
-    try {
-      if (cdInputs) {
-        return sizeContent(cdInputs)
-      }
-    } catch (error) {
-      console.error('Error calculating Content sizing:', error)
-    }
-    return null
-  }, [cdInputs])
 
   // Handle missing itemId
   if (!itemId) {
@@ -445,68 +418,6 @@ function ItemDetailPage() {
           </TabPanels>
         </Tabs>
 
-        <Divider />
-
-        {/* Size Estimates Section - Always visible below tabs */}
-        <Box>
-          <Heading size="md" mb={4}>
-            Size Estimates
-          </Heading>
-          <Stack spacing={4}>
-            {/* UX Estimate Card */}
-            <Card>
-              <CardBody>
-                <Text fontWeight="bold" mb={3} fontSize="lg">
-                  UX Design
-                </Text>
-                <Stack direction="row" spacing={4} flexWrap="wrap">
-                  <Text>
-                    <strong>T-shirt Size:</strong>{' '}
-                    <Badge colorScheme="blue">
-                      {uxEstimate ? uxEstimate.tshirtSize : '—'}
-                    </Badge>
-                  </Text>
-                  <Text>
-                    <strong>Sprints:</strong> {uxEstimate ? uxEstimate.sprints : '—'}
-                  </Text>
-                  <Text>
-                    <strong>Designer Weeks:</strong>{' '}
-                    {uxEstimate ? uxEstimate.designerWeeks.toFixed(1) : '—'}
-                  </Text>
-                </Stack>
-              </CardBody>
-            </Card>
-
-            {/* Content Estimate Card */}
-            <Card>
-              <CardBody>
-                <Text fontWeight="bold" mb={3} fontSize="lg">
-                  Content Design
-                </Text>
-                <Stack direction="row" spacing={4} flexWrap="wrap">
-                  <Text>
-                    <strong>T-shirt Size:</strong>{' '}
-                    <Badge colorScheme="green">
-                      {contentEstimate
-                        ? contentEstimate.tshirtSize === 'None'
-                          ? 'None'
-                          : contentEstimate.tshirtSize
-                        : '—'}
-                    </Badge>
-                  </Text>
-                  <Text>
-                    <strong>Sprints:</strong>{' '}
-                    {contentEstimate ? contentEstimate.sprints : '—'}
-                  </Text>
-                  <Text>
-                    <strong>Designer Weeks:</strong>{' '}
-                    {contentEstimate ? contentEstimate.designerWeeks.toFixed(1) : '—'}
-                  </Text>
-                </Stack>
-              </CardBody>
-            </Card>
-          </Stack>
-        </Box>
       </Stack>
     </Box>
   )
