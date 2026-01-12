@@ -7,11 +7,12 @@ import App from './App.tsx'
 import { PlanningSessionsProvider } from './context/PlanningSessionsContext.tsx'
 import { RoadmapItemsProvider } from './context/RoadmapItemsContext.tsx'
 import { ItemInputsProvider } from './context/ItemInputsContext.tsx'
+import theme from './theme'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-      <ChakraProvider>
+      <ChakraProvider theme={theme}>
         <BrowserRouter>
           <PlanningSessionsProvider>
             <RoadmapItemsProvider>

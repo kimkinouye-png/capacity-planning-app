@@ -29,7 +29,10 @@ import {
   Text,
   Link as ChakraLink,
   Select,
+  VStack,
+  Icon,
 } from '@chakra-ui/react'
+import { CalendarIcon } from '@chakra-ui/icons'
 import { Link, useNavigate } from 'react-router-dom'
 import { useState, useMemo } from 'react'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
@@ -204,7 +207,6 @@ function SessionsListPage() {
         short_key: demoItem.short_key,
         name: demoItem.name,
         initiative: demoItem.initiative,
-        team_name: demoItem.team_name,
         priority: demoItem.priority,
       })
 
@@ -261,11 +263,150 @@ function SessionsListPage() {
       })
   }, [sessions, getItemsForSession])
 
+  // Show empty state when no scenarios exist
+  if (sessions.length === 0) {
+    return (
+      <Box maxW="1200px" mx="auto" px={6} py={16}>
+        <VStack spacing={6} align="center" textAlign="center">
+          {/* Calendar Icon with light blue circular background */}
+          <Box
+            w={20}
+            h={20}
+            borderRadius="full"
+            bg="blue.50"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+          >
+            <Icon as={CalendarIcon} w={10} h={10} color="blue.500" />
+          </Box>
+
+          {/* Welcome Heading */}
+          <Heading size="lg" fontWeight="bold">
+            Welcome to Capacity Planning!
+          </Heading>
+
+          {/* Description */}
+          <Text fontSize="md" color="gray.600" maxW="500px">
+            Create your first planning scenario to get started. You can estimate effort and manage team capacity across quarterly cycles.
+          </Text>
+
+          {/* Primary CTA Button */}
+          <Button
+            colorScheme="black"
+            size="lg"
+            onClick={onOpen}
+            borderRadius="md"
+          >
+            + Create New Scenario
+          </Button>
+        </VStack>
+
+        {/* Modal for creating new scenario */}
+        <Modal isOpen={isOpen} onClose={onClose}>
+          <ModalOverlay />
+          <ModalContent>
+            <form onSubmit={handleSubmit}>
+              <ModalHeader>Create New Scenario</ModalHeader>
+              <ModalCloseButton />
+              <ModalBody>
+                <Stack spacing={4}>
+                  <FormControl isRequired>
+                    <FormLabel>Name</FormLabel>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="e.g., Payments Q2 2026"
+                    />
+                  </FormControl>
+
+                  <FormControl isRequired>
+                    <FormLabel>Planning Period</FormLabel>
+                    <Select
+                      value={formData.planningPeriod}
+                      onChange={(e) =>
+                        setFormData({ ...formData, planningPeriod: e.target.value as PlanningPeriod })
+                      }
+                    >
+                      {QUARTER_OPTIONS.map((period) => (
+                        <option key={period} value={period}>
+                          {period}
+                        </option>
+                      ))}
+                    </Select>
+                    <Text fontSize="sm" color="gray.500" mt={1}>
+                      {getWeeksForPeriod(formData.planningPeriod)} weeks per period
+                    </Text>
+                    <Text fontSize="sm" color="gray.500" mt={1}>
+                      Assumes {SPRINT_LENGTH_WEEKS}-week sprints (about {Math.floor(getWeeksForPeriod(formData.planningPeriod) / SPRINT_LENGTH_WEEKS)} sprints per quarter).
+                    </Text>
+                  </FormControl>
+
+                  <FormControl isRequired>
+                    <FormLabel>UX Designers</FormLabel>
+                    <NumberInput
+                      value={formData.ux_designers}
+                      onChange={(_, valueAsNumber) =>
+                        setFormData({ ...formData, ux_designers: valueAsNumber || 0 })
+                      }
+                      min={0}
+                    >
+                      <NumberInputField />
+                      <NumberInputStepper>
+                        <NumberIncrementStepper />
+                        <NumberDecrementStepper />
+                      </NumberInputStepper>
+                    </NumberInput>
+                  </FormControl>
+
+                  <FormControl isRequired>
+                    <FormLabel>Content Designers</FormLabel>
+                    <NumberInput
+                      value={formData.content_designers}
+                      onChange={(_, valueAsNumber) =>
+                        setFormData({ ...formData, content_designers: valueAsNumber || 0 })
+                      }
+                      min={0}
+                    >
+                      <NumberInputField />
+                      <NumberInputStepper>
+                        <NumberIncrementStepper />
+                        <NumberDecrementStepper />
+                      </NumberInputStepper>
+                    </NumberInput>
+                  </FormControl>
+                </Stack>
+              </ModalBody>
+
+              <ModalFooter>
+                <Button variant="ghost" mr={3} onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button colorScheme="blue" type="submit">
+                  Create Scenario
+                </Button>
+              </ModalFooter>
+            </form>
+          </ModalContent>
+        </Modal>
+      </Box>
+    )
+  }
+
+  // Show populated state with table when scenarios exist
   return (
-    <Box p={8}>
+    <Box maxW="1200px" mx="auto" px={6} py={8}>
       <Stack direction="row" justify="space-between" align="center" mb={6}>
         <Heading size="lg">Planning Scenarios</Heading>
         <Stack direction="row" spacing={3}>
+          <Button
+            as={Link}
+            to="/quarterly-capacity"
+            variant="outline"
+            colorScheme="blue"
+          >
+            Quarterly Capacity
+          </Button>
           <Button variant="outline" colorScheme="gray" onClick={handleCreateDemoSession}>
             Create demo session
           </Button>
@@ -289,14 +430,7 @@ function SessionsListPage() {
             </Tr>
           </Thead>
           <Tbody>
-            {sessions.length === 0 ? (
-              <Tr>
-                <Td colSpan={7} textAlign="center" color="gray.500" py={8}>
-                  No planning scenarios yet. Create one to get started.
-                </Td>
-              </Tr>
-            ) : (
-              scenarioMetrics.map(({ session, metrics }) => (
+            {scenarioMetrics.map(({ session, metrics }) => (
                 <Tr key={session?.id || 'unknown'}>
                   <Td>
                     {session?.id ? (
@@ -351,8 +485,7 @@ function SessionsListPage() {
                     )}
                   </Td>
                 </Tr>
-              ))
-            )}
+              ))}
           </Tbody>
         </Table>
       </TableContainer>
