@@ -420,21 +420,15 @@ function SessionsListPage() {
           const itemCount = items?.length || 0
           const planningPeriod = session?.planningPeriod || session?.planning_period || '—'
           
-          // Calculate surplus/deficit - handle NaN cases
-          const uxDemand = metrics.uxFocusDemand
-          const contentDemand = metrics.contentFocusDemand
-          const uxSurplus = uxDemand !== null ? metrics.uxFocusCapacity - uxDemand : NaN
-          const contentSurplus = contentDemand !== null ? metrics.contentFocusCapacity - contentDemand : NaN
+          // Calculate demand (treat null as 0) and surplus/deficit
+          const uxDemand = metrics.uxFocusDemand ?? 0
+          const contentDemand = metrics.contentFocusDemand ?? 0
+          const uxSurplus = metrics.uxFocusCapacity - uxDemand
+          const contentSurplus = metrics.contentFocusCapacity - contentDemand
           
-          // Helper to format numbers or show NaN
-          const formatValue = (value: number | null): string => {
-            if (value === null || isNaN(value)) return 'NaN'
+          // Helper to format numbers
+          const formatValue = (value: number): string => {
             return value.toFixed(1)
-          }
-          
-          // Helper to determine if value is valid (not null/NaN)
-          const isValid = (value: number | null): boolean => {
-            return value !== null && !isNaN(value)
           }
           
           return (
@@ -494,7 +488,7 @@ function SessionsListPage() {
                       </Text>
                       <VStack align="start" spacing={1}>
                         <Text fontSize="sm" color="gray.600">
-                          <Text as="span" fontWeight="bold" color={isValid(uxDemand) ? "gray.900" : "red.600"}>
+                          <Text as="span" fontWeight="bold" color="gray.900">
                             {formatValue(uxDemand)}
                           </Text>
                           {' / '}
@@ -503,11 +497,11 @@ function SessionsListPage() {
                         <Text 
                           fontSize="sm" 
                           fontWeight="medium"
-                          color={isValid(uxSurplus) ? (uxSurplus >= 0 ? "green.600" : "red.600") : "red.600"}
+                          color={uxSurplus >= 0 ? "green.600" : "red.600"}
                         >
-                          {isValid(uxSurplus) 
-                            ? (uxSurplus >= 0 ? `+${formatValue(uxSurplus)} surplus` : `${formatValue(uxSurplus)} deficit`)
-                            : 'NaN surplus'
+                          {uxSurplus >= 0 
+                            ? `+${formatValue(uxSurplus)} surplus` 
+                            : `${formatValue(uxSurplus)} deficit`
                           }
                         </Text>
                       </VStack>
@@ -520,7 +514,7 @@ function SessionsListPage() {
                       </Text>
                       <VStack align="start" spacing={1}>
                         <Text fontSize="sm" color="gray.600">
-                          <Text as="span" fontWeight="bold" color={isValid(contentDemand) ? "gray.900" : "red.600"}>
+                          <Text as="span" fontWeight="bold" color="gray.900">
                             {formatValue(contentDemand)}
                           </Text>
                           {' / '}
@@ -529,11 +523,11 @@ function SessionsListPage() {
                         <Text 
                           fontSize="sm" 
                           fontWeight="medium"
-                          color={isValid(contentSurplus) ? (contentSurplus >= 0 ? "green.600" : "red.600") : "red.600"}
+                          color={contentSurplus >= 0 ? "green.600" : "red.600"}
                         >
-                          {isValid(contentSurplus) 
-                            ? (contentSurplus >= 0 ? `+${formatValue(contentSurplus)} surplus` : `${formatValue(contentSurplus)} deficit`)
-                            : 'NaN surplus'
+                          {contentSurplus >= 0 
+                            ? `+${formatValue(contentSurplus)} surplus` 
+                            : `${formatValue(contentSurplus)} deficit`
                           }
                         </Text>
                       </VStack>

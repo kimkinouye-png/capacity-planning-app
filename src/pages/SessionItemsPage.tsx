@@ -26,17 +26,30 @@ import {
   NumberIncrementStepper,
   NumberDecrementStepper,
   Stack,
+  Text,
+  HStack,
+  VStack,
+  Card,
+  CardBody,
+  Icon,
+  IconButton,
+  Badge,
 } from '@chakra-ui/react'
-import { useParams, Link } from 'react-router-dom'
-import { useState } from 'react'
+import { ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useState, useMemo } from 'react'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
+import { usePlanningSessions } from '../context/PlanningSessionsContext'
 
 function SessionItemsPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { getItemsForSession, createItem } = useRoadmapItems()
+  const { getSessionById } = usePlanningSessions()
   const { isOpen, onOpen, onClose } = useDisclosure()
 
   const items = id ? getItemsForSession(id) : []
+  const session = useMemo(() => (id ? getSessionById(id) : undefined), [id, getSessionById])
 
   const [formData, setFormData] = useState({
     short_key: '',
@@ -68,58 +81,121 @@ function SessionItemsPage() {
     )
   }
 
-  return (
-    <Box p={8}>
-      <Stack direction="row" justify="space-between" align="center" mb={6}>
-        <Heading size="lg">Roadmap Items</Heading>
-        <Button colorScheme="blue" onClick={onOpen}>
-          New roadmap item
-        </Button>
-      </Stack>
+  const planningPeriod = session?.planningPeriod || session?.planning_period || '—'
+  const sessionName = session?.name || 'Unknown Session'
 
-      <TableContainer>
-        <Table variant="simple">
-          <Thead>
-            <Tr>
-              <Th>Short Key</Th>
-              <Th>Name</Th>
-              <Th>Initiative</Th>
-              <Th>Priority</Th>
-              <Th>Status</Th>
-              <Th>Actions</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {items.length === 0 ? (
-              <Tr>
-                <Td colSpan={6} textAlign="center" color="gray.500">
-                  No roadmap items yet. Create one to get started.
-                </Td>
-              </Tr>
-            ) : (
-              items.map((item) => (
-                <Tr key={item.id}>
-                  <Td>{item.short_key}</Td>
-                  <Td>{item.name}</Td>
-                  <Td>{item.initiative}</Td>
-                  <Td>{item.priority}</Td>
-                  <Td>{item.status}</Td>
-                  <Td>
-                    <Button
-                      as={Link}
-                      to={`/sessions/${id}/items/${item.id}`}
-                      colorScheme="blue"
-                      size="sm"
+  // Format planning period for display (e.g., "2026-Q1" -> "Q1 2026")
+  const formatPlanningPeriod = (period: string): string => {
+    const match = period.match(/(\d{4})-Q(\d)/)
+    if (match) {
+      return `Q${match[2]} ${match[1]}`
+    }
+    return period
+  }
+
+  const formattedPeriod = formatPlanningPeriod(planningPeriod)
+
+  return (
+    <Box minH="100vh" bg="#F9FAFB">
+      <Box maxW="1200px" mx="auto" px={6} py={8}>
+        {/* Breadcrumb Navigation */}
+        <HStack spacing={2} mb={6} align="center">
+          <IconButton
+            aria-label="Back to session summary"
+            icon={<ChevronLeftIcon />}
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(`/sessions/${id}`)}
+          />
+          <Link to="/" style={{ color: '#3182CE', textDecoration: 'none' }}>
+            <Text fontSize="sm" color="blue.500" _hover={{ textDecoration: 'underline' }}>
+              Home
+            </Text>
+          </Link>
+          <ChevronRightIcon w={3} h={3} color="gray.400" />
+          <Text fontSize="sm" color="gray.600">
+            {formattedPeriod} {sessionName}
+          </Text>
+          <ChevronRightIcon w={3} h={3} color="gray.400" />
+          <Text fontSize="sm" color="gray.900" fontWeight="medium">
+            Roadmap Items
+          </Text>
+        </HStack>
+
+        {/* Header */}
+        <Stack direction="row" justify="space-between" align="center" mb={6}>
+          <Box>
+            <Heading size="lg" mb={1}>
+              Roadmap Items
+            </Heading>
+            <Text fontSize="sm" color="gray.600">
+              {items.length} {items.length === 1 ? 'item' : 'items'} in {formattedPeriod} {sessionName}
+            </Text>
+          </Box>
+          <Button colorScheme="black" onClick={onOpen}>
+            + New Roadmap Item
+          </Button>
+        </Stack>
+
+        {/* Empty State */}
+        {items.length === 0 ? (
+          <Card bg="white" boxShadow="sm" borderRadius="md">
+            <CardBody p={12}>
+              <VStack spacing={4} align="center" textAlign="center">
+                <Text fontSize="md" color="gray.600">
+                  No items yet. Create your first roadmap item.
+                </Text>
+                <Button colorScheme="black" onClick={onOpen}>
+                  + Create First Item
+                </Button>
+              </VStack>
+            </CardBody>
+          </Card>
+        ) : (
+          /* Populated State - Table */
+          <Card bg="white" boxShadow="sm" borderRadius="md" overflow="hidden">
+            <TableContainer>
+              <Table variant="simple">
+                <Thead bg="gray.50">
+                  <Tr>
+                    <Th>Short Key</Th>
+                    <Th>Name</Th>
+                    <Th>Initiative</Th>
+                    <Th>Priority</Th>
+                    <Th>Status</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {items.map((item) => (
+                    <Tr
+                      key={item.id}
+                      cursor="pointer"
+                      _hover={{ bg: 'gray.50' }}
+                      onClick={() => navigate(`/sessions/${id}/items/${item.id}`)}
                     >
-                      Details
-                    </Button>
-                  </Td>
-                </Tr>
-              ))
-            )}
-          </Tbody>
-        </Table>
-      </TableContainer>
+                      <Td fontWeight="medium">{item.short_key}</Td>
+                      <Td>{item.name}</Td>
+                      <Td>{item.initiative}</Td>
+                      <Td>{item.priority}</Td>
+                      <Td>
+                        <Badge
+                          colorScheme={item.status === 'draft' ? 'gray' : item.status === 'active' ? 'green' : 'blue'}
+                          px={2}
+                          py={1}
+                          borderRadius="full"
+                          fontSize="xs"
+                        >
+                          {item.status}
+                        </Badge>
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </TableContainer>
+          </Card>
+        )}
+      </Box>
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
@@ -179,7 +255,7 @@ function SessionItemsPage() {
               <Button variant="ghost" mr={3} onClick={onClose}>
                 Cancel
               </Button>
-              <Button colorScheme="blue" type="submit">
+              <Button colorScheme="black" type="submit">
                 Create Item
               </Button>
             </ModalFooter>
