@@ -28,6 +28,7 @@ import {
   Badge,
   HStack,
   Divider,
+  SimpleGrid,
 } from '@chakra-ui/react'
 import { CalendarIcon } from '@chakra-ui/icons'
 import { useNavigate } from 'react-router-dom'
@@ -408,9 +409,8 @@ function SessionsListPage() {
           colorScheme="black"
           size="md"
           onClick={onOpen}
-          leftIcon={<Text fontSize="lg">+</Text>}
         >
-          Create New Scenario
+          + Create New Scenario
         </Button>
       </Stack>
 
@@ -420,15 +420,34 @@ function SessionsListPage() {
           const itemCount = items?.length || 0
           const planningPeriod = session?.planningPeriod || session?.planning_period || '—'
           
-          // Calculate surplus/deficit
-          const uxSurplus = metrics.uxFocusCapacity - (metrics.uxFocusDemand || 0)
-          const contentSurplus = metrics.contentFocusCapacity - (metrics.contentFocusDemand || 0)
+          // Calculate surplus/deficit - handle NaN cases
+          const uxDemand = metrics.uxFocusDemand
+          const contentDemand = metrics.contentFocusDemand
+          const uxSurplus = uxDemand !== null ? metrics.uxFocusCapacity - uxDemand : NaN
+          const contentSurplus = contentDemand !== null ? metrics.contentFocusCapacity - contentDemand : NaN
+          
+          // Helper to format numbers or show NaN
+          const formatValue = (value: number | null): string => {
+            if (value === null || isNaN(value)) return 'NaN'
+            return value.toFixed(1)
+          }
+          
+          // Helper to determine if value is valid (not null/NaN)
+          const isValid = (value: number | null): boolean => {
+            return value !== null && !isNaN(value)
+          }
           
           return (
-            <Card key={session?.id || 'unknown'} variant="outline" cursor="pointer" 
-                  onClick={() => session?.id && navigate(`/sessions/${session.id}`)}
-                  _hover={{ boxShadow: 'md', borderColor: 'blue.300' }}
-                  transition="all 0.2s">
+            <Card 
+              key={session?.id || 'unknown'} 
+              variant="outline" 
+              cursor="pointer" 
+              onClick={() => session?.id && navigate(`/sessions/${session.id}`)}
+              _hover={{ boxShadow: 'md' }}
+              transition="all 0.2s"
+              bg="white"
+              borderColor="gray.200"
+            >
               <CardBody p={6}>
                 <Stack spacing={4}>
                   {/* Title and Status */}
@@ -466,74 +485,60 @@ function SessionsListPage() {
 
                   <Divider />
 
-                  {/* Capacity Breakdown */}
-                  <Stack spacing={3}>
-                    {/* UX Design */}
+                  {/* Two-Column Capacity Display */}
+                  <SimpleGrid columns={2} spacing={6}>
+                    {/* Left Column - UX Design */}
                     <Box>
-                      <Text fontSize="sm" fontWeight="medium" mb={1} color="gray.700">
+                      <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.700">
                         UX Design
                       </Text>
-                      <HStack justify="space-between" align="center">
+                      <VStack align="start" spacing={1}>
                         <Text fontSize="sm" color="gray.600">
-                          <Text as="span" fontWeight="bold" color="gray.900">
-                            {metrics.uxFocusDemand !== null ? metrics.uxFocusDemand.toFixed(1) : '0.0'}
+                          <Text as="span" fontWeight="bold" color={isValid(uxDemand) ? "gray.900" : "red.600"}>
+                            {formatValue(uxDemand)}
                           </Text>
                           {' / '}
-                          {metrics.uxFocusCapacity.toFixed(1)} focus weeks
+                          {formatValue(metrics.uxFocusCapacity)} focus weeks
                         </Text>
-                        <HStack spacing={1}>
-                          {uxSurplus >= 0 ? (
-                            <>
-                              <Text fontSize="sm" color="green.600">↑</Text>
-                              <Text fontSize="sm" color="green.600" fontWeight="medium">
-                                +{uxSurplus.toFixed(1)} surplus
-                              </Text>
-                            </>
-                          ) : (
-                            <>
-                              <Text fontSize="sm" color="red.600">↓</Text>
-                              <Text fontSize="sm" color="red.600" fontWeight="medium">
-                                {uxSurplus.toFixed(1)} deficit
-                              </Text>
-                            </>
-                          )}
-                        </HStack>
-                      </HStack>
+                        <Text 
+                          fontSize="sm" 
+                          fontWeight="medium"
+                          color={isValid(uxSurplus) ? (uxSurplus >= 0 ? "green.600" : "red.600") : "red.600"}
+                        >
+                          {isValid(uxSurplus) 
+                            ? (uxSurplus >= 0 ? `+${formatValue(uxSurplus)} surplus` : `${formatValue(uxSurplus)} deficit`)
+                            : 'NaN surplus'
+                          }
+                        </Text>
+                      </VStack>
                     </Box>
 
-                    {/* Content Design */}
+                    {/* Right Column - Content Design */}
                     <Box>
-                      <Text fontSize="sm" fontWeight="medium" mb={1} color="gray.700">
+                      <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.700">
                         Content Design
                       </Text>
-                      <HStack justify="space-between" align="center">
+                      <VStack align="start" spacing={1}>
                         <Text fontSize="sm" color="gray.600">
-                          <Text as="span" fontWeight="bold" color="gray.900">
-                            {metrics.contentFocusDemand !== null ? metrics.contentFocusDemand.toFixed(1) : '0.0'}
+                          <Text as="span" fontWeight="bold" color={isValid(contentDemand) ? "gray.900" : "red.600"}>
+                            {formatValue(contentDemand)}
                           </Text>
                           {' / '}
-                          {metrics.contentFocusCapacity.toFixed(1)} focus weeks
+                          {formatValue(metrics.contentFocusCapacity)} focus weeks
                         </Text>
-                        <HStack spacing={1}>
-                          {contentSurplus >= 0 ? (
-                            <>
-                              <Text fontSize="sm" color="green.600">↑</Text>
-                              <Text fontSize="sm" color="green.600" fontWeight="medium">
-                                +{contentSurplus.toFixed(1)} surplus
-                              </Text>
-                            </>
-                          ) : (
-                            <>
-                              <Text fontSize="sm" color="red.600">↓</Text>
-                              <Text fontSize="sm" color="red.600" fontWeight="medium">
-                                {contentSurplus.toFixed(1)} deficit
-                              </Text>
-                            </>
-                          )}
-                        </HStack>
-                      </HStack>
+                        <Text 
+                          fontSize="sm" 
+                          fontWeight="medium"
+                          color={isValid(contentSurplus) ? (contentSurplus >= 0 ? "green.600" : "red.600") : "red.600"}
+                        >
+                          {isValid(contentSurplus) 
+                            ? (contentSurplus >= 0 ? `+${formatValue(contentSurplus)} surplus` : `${formatValue(contentSurplus)} deficit`)
+                            : 'NaN surplus'
+                          }
+                        </Text>
+                      </VStack>
                     </Box>
-                  </Stack>
+                  </SimpleGrid>
                 </Stack>
               </CardBody>
             </Card>
