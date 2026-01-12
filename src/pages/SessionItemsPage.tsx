@@ -42,7 +42,6 @@ function SessionItemsPage() {
     short_key: '',
     name: '',
     initiative: '',
-    team_name: '',
     priority: 1,
   })
 
@@ -57,7 +56,6 @@ function SessionItemsPage() {
       short_key: '',
       name: '',
       initiative: '',
-      team_name: '',
       priority: 1,
     })
   }
@@ -86,7 +84,6 @@ function SessionItemsPage() {
               <Th>Short Key</Th>
               <Th>Name</Th>
               <Th>Initiative</Th>
-              <Th>Team Name</Th>
               <Th>Priority</Th>
               <Th>Status</Th>
               <Th>Actions</Th>
@@ -95,7 +92,7 @@ function SessionItemsPage() {
           <Tbody>
             {items.length === 0 ? (
               <Tr>
-                <Td colSpan={7} textAlign="center" color="gray.500">
+                <Td colSpan={6} textAlign="center" color="gray.500">
                   No roadmap items yet. Create one to get started.
                 </Td>
               </Tr>
@@ -105,7 +102,6 @@ function SessionItemsPage() {
                   <Td>{item.short_key}</Td>
                   <Td>{item.name}</Td>
                   <Td>{item.initiative}</Td>
-                  <Td>{item.team_name}</Td>
                   <Td>{item.priority}</Td>
                   <Td>{item.status}</Td>
                   <Td>
@@ -157,15 +153,6 @@ function SessionItemsPage() {
                     value={formData.initiative}
                     onChange={(e) => setFormData({ ...formData, initiative: e.target.value })}
                     placeholder="e.g., Revenue"
-                  />
-                </FormControl>
-
-                <FormControl isRequired>
-                  <FormLabel>Team Name</FormLabel>
-                  <Input
-                    value={formData.team_name}
-                    onChange={(e) => setFormData({ ...formData, team_name: e.target.value })}
-                    placeholder="e.g., Payments"
                   />
                 </FormControl>
 

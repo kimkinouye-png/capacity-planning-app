@@ -20,7 +20,6 @@ export interface RoadmapItem {
   short_key: string
   name: string
   initiative: string
-  team_name: string
   priority: number
   status: 'draft' | 'ready_for_sizing' | 'sized' | 'locked'
   uxSizeBand: 'XS' | 'S' | 'M' | 'L' | 'XL'

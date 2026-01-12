@@ -64,6 +64,11 @@ const getDefaultPDInputs = (itemId: string): ProductDesignInputs => ({
   significant_edge_cases_or_error_handling: false,
   responsive_or_adaptive_layouts: false,
   other: '',
+  // Default factor scores set to 3 (medium) for all new items
+  productRisk: 3,
+  problemAmbiguity: 3,
+  platformComplexity: 3,
+  discoveryDepth: 3,
 })
 
 const getDefaultCDInputs = (itemId: string): ContentDesignInputs => ({
@@ -78,6 +83,11 @@ const getDefaultCDInputs = (itemId: string): ContentDesignInputs => ({
   legal_policy_or_compliance_review: 'no',
   introducing_new_terminology: false,
   guidance_needed: 'minimal',
+  // Default factor scores set to 3 (medium) for all new items
+  contentSurfaceArea: 3,
+  localizationScope: 3,
+  regulatoryBrandRisk: 3,
+  legalComplianceDependency: 3,
 })
 
 function SessionSummaryPage() {
@@ -417,19 +427,43 @@ function SessionSummaryPage() {
         <TableContainer>
           <Table variant="simple">
             <Thead>
+              {/* Grouping row for role sections */}
               <Tr>
-                <Th>Key</Th>
-                <Th>Name</Th>
-                <Th>Initiative</Th>
-                <Th>
+                <Th colSpan={3} bg="gray.50" borderRight="1px" borderColor="gray.300">
+                  <Text fontSize="xs" fontWeight="semibold" color="gray.700" textTransform="uppercase">
+                    Item Information
+                  </Text>
+                </Th>
+                <Th colSpan={3} bg="blue.50" borderRight="1px" borderColor="gray.300">
+                  <Text fontSize="xs" fontWeight="semibold" color="blue.700" textTransform="uppercase">
+                    UX Design
+                  </Text>
+                </Th>
+                <Th colSpan={3} bg="green.50" borderRight="1px" borderColor="gray.300">
+                  <Text fontSize="xs" fontWeight="semibold" color="green.700" textTransform="uppercase">
+                    Content Design
+                  </Text>
+                </Th>
+                <Th bg="gray.50">
+                  <Text fontSize="xs" fontWeight="semibold" color="gray.700" textTransform="uppercase">
+                    Status
+                  </Text>
+                </Th>
+              </Tr>
+              {/* Column headers */}
+              <Tr>
+                <Th bg="gray.50" borderRight="1px" borderColor="gray.300">Key</Th>
+                <Th bg="gray.50" borderRight="1px" borderColor="gray.300">Name</Th>
+                <Th bg="gray.50" borderRight="1px" borderColor="gray.300">Initiative</Th>
+                <Th bg="blue.50" borderRight="1px" borderColor="gray.300">
                   <HStack spacing={1}>
                     <Text>UX Size</Text>
                     <Tooltip
-                      label="T-shirt size (XS, S, M, L, XL) representing the complexity of UX work, mapped to sprint counts."
+                      label="T-shirt size (XS, S, M, L, XL) representing the complexity of UX work."
                       placement="top"
                     >
                       <IconButton
-                        aria-label="Info about T-shirt size"
+                        aria-label="Info about UX size"
                         icon={<InfoIcon />}
                         size="xs"
                         variant="ghost"
@@ -437,15 +471,15 @@ function SessionSummaryPage() {
                     </Tooltip>
                   </HStack>
                 </Th>
-                <Th>
+                <Th bg="blue.50" borderRight="1px" borderColor="gray.300">
                   <HStack spacing={1}>
-                    <Text>UX Weeks</Text>
+                    <Text>UX Focus Weeks</Text>
                     <Tooltip
-                      label="Designer-weeks = sprints × sprint length. Total weeks of UX designer time needed."
+                      label="Dedicated designer time (focus weeks) needed for UX work."
                       placement="top"
                     >
                       <IconButton
-                        aria-label="Info about designer-weeks"
+                        aria-label="Info about UX focus weeks"
                         icon={<InfoIcon />}
                         size="xs"
                         variant="ghost"
@@ -453,15 +487,15 @@ function SessionSummaryPage() {
                     </Tooltip>
                   </HStack>
                 </Th>
-                <Th>
+                <Th bg="blue.50" borderRight="1px" borderColor="gray.300">
                   <HStack spacing={1}>
-                    <Text>UX Focus/Work</Text>
+                    <Text>UX Work Weeks</Text>
                     <Tooltip
-                      label="Focus weeks (dedicated time) and work weeks (calendar span) for UX effort."
+                      label="Calendar span (work weeks) needed to complete UX focus weeks, accounting for context switching."
                       placement="top"
                     >
                       <IconButton
-                        aria-label="Info about focus/work weeks"
+                        aria-label="Info about UX work weeks"
                         icon={<InfoIcon />}
                         size="xs"
                         variant="ghost"
@@ -469,15 +503,15 @@ function SessionSummaryPage() {
                     </Tooltip>
                   </HStack>
                 </Th>
-                <Th>
+                <Th bg="green.50" borderRight="1px" borderColor="gray.300">
                   <HStack spacing={1}>
                     <Text>Content Size</Text>
                     <Tooltip
-                      label="T-shirt size (XS, S, M, L, XL, None) representing the complexity of Content work, mapped to sprint counts."
+                      label="T-shirt size (XS, S, M, L, XL) representing the complexity of Content work."
                       placement="top"
                     >
                       <IconButton
-                        aria-label="Info about T-shirt size"
+                        aria-label="Info about Content size"
                         icon={<InfoIcon />}
                         size="xs"
                         variant="ghost"
@@ -485,15 +519,15 @@ function SessionSummaryPage() {
                     </Tooltip>
                   </HStack>
                 </Th>
-                <Th>
+                <Th bg="green.50" borderRight="1px" borderColor="gray.300">
                   <HStack spacing={1}>
-                    <Text>Content Weeks</Text>
+                    <Text>Content Focus Weeks</Text>
                     <Tooltip
-                      label="Designer-weeks = sprints × sprint length. Total weeks of Content designer time needed."
+                      label="Dedicated designer time (focus weeks) needed for Content work."
                       placement="top"
                     >
                       <IconButton
-                        aria-label="Info about designer-weeks"
+                        aria-label="Info about Content focus weeks"
                         icon={<InfoIcon />}
                         size="xs"
                         variant="ghost"
@@ -501,15 +535,15 @@ function SessionSummaryPage() {
                     </Tooltip>
                   </HStack>
                 </Th>
-                <Th>
+                <Th bg="green.50" borderRight="1px" borderColor="gray.300">
                   <HStack spacing={1}>
-                    <Text>Content Focus/Work</Text>
+                    <Text>Content Work Weeks</Text>
                     <Tooltip
-                      label="Focus weeks (dedicated time) and work weeks (calendar span) for Content effort."
+                      label="Calendar span (work weeks) needed to complete Content focus weeks, accounting for context switching."
                       placement="top"
                     >
                       <IconButton
-                        aria-label="Info about focus/work weeks"
+                        aria-label="Info about Content work weeks"
                         icon={<InfoIcon />}
                         size="xs"
                         variant="ghost"
@@ -517,7 +551,7 @@ function SessionSummaryPage() {
                     </Tooltip>
                   </HStack>
                 </Th>
-                <Th>Status</Th>
+                <Th bg="gray.50">Status</Th>
               </Tr>
             </Thead>
             <Tbody>
@@ -540,42 +574,68 @@ function SessionSummaryPage() {
                       bg={isAboveCutLine ? 'red.50' : 'transparent'}
                       _hover={{ bg: isAboveCutLine ? 'red.100' : 'gray.50' }}
                     >
-                      <Td fontWeight="medium">{itemEstimate.item.short_key}</Td>
-                      <Td>{itemEstimate.item.name}</Td>
-                      <Td>{itemEstimate.item.initiative}</Td>
-                      <Td>
-                        <Badge>
-                          {itemEstimate.item.uxSizeBand || itemEstimate.uxSizing?.tshirtSize || 'M'}
-                        </Badge>
+                      {/* Item Information columns */}
+                      <Td fontWeight="medium" borderRight="1px" borderColor="gray.200">
+                        {itemEstimate.item.short_key}
                       </Td>
-                      <Td>
-                        {itemEstimate.uxSizing?.designerWeeks != null
-                          ? itemEstimate.uxSizing.designerWeeks.toFixed(1)
+                      <Td borderRight="1px" borderColor="gray.200">
+                        {itemEstimate.item.name}
+                      </Td>
+                      <Td borderRight="1px" borderColor="gray.300">
+                        {itemEstimate.item.initiative}
+                      </Td>
+                      
+                      {/* UX Design columns */}
+                      <Td bg={isAboveCutLine ? undefined : 'blue.50'} borderRight="1px" borderColor="gray.200">
+                        {itemEstimate.item.uxSizeBand ? (
+                          <Badge colorScheme="blue">
+                            {itemEstimate.item.uxSizeBand}
+                          </Badge>
+                        ) : itemEstimate.uxSizing?.tshirtSize ? (
+                          <Badge colorScheme="blue">
+                            {itemEstimate.uxSizing.tshirtSize}
+                          </Badge>
+                        ) : (
+                          <Text color="gray.400" fontSize="sm">Not sized</Text>
+                        )}
+                      </Td>
+                      <Td bg={isAboveCutLine ? undefined : 'blue.50'} borderRight="1px" borderColor="gray.200">
+                        {typeof itemEstimate.item.uxFocusWeeks === 'number' && itemEstimate.item.uxFocusWeeks > 0
+                          ? itemEstimate.item.uxFocusWeeks.toFixed(1)
                           : '—'}
                       </Td>
-                      <Td fontSize="sm">
-                        {typeof itemEstimate.item.uxFocusWeeks === 'number' && typeof itemEstimate.item.uxWorkWeeks === 'number'
-                          ? `${itemEstimate.item.uxFocusWeeks.toFixed(1)} / ${itemEstimate.item.uxWorkWeeks.toFixed(1)}`
+                      <Td bg={isAboveCutLine ? undefined : 'blue.50'} borderRight="1px" borderColor="gray.300">
+                        {typeof itemEstimate.item.uxWorkWeeks === 'number' && itemEstimate.item.uxWorkWeeks > 0
+                          ? itemEstimate.item.uxWorkWeeks.toFixed(1)
                           : '—'}
                       </Td>
-                      <Td>
-                        <Badge>
-                          {itemEstimate.item.contentSizeBand ||
-                            (itemEstimate.contentSizing?.tshirtSize === 'None'
-                              ? 'M'
-                              : itemEstimate.contentSizing?.tshirtSize || 'M')}
-                        </Badge>
+                      
+                      {/* Content Design columns */}
+                      <Td bg={isAboveCutLine ? undefined : 'green.50'} borderRight="1px" borderColor="gray.200">
+                        {itemEstimate.item.contentSizeBand ? (
+                          <Badge colorScheme="green">
+                            {itemEstimate.item.contentSizeBand}
+                          </Badge>
+                        ) : itemEstimate.contentSizing?.tshirtSize && itemEstimate.contentSizing.tshirtSize !== 'None' ? (
+                          <Badge colorScheme="green">
+                            {itemEstimate.contentSizing.tshirtSize}
+                          </Badge>
+                        ) : (
+                          <Text color="gray.400" fontSize="sm">Not sized</Text>
+                        )}
                       </Td>
-                      <Td>
-                        {itemEstimate.contentSizing?.designerWeeks != null
-                          ? itemEstimate.contentSizing.designerWeeks.toFixed(1)
+                      <Td bg={isAboveCutLine ? undefined : 'green.50'} borderRight="1px" borderColor="gray.200">
+                        {typeof itemEstimate.item.contentFocusWeeks === 'number' && itemEstimate.item.contentFocusWeeks > 0
+                          ? itemEstimate.item.contentFocusWeeks.toFixed(1)
                           : '—'}
                       </Td>
-                      <Td fontSize="sm">
-                        {typeof itemEstimate.item.contentFocusWeeks === 'number' && typeof itemEstimate.item.contentWorkWeeks === 'number'
-                          ? `${itemEstimate.item.contentFocusWeeks.toFixed(1)} / ${itemEstimate.item.contentWorkWeeks.toFixed(1)}`
+                      <Td bg={isAboveCutLine ? undefined : 'green.50'} borderRight="1px" borderColor="gray.300">
+                        {typeof itemEstimate.item.contentWorkWeeks === 'number' && itemEstimate.item.contentWorkWeeks > 0
+                          ? itemEstimate.item.contentWorkWeeks.toFixed(1)
                           : '—'}
                       </Td>
+                      
+                      {/* Status column */}
                       <Td>
                         <Stack direction="row" spacing={2}>
                           {itemEstimate.aboveCutLineUX && (

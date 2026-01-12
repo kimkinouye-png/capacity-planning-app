@@ -19,21 +19,18 @@ import {
   NumberInputStepper,
   NumberIncrementStepper,
   NumberDecrementStepper,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
   Text,
-  Link as ChakraLink,
   Select,
   VStack,
   Icon,
+  Card,
+  CardBody,
+  Badge,
+  HStack,
+  Divider,
 } from '@chakra-ui/react'
 import { CalendarIcon } from '@chakra-ui/icons'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useState, useMemo } from 'react'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
@@ -266,28 +263,28 @@ function SessionsListPage() {
   // Show empty state when no scenarios exist
   if (sessions.length === 0) {
     return (
-      <Box maxW="1200px" mx="auto" px={6} py={16}>
-        <VStack spacing={6} align="center" textAlign="center">
+      <Box maxW="1200px" mx="auto" px={6} py={20}>
+        <VStack spacing={8} align="center" textAlign="center">
           {/* Calendar Icon with light blue circular background */}
           <Box
-            w={20}
-            h={20}
+            w={24}
+            h={24}
             borderRadius="full"
-            bg="blue.50"
+            bg="#EFF6FF"
             display="flex"
             alignItems="center"
             justifyContent="center"
           >
-            <Icon as={CalendarIcon} w={10} h={10} color="blue.500" />
+            <Icon as={CalendarIcon} w={12} h={12} color="#3B82F6" />
           </Box>
 
           {/* Welcome Heading */}
-          <Heading size="lg" fontWeight="bold">
+          <Heading size="xl" fontWeight="bold" color="gray.900">
             Welcome to Capacity Planning!
           </Heading>
 
           {/* Description */}
-          <Text fontSize="md" color="gray.600" maxW="500px">
+          <Text fontSize="lg" color="gray.600" maxW="600px" lineHeight="tall">
             Create your first planning scenario to get started. You can estimate effort and manage team capacity across quarterly cycles.
           </Text>
 
@@ -297,6 +294,10 @@ function SessionsListPage() {
             size="lg"
             onClick={onOpen}
             borderRadius="md"
+            px={8}
+            py={6}
+            fontSize="md"
+            fontWeight="medium"
           >
             + Create New Scenario
           </Button>
@@ -393,102 +394,152 @@ function SessionsListPage() {
     )
   }
 
-  // Show populated state with table when scenarios exist
+  // Show populated state with cards when scenarios exist
   return (
     <Box maxW="1200px" mx="auto" px={6} py={8}>
       <Stack direction="row" justify="space-between" align="center" mb={6}>
-        <Heading size="lg">Planning Scenarios</Heading>
-        <Stack direction="row" spacing={3}>
-          <Button
-            as={Link}
-            to="/quarterly-capacity"
-            variant="outline"
-            colorScheme="blue"
-          >
-            Quarterly Capacity
-          </Button>
-          <Button variant="outline" colorScheme="gray" onClick={handleCreateDemoSession}>
-            Create demo session
-          </Button>
-          <Button colorScheme="blue" onClick={onOpen}>
-            New scenario
-          </Button>
-        </Stack>
+        <Box>
+          <Heading size="lg" mb={1}>Planning Scenarios</Heading>
+          <Text fontSize="sm" color="gray.600">
+            {sessions.length} {sessions.length === 1 ? 'scenario' : 'scenarios'}
+          </Text>
+        </Box>
+        <Button
+          colorScheme="black"
+          size="md"
+          onClick={onOpen}
+          leftIcon={<Text fontSize="lg">+</Text>}
+        >
+          Create New Scenario
+        </Button>
       </Stack>
 
-      <TableContainer>
-        <Table variant="simple">
-          <Thead>
-            <Tr>
-              <Th>Scenario Name</Th>
-              <Th>Planning Period</Th>
-              <Th>UX: Focus Capacity vs Demand</Th>
-              <Th>Content: Focus Capacity vs Demand</Th>
-              <Th>UX: Work Capacity vs Demand</Th>
-              <Th>Content: Work Capacity vs Demand</Th>
-              <Th>Status</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {scenarioMetrics.map(({ session, metrics }) => (
-                <Tr key={session?.id || 'unknown'}>
-                  <Td>
-                    {session?.id ? (
-                      <ChakraLink as={Link} to={`/sessions/${session.id}`} color="blue.500">
-                        {session.name || 'Unnamed Scenario'}
-                      </ChakraLink>
-                    ) : (
-                      <Text>{session?.name || 'Unnamed Scenario'}</Text>
-                    )}
-                  </Td>
-                  <Td>
-                    {session?.planningPeriod || session?.planning_period || '—'}
-                  </Td>
-                  <Td>
-                    {metrics && typeof metrics.uxFocusCapacity === 'number' && metrics.uxFocusDemand !== null && typeof metrics.uxFocusDemand === 'number'
-                      ? `${metrics.uxFocusCapacity.toFixed(1)} / ${metrics.uxFocusDemand.toFixed(1)}`
-                      : metrics && typeof metrics.uxFocusCapacity === 'number'
-                      ? `${metrics.uxFocusCapacity.toFixed(1)} / —`
-                      : '—'}
-                  </Td>
-                  <Td>
-                    {metrics && typeof metrics.contentFocusCapacity === 'number' && metrics.contentFocusDemand !== null && typeof metrics.contentFocusDemand === 'number'
-                      ? `${metrics.contentFocusCapacity.toFixed(1)} / ${metrics.contentFocusDemand.toFixed(1)}`
-                      : metrics && typeof metrics.contentFocusCapacity === 'number'
-                      ? `${metrics.contentFocusCapacity.toFixed(1)} / —`
-                      : '—'}
-                  </Td>
-                  <Td>
-                    {metrics && typeof metrics.uxWorkCapacity === 'number' && metrics.uxWorkDemand !== null && typeof metrics.uxWorkDemand === 'number'
-                      ? `${metrics.uxWorkCapacity.toFixed(1)} / ${metrics.uxWorkDemand.toFixed(1)}`
-                      : metrics && typeof metrics.uxWorkCapacity === 'number'
-                      ? `${metrics.uxWorkCapacity.toFixed(1)} / —`
-                      : '—'}
-                  </Td>
-                  <Td>
-                    {metrics && typeof metrics.contentWorkCapacity === 'number' && metrics.contentWorkDemand !== null && typeof metrics.contentWorkDemand === 'number'
-                      ? `${metrics.contentWorkCapacity.toFixed(1)} / ${metrics.contentWorkDemand.toFixed(1)}`
-                      : metrics && typeof metrics.contentWorkCapacity === 'number'
-                      ? `${metrics.contentWorkCapacity.toFixed(1)} / —`
-                      : '—'}
-                  </Td>
-                  <Td>
-                    {metrics && metrics.status ? (
-                      <Text
-                        color={metrics.status === 'Within capacity' ? 'green.600' : 'red.600'}
-                        fontWeight="medium"
+      <VStack spacing={4} align="stretch">
+        {scenarioMetrics.map(({ session, metrics }) => {
+          const items = getItemsForSession(session.id)
+          const itemCount = items?.length || 0
+          const planningPeriod = session?.planningPeriod || session?.planning_period || '—'
+          
+          // Calculate surplus/deficit
+          const uxSurplus = metrics.uxFocusCapacity - (metrics.uxFocusDemand || 0)
+          const contentSurplus = metrics.contentFocusCapacity - (metrics.contentFocusDemand || 0)
+          
+          return (
+            <Card key={session?.id || 'unknown'} variant="outline" cursor="pointer" 
+                  onClick={() => session?.id && navigate(`/sessions/${session.id}`)}
+                  _hover={{ boxShadow: 'md', borderColor: 'blue.300' }}
+                  transition="all 0.2s">
+              <CardBody p={6}>
+                <Stack spacing={4}>
+                  {/* Title and Status */}
+                  <HStack justify="space-between" align="start">
+                    <Heading size="md" fontWeight="bold">
+                      {session?.name || 'Unnamed Scenario'}
+                    </Heading>
+                    {metrics.status && (
+                      <Badge
+                        colorScheme={metrics.status === 'Within capacity' ? 'green' : 'red'}
+                        px={3}
+                        py={1}
+                        borderRadius="full"
+                        fontSize="sm"
                       >
                         {metrics.status}
-                      </Text>
-                    ) : (
-                      '—'
+                      </Badge>
                     )}
-                  </Td>
-                </Tr>
-              ))}
-          </Tbody>
-        </Table>
-      </TableContainer>
+                  </HStack>
+
+                  {/* Details Line */}
+                  <HStack spacing={4} color="gray.600" fontSize="sm">
+                    <HStack spacing={1}>
+                      <Icon as={CalendarIcon} w={4} h={4} />
+                      <Text>{planningPeriod}</Text>
+                    </HStack>
+                    <HStack spacing={1}>
+                      <Text>👤</Text>
+                      <Text>
+                        {session?.ux_designers || 0} UX, {session?.content_designers || 0} Content
+                      </Text>
+                    </HStack>
+                    <Text>{itemCount} roadmap {itemCount === 1 ? 'item' : 'items'}</Text>
+                  </HStack>
+
+                  <Divider />
+
+                  {/* Capacity Breakdown */}
+                  <Stack spacing={3}>
+                    {/* UX Design */}
+                    <Box>
+                      <Text fontSize="sm" fontWeight="medium" mb={1} color="gray.700">
+                        UX Design
+                      </Text>
+                      <HStack justify="space-between" align="center">
+                        <Text fontSize="sm" color="gray.600">
+                          <Text as="span" fontWeight="bold" color="gray.900">
+                            {metrics.uxFocusDemand !== null ? metrics.uxFocusDemand.toFixed(1) : '0.0'}
+                          </Text>
+                          {' / '}
+                          {metrics.uxFocusCapacity.toFixed(1)} focus weeks
+                        </Text>
+                        <HStack spacing={1}>
+                          {uxSurplus >= 0 ? (
+                            <>
+                              <Text fontSize="sm" color="green.600">↑</Text>
+                              <Text fontSize="sm" color="green.600" fontWeight="medium">
+                                +{uxSurplus.toFixed(1)} surplus
+                              </Text>
+                            </>
+                          ) : (
+                            <>
+                              <Text fontSize="sm" color="red.600">↓</Text>
+                              <Text fontSize="sm" color="red.600" fontWeight="medium">
+                                {uxSurplus.toFixed(1)} deficit
+                              </Text>
+                            </>
+                          )}
+                        </HStack>
+                      </HStack>
+                    </Box>
+
+                    {/* Content Design */}
+                    <Box>
+                      <Text fontSize="sm" fontWeight="medium" mb={1} color="gray.700">
+                        Content Design
+                      </Text>
+                      <HStack justify="space-between" align="center">
+                        <Text fontSize="sm" color="gray.600">
+                          <Text as="span" fontWeight="bold" color="gray.900">
+                            {metrics.contentFocusDemand !== null ? metrics.contentFocusDemand.toFixed(1) : '0.0'}
+                          </Text>
+                          {' / '}
+                          {metrics.contentFocusCapacity.toFixed(1)} focus weeks
+                        </Text>
+                        <HStack spacing={1}>
+                          {contentSurplus >= 0 ? (
+                            <>
+                              <Text fontSize="sm" color="green.600">↑</Text>
+                              <Text fontSize="sm" color="green.600" fontWeight="medium">
+                                +{contentSurplus.toFixed(1)} surplus
+                              </Text>
+                            </>
+                          ) : (
+                            <>
+                              <Text fontSize="sm" color="red.600">↓</Text>
+                              <Text fontSize="sm" color="red.600" fontWeight="medium">
+                                {contentSurplus.toFixed(1)} deficit
+                              </Text>
+                            </>
+                          )}
+                        </HStack>
+                      </HStack>
+                    </Box>
+                  </Stack>
+                </Stack>
+              </CardBody>
+            </Card>
+          )
+        })}
+      </VStack>
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />

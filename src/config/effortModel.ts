@@ -213,6 +213,7 @@ export function mapScoreToSizeBand(score: number): SizeBand {
 
 /**
  * Map size band to time estimates for a given role
+ * Work weeks are calculated as: focus weeks ÷ 0.75 (accounting for context switching and dependencies)
  * @param sizeBand Size band
  * @param role 'ux' or 'content'
  * @returns Object with focusWeeks and workWeeks
@@ -221,25 +222,32 @@ export function mapSizeBandToTime(
   sizeBand: SizeBand,
   role: Role
 ): { focusWeeks: number; workWeeks: number } {
-  // UX time estimates (in weeks)
-  const uxTimeRanges: Record<SizeBand, { focusWeeks: number; workWeeks: number }> = {
-    XS: { focusWeeks: 0.5, workWeeks: 1 },
-    S: { focusWeeks: 1, workWeeks: 2 },
-    M: { focusWeeks: 2, workWeeks: 4 },
-    L: { focusWeeks: 3, workWeeks: 6 },
-    XL: { focusWeeks: 4, workWeeks: 8 },
+  // UX time estimates (focus weeks)
+  const uxFocusWeeks: Record<SizeBand, number> = {
+    XS: 0.5,
+    S: 1,
+    M: 2,
+    L: 3,
+    XL: 4,
   }
 
-  // Content time estimates (in weeks)
-  const contentTimeRanges: Record<SizeBand, { focusWeeks: number; workWeeks: number }> = {
-    XS: { focusWeeks: 0.5, workWeeks: 1 },
-    S: { focusWeeks: 1, workWeeks: 1.5 },
-    M: { focusWeeks: 1.5, workWeeks: 3 },
-    L: { focusWeeks: 2, workWeeks: 4 },
-    XL: { focusWeeks: 3, workWeeks: 6 },
+  // Content time estimates (focus weeks)
+  const contentFocusWeeks: Record<SizeBand, number> = {
+    XS: 0.5,
+    S: 1,
+    M: 1.5,
+    L: 2,
+    XL: 3,
   }
 
-  return role === 'ux' ? uxTimeRanges[sizeBand] : contentTimeRanges[sizeBand]
+  // Calculate work weeks from focus weeks: work weeks = focus weeks ÷ 0.75
+  const focusWeeks = role === 'ux' ? uxFocusWeeks[sizeBand] : contentFocusWeeks[sizeBand]
+  const workWeeks = focusWeeks / 0.75
+
+  return {
+    focusWeeks,
+    workWeeks: Math.round(workWeeks * 10) / 10, // Round to 1 decimal place
+  }
 }
 
 /**
