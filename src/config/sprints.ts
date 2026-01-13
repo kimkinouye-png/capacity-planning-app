@@ -28,3 +28,38 @@ export const SPRINT_LENGTH_WEEKS = 2
 export function estimateSprints(focusWeeks: number): number {
   return focusWeeks / SPRINT_LENGTH_WEEKS
 }
+
+/**
+ * Formats sprint estimate as a range for display.
+ * 
+ * Rules:
+ * - If sprints < 1: display "0-1 sprints"
+ * - If sprints is whole number: display "[N] sprints" (e.g., "2 sprints")
+ * - If sprints has decimal: display as range "[floor]-[ceil] sprints" (e.g., "1-2 sprints")
+ * 
+ * @param sprintEstimate - The estimated number of sprints (may be fractional)
+ * @returns Formatted string (e.g., "0-1 sprints", "1 sprint", "1-2 sprints", "2 sprints")
+ * 
+ * @example
+ * formatSprintEstimate(0.5) // Returns "0-1 sprints"
+ * formatSprintEstimate(1.0) // Returns "1 sprint"
+ * formatSprintEstimate(1.5) // Returns "1-2 sprints"
+ * formatSprintEstimate(2.0) // Returns "2 sprints"
+ * formatSprintEstimate(2.7) // Returns "2-3 sprints"
+ */
+export function formatSprintEstimate(sprintEstimate: number): string {
+  if (sprintEstimate < 1) {
+    return '0-1 sprints'
+  }
+  
+  const floor = Math.floor(sprintEstimate)
+  const ceil = Math.ceil(sprintEstimate)
+  
+  // If it's a whole number
+  if (sprintEstimate % 1 === 0) {
+    return `${sprintEstimate} ${sprintEstimate === 1 ? 'sprint' : 'sprints'}`
+  }
+  
+  // If it has a decimal, show as range
+  return `${floor}-${ceil} sprints`
+}

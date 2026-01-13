@@ -313,6 +313,7 @@ function ItemDetailPage() {
 
   // Calculate UX effort when UX factor scores change
   // Factor scores are stored per-item in pdInputs and default to 3 if not set
+  // Only uses the 3 visible factors: productRisk, problemAmbiguity, discoveryDepth
   useEffect(() => {
     if (!itemId || sessionId === 'demo') return
 
@@ -320,7 +321,6 @@ function ItemDetailPage() {
     const uxScores: FactorScores = {
       productRisk: pdInputs.productRisk ?? 3,
       problemAmbiguity: pdInputs.problemAmbiguity ?? 3,
-      platformComplexity: pdInputs.platformComplexity ?? 3,
       discoveryDepth: pdInputs.discoveryDepth ?? 3,
     }
 
@@ -330,7 +330,7 @@ function ItemDetailPage() {
       uxFocusWeeks: uxEffort.focusWeeks,
       uxWorkWeeks: uxEffort.workWeeks,
     })
-  }, [itemId, sessionId, pdInputs.productRisk, pdInputs.problemAmbiguity, pdInputs.platformComplexity, pdInputs.discoveryDepth, updateItem])
+  }, [itemId, sessionId, pdInputs.productRisk, pdInputs.problemAmbiguity, pdInputs.discoveryDepth, updateItem])
 
   // Calculate Content effort when Content factor scores change
   // Factor scores are stored per-item in cdInputs and default to 3 if not set
@@ -568,13 +568,6 @@ function ItemDetailPage() {
                     design considerations.
                   </Text>
                   <PDInputsForm value={pdInputs} onChange={setPDInputs} sizeBand={item.uxSizeBand} />
-                  {item && (
-                    <Box mt={6} p={4} bg="blue.50" borderRadius="md" borderLeft="4px" borderColor="blue.500">
-                      <Text fontSize="md" fontWeight="medium" color="gray.800">
-                        UX size: {item.uxSizeBand} · ~{item.uxFocusWeeks.toFixed(1)} focus weeks over {item.uxWorkWeeks.toFixed(1)} work weeks
-                      </Text>
-                    </Box>
-                  )}
                   
                   {/* Footer */}
                   <Box mt={8} pt={6} borderTop="1px" borderColor="gray.200">
@@ -602,17 +595,10 @@ function ItemDetailPage() {
                 {/* Content Design Inputs Tab */}
                 <TabPanel px={0} pt={6}>
                   <Text fontSize="sm" color="gray.600" mb={6}>
-                    Filled by the content designer to describe content requirements, compliance needs,
-                    and guidance complexity.
+                    Filled by the content designer to describe content complexity factors and
+                    localization needs.
                   </Text>
                   <CDInputsForm value={cdInputs} onChange={setCDInputs} sizeBand={item.contentSizeBand} />
-                  {item && (
-                    <Box mt={6} p={4} bg="green.50" borderRadius="md" borderLeft="4px" borderColor="green.500">
-                      <Text fontSize="md" fontWeight="medium" color="gray.800">
-                        Content size: {item.contentSizeBand} · ~{item.contentFocusWeeks.toFixed(1)} focus weeks over {item.contentWorkWeeks.toFixed(1)} work weeks
-                      </Text>
-                    </Box>
-                  )}
                   
                   {/* Footer */}
                   <Box mt={8} pt={6} borderTop="1px" borderColor="gray.200">

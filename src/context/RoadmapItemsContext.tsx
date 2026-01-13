@@ -14,6 +14,7 @@ interface RoadmapItemsContextType {
     input: Omit<RoadmapItem, 'id' | 'planning_session_id' | 'status' | 'uxSizeBand' | 'uxFocusWeeks' | 'uxWorkWeeks' | 'contentSizeBand' | 'contentFocusWeeks' | 'contentWorkWeeks'>
   ) => RoadmapItem
   updateItem: (id: string, patch: Partial<RoadmapItem>) => void
+  removeItem: (sessionId: string, itemId: string) => void
   getInputsForItem: (itemId: string) => ItemInputs | undefined
   setInputsForItem: (itemId: string, inputs: ItemInputs) => void
 }
@@ -143,6 +144,24 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  const removeItem = useCallback((sessionId: string, itemId: string) => {
+    // Remove item from session's items array
+    setItemsBySession((prev) => {
+      const sessionItems = prev[sessionId] || []
+      const updatedItems = sessionItems.filter((item) => item.id !== itemId)
+      return {
+        ...prev,
+        [sessionId]: updatedItems,
+      }
+    })
+    // Also remove inputs for this item
+    setInputsByItemId((prev) => {
+      const updated = { ...prev }
+      delete updated[itemId]
+      return updated
+    })
+  }, [])
+
   const getInputsForItem = useCallback(
     (itemId: string): ItemInputs | undefined => {
       return inputsByItemId[itemId]
@@ -159,7 +178,7 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
 
   return (
     <RoadmapItemsContext.Provider
-      value={{ getItemsForSession, createItem, updateItem, getInputsForItem, setInputsForItem }}
+      value={{ getItemsForSession, createItem, updateItem, removeItem, getInputsForItem, setInputsForItem }}
     >
       {children}
     </RoadmapItemsContext.Provider>

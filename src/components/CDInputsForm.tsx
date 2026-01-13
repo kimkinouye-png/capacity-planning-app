@@ -9,10 +9,12 @@ import {
   Badge,
   Box,
   HStack,
+  Button,
+  VStack,
 } from '@chakra-ui/react'
 import type { ContentDesignInputs } from '../domain/types'
-import { getFactorsForRole } from '../config/effortModel'
-import FactorScoreInput from './FactorScoreInput'
+import { calculateEffort, type FactorScores } from '../config/effortModel'
+import { estimateSprints, formatSprintEstimate } from '../config/sprints'
 
 interface CDInputsFormProps {
   value: ContentDesignInputs
@@ -21,7 +23,33 @@ interface CDInputsFormProps {
 }
 
 export default function CDInputsForm({ value, onChange, sizeBand }: CDInputsFormProps) {
-  const contentFactors = getFactorsForRole('content')
+  // Define the 4 Content factors to display
+  const factorsToShow = [
+    {
+      key: 'contentSurfaceArea' as const,
+      label: 'Content Surface Area',
+      weight: 1.3,
+      helper: 'How much content is needed? More screens/messages = higher surface area',
+    },
+    {
+      key: 'localizationScope' as const,
+      label: 'Localization Scope',
+      weight: 1.0,
+      helper: 'Complexity of localization beyond just translation (cultural adaptation, regional variants)',
+    },
+    {
+      key: 'regulatoryBrandRisk' as const,
+      label: 'Regulatory & Brand Risk',
+      weight: 1.2,
+      helper: 'How sensitive is the content? High risk = more review cycles',
+    },
+    {
+      key: 'legalComplianceDependency' as const,
+      label: 'Legal Compliance Dependency',
+      weight: 1.1,
+      helper: 'How much legal review is required? More compliance = higher effort',
+    },
+  ]
 
   const handleSelectChange = (
     field: keyof ContentDesignInputs,
@@ -34,9 +62,23 @@ export default function CDInputsForm({ value, onChange, sizeBand }: CDInputsForm
     onChange({ ...value, [field]: checked })
   }
 
-  const handleFactorScoreChange = (factorName: string, score: number) => {
-    onChange({ ...value, [factorName]: score })
+  const handleFactorScoreChange = (factorKey: string, score: number) => {
+    onChange({ ...value, [factorKey]: score })
   }
+
+  // Calculate Content effort estimate in real-time
+  const calculateContentEffort = () => {
+    const scores: FactorScores = {
+      contentSurfaceArea: value.contentSurfaceArea ?? 3,
+      localizationScope: value.localizationScope ?? 3,
+      regulatoryBrandRisk: value.regulatoryBrandRisk ?? 3,
+      legalComplianceDependency: value.legalComplianceDependency ?? 3,
+    }
+    return calculateEffort('content', scores)
+  }
+
+  const contentEffort = calculateContentEffort()
+  const sprintEstimate = estimateSprints(contentEffort.focusWeeks)
 
   return (
     <Stack spacing={4}>
@@ -160,31 +202,116 @@ export default function CDInputsForm({ value, onChange, sizeBand }: CDInputsForm
         </Select>
       </FormControl>
 
-      <Stack spacing={4} mt={6} pt={6} borderTop="1px" borderColor="gray.200">
-        <Box textAlign="left">
-          <HStack spacing={3} mb={4} justify="flex-start" align="start">
-            <Heading size="sm" as="h3" textAlign="left">
-              Content Effort Factors
-            </Heading>
-            {sizeBand && (
-              <Badge colorScheme="green" fontSize="md" px={2} py={1}>
-                Size: {sizeBand}
-              </Badge>
-            )}
-          </HStack>
-          <Text fontSize="sm" color="gray.600" mb={4} textAlign="left">
-            Score each factor from 1 (Low) to 5 (High) to estimate Content design effort.
-          </Text>
+      <Stack spacing={6} mt={6} pt={6} borderTop="1px" borderColor="gray.200">
+        <Heading size="md" as="h3" textAlign="left" fontSize="18px" fontWeight="bold">
+          Content Effort Factors
+        </Heading>
+
+        <Stack spacing={6}>
+          {factorsToShow.map((factor) => {
+            const currentScore = (value[factor.key] as number | undefined) || 3
+            
+            return (
+              <FormControl key={factor.key} textAlign="left">
+                <FormLabel mb={2} fontSize="16px" fontWeight="medium" color="gray.900">
+                  {factor.label} (×{factor.weight})
+                </FormLabel>
+                <Text fontSize="14px" color="#6B7280" mb={3} fontWeight="normal">
+                  {factor.helper}
+                </Text>
+                
+                {/* Button row for 1-5 scores */}
+                <HStack spacing={2}>
+                  {[1, 2, 3, 4, 5].map((score) => (
+                    <Button
+                      key={score}
+                      onClick={() => handleFactorScoreChange(factor.key, score)}
+                      w="80px"
+                      h="40px"
+                      fontSize="16px"
+                      borderRadius="6px"
+                      cursor="pointer"
+                      bg={currentScore === score ? '#3B82F6' : 'white'}
+                      color={currentScore === score ? 'white' : '#6B7280'}
+                      border={currentScore === score ? 'none' : '1px solid #D1D5DB'}
+                      _hover={{
+                        bg: currentScore === score ? '#3B82F6' : '#F9FAFB',
+                      }}
+                      _active={{
+                        bg: currentScore === score ? '#2563EB' : '#F3F4F6',
+                      }}
+                    >
+                      {score}
+                    </Button>
+                  ))}
+                </HStack>
+              </FormControl>
+            )
+          })}
+        </Stack>
+
+        {/* Content Effort Estimate Section */}
+        <Box mt={8} p={6} bg="#EFF6FF" borderRadius="md">
+          <VStack spacing={4} align="flex-start">
+            <Box>
+              <Heading size="sm" as="h4" fontSize="16px" fontWeight="bold" mb={1}>
+                Content Effort Estimate
+              </Heading>
+              <Text fontSize="14px" color="gray.600">
+                Real-time calculation based on complexity factors
+              </Text>
+            </Box>
+            
+            <HStack spacing={8} align="flex-start">
+              <VStack spacing={1} align="flex-start">
+                <Text fontSize="12px" color="gray.600" fontWeight="medium">
+                  Size
+                </Text>
+                <Badge
+                  colorScheme="yellow"
+                  fontSize="16px"
+                  w="40px"
+                  h="40px"
+                  borderRadius="full"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  bg="yellow.400"
+                  color="gray.900"
+                >
+                  {contentEffort.sizeBand}
+                </Badge>
+              </VStack>
+              
+              <VStack spacing={1} align="flex-start">
+                <Text fontSize="12px" color="gray.600" fontWeight="medium">
+                  Focus Weeks
+                </Text>
+                <Text fontSize="18px" fontWeight="bold" color="gray.900">
+                  {contentEffort.focusWeeks.toFixed(1)}
+                </Text>
+              </VStack>
+              
+              <VStack spacing={1} align="flex-start">
+                <Text fontSize="12px" color="gray.600" fontWeight="medium">
+                  Work Weeks
+                </Text>
+                <Text fontSize="18px" fontWeight="bold" color="gray.900">
+                  {contentEffort.workWeeks.toFixed(1)}
+                </Text>
+              </VStack>
+              
+              <VStack spacing={1} align="flex-start">
+                <Text fontSize="12px" color="gray.600" fontWeight="medium">
+                  Sprint Estimate
+                </Text>
+                <Text fontSize="16px" color="gray.900">
+                  {formatSprintEstimate(sprintEstimate)}
+                </Text>
+              </VStack>
+            </HStack>
+          </VStack>
         </Box>
-        {Object.entries(contentFactors).map(([factorName, factor]) => (
-          <FactorScoreInput
-            key={factorName}
-            factorName={factorName}
-            factor={factor}
-            value={(value[factorName as keyof ContentDesignInputs] as number | undefined) || 3}
-            onChange={(score) => handleFactorScoreChange(factorName, score)}
-          />
-        ))}
       </Stack>
     </Stack>
   )

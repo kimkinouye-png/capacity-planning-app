@@ -9,10 +9,12 @@ import {
   Badge,
   Box,
   HStack,
+  Button,
+  VStack,
 } from '@chakra-ui/react'
 import type { ProductDesignInputs } from '../domain/types'
-import { getFactorsForRole } from '../config/effortModel'
-import FactorScoreInput from './FactorScoreInput'
+import { calculateEffort, type FactorScores } from '../config/effortModel'
+import { estimateSprints, formatSprintEstimate } from '../config/sprints'
 
 interface PDInputsFormProps {
   value: ProductDesignInputs
@@ -21,7 +23,27 @@ interface PDInputsFormProps {
 }
 
 export default function PDInputsForm({ value, onChange, sizeBand }: PDInputsFormProps) {
-  const uxFactors = getFactorsForRole('ux')
+  // Define the 3 factors to display (excluding Platform Complexity)
+  const factorsToShow = [
+    {
+      key: 'productRisk' as const,
+      label: 'Product Risk',
+      weight: 1.2,
+      helper: 'How risky is this for the product? High risk = major changes to core flows',
+    },
+    {
+      key: 'problemAmbiguity' as const,
+      label: 'Problem Ambiguity',
+      weight: 1.0,
+      helper: 'How well-defined is the problem? High ambiguity = need discovery',
+    },
+    {
+      key: 'discoveryDepth' as const,
+      label: 'Discovery Depth',
+      weight: 0.9,
+      helper: 'How much user research and discovery is needed? More discovery = higher score',
+    },
+  ]
 
   const handleCheckboxChange = (field: keyof ProductDesignInputs, checked: boolean) => {
     onChange({ ...value, [field]: checked })
@@ -31,9 +53,23 @@ export default function PDInputsForm({ value, onChange, sizeBand }: PDInputsForm
     onChange({ ...value, [field]: fieldValue })
   }
 
-  const handleFactorScoreChange = (factorName: string, score: number) => {
-    onChange({ ...value, [factorName]: score })
+  const handleFactorScoreChange = (factorKey: string, score: number) => {
+    onChange({ ...value, [factorKey]: score })
   }
+
+  // Calculate UX effort estimate in real-time
+  // Only uses the 3 visible factors: productRisk, problemAmbiguity, discoveryDepth
+  const calculateUXEffort = () => {
+    const scores: FactorScores = {
+      productRisk: value.productRisk ?? 3,
+      problemAmbiguity: value.problemAmbiguity ?? 3,
+      discoveryDepth: value.discoveryDepth ?? 3,
+    }
+    return calculateEffort('ux', scores)
+  }
+
+  const uxEffort = calculateUXEffort()
+  const sprintEstimate = estimateSprints(uxEffort.focusWeeks)
 
   return (
     <Stack spacing={4}>
@@ -99,31 +135,116 @@ export default function PDInputsForm({ value, onChange, sizeBand }: PDInputsForm
         />
       </FormControl>
 
-      <Stack spacing={4} mt={6} pt={6} borderTop="1px" borderColor="gray.200">
-        <Box textAlign="left">
-          <HStack spacing={3} mb={4} justify="flex-start" align="start">
-            <Heading size="sm" as="h3" textAlign="left">
-              UX Complexity Factors
-            </Heading>
-            {sizeBand && (
-              <Badge colorScheme="blue" fontSize="md" px={2} py={1}>
-                Size: {sizeBand}
-              </Badge>
-            )}
-          </HStack>
-          <Text fontSize="sm" color="gray.600" mb={4} textAlign="left">
-            Score each factor from 1 (Low) to 5 (High) to estimate UX design complexity.
-          </Text>
+      <Stack spacing={6} mt={6} pt={6} borderTop="1px" borderColor="gray.200">
+        <Heading size="md" as="h3" textAlign="left" fontSize="18px" fontWeight="bold">
+          UX Complexity Factors
+        </Heading>
+
+        <Stack spacing={6}>
+          {factorsToShow.map((factor) => {
+          const currentScore = (value[factor.key] as number | undefined) || 3
+          
+          return (
+            <FormControl key={factor.key} textAlign="left">
+              <FormLabel mb={2} fontSize="16px" fontWeight="medium" color="gray.900">
+                {factor.label} (×{factor.weight})
+              </FormLabel>
+              <Text fontSize="14px" color="#6B7280" mb={3} fontWeight="normal">
+                {factor.helper}
+              </Text>
+              
+              {/* Button row for 1-5 scores */}
+              <HStack spacing={2}>
+                {[1, 2, 3, 4, 5].map((score) => (
+                  <Button
+                    key={score}
+                    onClick={() => handleFactorScoreChange(factor.key, score)}
+                    w="80px"
+                    h="40px"
+                    fontSize="16px"
+                    borderRadius="6px"
+                    cursor="pointer"
+                    bg={currentScore === score ? '#3B82F6' : 'white'}
+                    color={currentScore === score ? 'white' : '#6B7280'}
+                    border={currentScore === score ? 'none' : '1px solid #D1D5DB'}
+                    _hover={{
+                      bg: currentScore === score ? '#3B82F6' : '#F9FAFB',
+                    }}
+                    _active={{
+                      bg: currentScore === score ? '#2563EB' : '#F3F4F6',
+                    }}
+                  >
+                    {score}
+                  </Button>
+                ))}
+              </HStack>
+            </FormControl>
+          )
+        })}
+        </Stack>
+
+        {/* UX Effort Estimate Section */}
+        <Box mt={8} p={6} bg="#EFF6FF" borderRadius="md">
+          <VStack spacing={4} align="flex-start">
+            <Box>
+              <Heading size="sm" as="h4" fontSize="16px" fontWeight="bold" mb={1}>
+                UX Effort Estimate
+              </Heading>
+              <Text fontSize="14px" color="gray.600">
+                Real-time calculation based on complexity factors
+              </Text>
+            </Box>
+            
+            <HStack spacing={8} align="flex-start">
+              <VStack spacing={1} align="flex-start">
+                <Text fontSize="12px" color="gray.600" fontWeight="medium">
+                  Size
+                </Text>
+                <Badge
+                  colorScheme="yellow"
+                  fontSize="16px"
+                  w="40px"
+                  h="40px"
+                  borderRadius="full"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  bg="yellow.400"
+                  color="gray.900"
+                >
+                  {uxEffort.sizeBand}
+                </Badge>
+              </VStack>
+              
+              <VStack spacing={1} align="flex-start">
+                <Text fontSize="12px" color="gray.600" fontWeight="medium">
+                  Focus Weeks
+                </Text>
+                <Text fontSize="18px" fontWeight="bold" color="gray.900">
+                  {uxEffort.focusWeeks.toFixed(1)}
+                </Text>
+              </VStack>
+              
+              <VStack spacing={1} align="flex-start">
+                <Text fontSize="12px" color="gray.600" fontWeight="medium">
+                  Work Weeks
+                </Text>
+                <Text fontSize="18px" fontWeight="bold" color="gray.900">
+                  {uxEffort.workWeeks.toFixed(1)}
+                </Text>
+              </VStack>
+              
+              <VStack spacing={1} align="flex-start">
+                <Text fontSize="12px" color="gray.600" fontWeight="medium">
+                  Sprint Estimate
+                </Text>
+                <Text fontSize="16px" color="gray.900">
+                  {formatSprintEstimate(sprintEstimate)}
+                </Text>
+              </VStack>
+            </HStack>
+          </VStack>
         </Box>
-        {Object.entries(uxFactors).map(([factorName, factor]) => (
-          <FactorScoreInput
-            key={factorName}
-            factorName={factorName}
-            factor={factor}
-            value={(value[factorName as keyof ProductDesignInputs] as number | undefined) || 3}
-            onChange={(score) => handleFactorScoreChange(factorName, score)}
-          />
-        ))}
       </Stack>
     </Stack>
   )

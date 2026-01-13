@@ -12,189 +12,206 @@ import {
   Text,
   Badge,
   Button,
-  Alert,
-  AlertIcon,
-  AlertTitle,
-  AlertDescription,
-  SimpleGrid,
-  Card,
-  CardBody,
-  Tooltip,
-  IconButton,
   HStack,
-  Divider,
+  VStack,
+  IconButton,
+  useDisclosure,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  useToast,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+  FormControl,
+  FormLabel,
+  Input,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
+  SimpleGrid,
 } from '@chakra-ui/react'
+import { ChevronLeftIcon, DeleteIcon, CheckIcon } from '@chakra-ui/icons'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useMemo } from 'react'
-import { InfoIcon } from '@chakra-ui/icons'
-import { summarizeSession } from '../estimation/logic'
+import { useMemo, useRef, useEffect, useState } from 'react'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
-import { useItemInputs } from '../context/ItemInputsContext'
-import type { PMIntake, ProductDesignInputs, ContentDesignInputs } from '../domain/types'
-import {
-  demoSession,
-  demoItems,
-  demoIntakes,
-  demoProductDesignInputs,
-  demoContentDesignInputs,
-} from '../demo/demoSession'
-
-// Default empty inputs for items without PM/PD/CD data
-const getDefaultPMIntake = (itemId: string): PMIntake => ({
-  roadmap_item_id: itemId,
-  objective: '',
-  kpis: '',
-  goals: '',
-  market: '',
-  audience: '',
-  timeline: '',
-  requirements_business: '',
-  requirements_technical: '',
-  requirements_design: '',
-    surfaces_in_scope: [],
-  new_or_existing: 'existing',
-})
-
-const getDefaultPDInputs = (itemId: string): ProductDesignInputs => ({
-  roadmap_item_id: itemId,
-  net_new_patterns: false,
-  changes_to_information_architecture: false,
-  multiple_user_states_or_paths: false,
-  significant_edge_cases_or_error_handling: false,
-  responsive_or_adaptive_layouts: false,
-  other: '',
-  // Default factor scores set to 3 (medium) for all new items
-  productRisk: 3,
-  problemAmbiguity: 3,
-  platformComplexity: 3,
-  discoveryDepth: 3,
-})
-
-const getDefaultCDInputs = (itemId: string): ContentDesignInputs => ({
-  roadmap_item_id: itemId,
-  is_content_required: 'yes',
-  financial_or_regulated_language: false,
-  user_commitments_or_confirmations: false,
-  claims_guarantees_or_promises: false,
-  trust_sensitive_moments: false,
-  ai_driven_or_personalized_decisions: false,
-  ranking_recommendations_or_explanations: false,
-  legal_policy_or_compliance_review: 'no',
-  introducing_new_terminology: false,
-  guidance_needed: 'minimal',
-  // Default factor scores set to 3 (medium) for all new items
-  contentSurfaceArea: 3,
-  localizationScope: 3,
-  regulatoryBrandRisk: 3,
-  legalComplianceDependency: 3,
-})
+import { getWeeksForPeriod } from '../config/quarterConfig'
+import { estimateSprints, formatSprintEstimate } from '../config/sprints'
+import type { RoadmapItem } from '../domain/types'
 
 function SessionSummaryPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const toast = useToast()
   const { getSessionById } = usePlanningSessions()
-  const { getItemsForSession } = useRoadmapItems()
-  const { getInputsForItem } = useItemInputs()
+  const { getItemsForSession, removeItem, createItem } = useRoadmapItems()
+  const { isOpen, onOpen, onClose } = useDisclosure()
+  const { isOpen: isCreateModalOpen, onOpen: onCreateModalOpen, onClose: onCreateModalClose } = useDisclosure()
+  const cancelRef = useRef<HTMLButtonElement>(null)
+  const itemToDeleteRef = useRef<{ id: string; name: string } | null>(null)
 
-  // Get session (fallback to demo if id is 'demo')
+  // Form state for creating new item
+  const [formData, setFormData] = useState({
+    short_key: '',
+    name: '',
+    initiative: '',
+    priority: 1,
+  })
+
+  // Get session
   const session = useMemo(() => {
-    if (id === 'demo') {
-      return demoSession
-    }
     return id ? getSessionById(id) : undefined
   }, [id, getSessionById])
 
-  // Get items (fallback to demo if id is 'demo')
+  // Get items - this will automatically update when items change in context
   const items = useMemo(() => {
-    if (id === 'demo') {
-      return demoItems
-    }
     return id ? getItemsForSession(id) : []
   }, [id, getItemsForSession])
 
-  // Prepare items with inputs (use defaults if inputs are missing)
-  const itemsWithInputs = useMemo(() => {
-    if (id === 'demo') {
-      // Use demo data
-      return demoItems.map((item) => {
-        const intake = demoIntakes.find((i) => i.roadmap_item_id === item.id)!
-        const pd = demoProductDesignInputs.find((p) => p.roadmap_item_id === item.id)!
-        const cd = demoContentDesignInputs.find((c) => c.roadmap_item_id === item.id)!
-        return { item, intake, pd, cd }
+  // Refresh calculations when returning to page
+  // This ensures totals are recalculated with fresh data after effort changes
+  // The capacityMetrics useMemo will automatically recalculate when items change,
+  // but this effect ensures we refresh when navigating back to the page
+  useEffect(() => {
+    if (!id) return
+
+    // When the page is visited or sessionId changes, ensure we have fresh data
+    // The items array reference will change when items are updated via updateItem,
+    // which will trigger the capacityMetrics useMemo to recalculate
+    // This effect serves as a safety mechanism to ensure updates propagate
+  }, [id])
+
+  // Calculate capacity and demand
+  const capacityMetrics = useMemo(() => {
+    if (!session) return null
+
+    const weeksInQuarter = getWeeksForPeriod(session.planning_period)
+    
+    // Calculate capacity (team size × weeks in quarter)
+    const uxCapacity = session.ux_designers * weeksInQuarter
+    const contentCapacity = session.content_designers * weeksInQuarter
+
+    // Calculate demand (sum of focus weeks from all items)
+    const uxDemand = items.reduce((sum, item) => {
+      return sum + (item.uxFocusWeeks || 0)
+    }, 0)
+
+    const contentDemand = items.reduce((sum, item) => {
+      return sum + (item.contentFocusWeeks || 0)
+    }, 0)
+
+    // Calculate surplus/deficit
+    const uxSurplus = uxCapacity - uxDemand
+    const contentSurplus = contentCapacity - contentDemand
+
+    // Calculate utilization %
+    const uxUtilization = uxCapacity > 0 ? (uxDemand / uxCapacity) * 100 : 0
+    const contentUtilization = contentCapacity > 0 ? (contentDemand / contentCapacity) * 100 : 0
+
+    return {
+      ux: {
+        teamSize: session.ux_designers,
+        capacity: uxCapacity,
+        demand: uxDemand,
+        surplus: uxSurplus,
+        utilization: uxUtilization,
+      },
+      content: {
+        teamSize: session.content_designers,
+        capacity: contentCapacity,
+        demand: contentDemand,
+        surplus: contentSurplus,
+        utilization: contentUtilization,
+      },
+    }
+  }, [session, items])
+
+  // Format priority for display
+  const formatPriority = (priority: number | string | undefined) => {
+    if (priority === undefined || priority === null) return '—'
+    if (typeof priority === 'number') {
+      return `P${priority}`
+    }
+    return priority.toUpperCase()
+  }
+
+  // Format status for display
+  const formatStatus = (status: string | undefined) => {
+    if (!status) return '—'
+    return status
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  }
+
+  // Handle row click (navigate to item detail)
+  const handleRowClick = (itemId: string) => {
+    navigate(`/sessions/${id}/items/${itemId}`)
+  }
+
+  // Handle remove item
+  const handleRemoveClick = (e: React.MouseEvent, itemId: string, itemName: string) => {
+    e.stopPropagation()
+    itemToDeleteRef.current = { id: itemId, name: itemName }
+    onOpen()
+  }
+
+  // Confirm remove
+  const handleConfirmRemove = () => {
+    if (itemToDeleteRef.current && id) {
+      removeItem(id, itemToDeleteRef.current.id)
+      toast({
+        title: 'Item deleted',
+        description: `${itemToDeleteRef.current.name} has been removed.`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
       })
+      itemToDeleteRef.current = null
+      onClose()
     }
+  }
 
-    // Use real data from context, with defaults for missing inputs
-    return items.map((item) => {
-      const inputs = getInputsForItem(item.id)
-      return {
-        item,
-        intake: inputs?.intake || getDefaultPMIntake(item.id),
-        pd: inputs?.pd || getDefaultPDInputs(item.id),
-        cd: inputs?.cd || getDefaultCDInputs(item.id),
-      }
+  // Handle create item
+  const handleCreateItem = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!id) return
+
+    const newItem = createItem(id, formData)
+    
+    toast({
+      title: 'Item created',
+      description: `${newItem.name} has been added.`,
+      status: 'success',
+      duration: 2000,
+      isClosable: true,
     })
-  }, [id, items, getInputsForItem])
 
-  // Calculate summary (recomputes when session or itemsWithInputs changes)
-  const summary = useMemo(() => {
-    if (!session || itemsWithInputs.length === 0) {
-      return null
-    }
-    try {
-      const result = summarizeSession(session, itemsWithInputs)
-      // Ensure all items have the new fields with defaults if missing
-      if (result && result.items) {
-        return {
-          ...result,
-          items: result.items.map((itemEstimate) => {
-            // Safely get tshirt sizes with fallbacks
-            const uxTshirtSize = itemEstimate.uxSizing?.tshirtSize || 'M'
-            const contentTshirtSize = itemEstimate.contentSizing?.tshirtSize || 'M'
-            
-            return {
-              ...itemEstimate,
-              item: {
-                ...itemEstimate.item,
-                uxSizeBand: itemEstimate.item.uxSizeBand || uxTshirtSize,
-                uxFocusWeeks: typeof itemEstimate.item.uxFocusWeeks === 'number' ? itemEstimate.item.uxFocusWeeks : 0,
-                uxWorkWeeks: typeof itemEstimate.item.uxWorkWeeks === 'number' ? itemEstimate.item.uxWorkWeeks : 0,
-                contentSizeBand: itemEstimate.item.contentSizeBand || (contentTshirtSize === 'None' ? 'M' : contentTshirtSize),
-                contentFocusWeeks: typeof itemEstimate.item.contentFocusWeeks === 'number' ? itemEstimate.item.contentFocusWeeks : 0,
-                contentWorkWeeks: typeof itemEstimate.item.contentWorkWeeks === 'number' ? itemEstimate.item.contentWorkWeeks : 0,
-              },
-            }
-          }),
-        }
-      }
-      return result
-    } catch (error) {
-      console.error('Error calculating summary:', error)
-      return null
-    }
-  }, [session, itemsWithInputs])
-
-  // Find the cut line index for visual separation
-  const cutLineIndex = useMemo(() => {
-    if (!summary || !summary.items) return -1
-    for (let i = 0; i < summary.items.length; i++) {
-      if (summary.items[i].aboveCutLineUX || summary.items[i].aboveCutLineContent) {
-        return i
-      }
-    }
-    return -1
-  }, [summary])
+    // Reset form and close modal
+    setFormData({
+      short_key: '',
+      name: '',
+      initiative: '',
+      priority: 1,
+    })
+    onCreateModalClose()
+  }
 
   // Handle missing session
   if (!id) {
     return (
       <Box p={8}>
-        <Alert status="error">
-          <AlertIcon />
-          <AlertTitle>Invalid session ID</AlertTitle>
-          <AlertDescription>No session ID provided in the URL.</AlertDescription>
-        </Alert>
+        <Text>Invalid session ID</Text>
       </Box>
     )
   }
@@ -202,463 +219,450 @@ function SessionSummaryPage() {
   if (!session) {
     return (
       <Box p={8}>
-        <Alert status="warning">
-          <AlertIcon />
-          <AlertTitle>Session not found</AlertTitle>
-          <AlertDescription>
-            The planning session with ID "{id}" could not be found.
-          </AlertDescription>
-        </Alert>
+        <Text>Session not found</Text>
       </Box>
     )
   }
 
-  if (itemsWithInputs.length === 0) {
-    return (
-      <Box p={8}>
-        <Stack direction="row" justify="space-between" align="center" mb={6}>
-          <Heading size="lg">{session.name} - Summary</Heading>
-          <Button as={Link} to={`/sessions/${id}/items`} colorScheme="blue">
-            Add Roadmap Items
-          </Button>
-        </Stack>
-        <Alert status="info">
-          <AlertIcon />
-          <AlertTitle>No roadmap items</AlertTitle>
-          <AlertDescription>
-            This session has no roadmap items yet. Click "Add Roadmap Items" above to create items
-            and fill in their inputs to see the summary.
-          </AlertDescription>
-        </Alert>
-      </Box>
-    )
-  }
-
-  if (!summary) {
-    return (
-      <Box p={8}>
-        <Heading size="lg" mb={6}>
-          {session.name} - Summary
-        </Heading>
-        <Alert status="error">
-          <AlertIcon />
-          <AlertTitle>Error calculating summary</AlertTitle>
-          <AlertDescription>
-            There was an error calculating the session summary. Please check the console for
-            details.
-          </AlertDescription>
-        </Alert>
-      </Box>
-    )
+  // Format quarter for display
+  const formatQuarter = (period: string | undefined) => {
+    if (!period) return 'Unknown'
+    return period.replace('-', ' ')
   }
 
   return (
-    <Box p={8}>
-      <Alert status="info" mb={6} borderRadius="md">
-        <InfoIcon boxSize={5} mr={3} />
-        <AlertTitle>Design Capacity Summary</AlertTitle>
-      </Alert>
-
-      <Stack direction="row" justify="space-between" align="center" mb={8}>
-        <Heading size="lg">{session.name} - Planning Dashboard</Heading>
-        <Stack direction="row" spacing={3}>
-          <Button as={Link} to={`/sessions/${id}/items`} colorScheme="blue" variant="outline">
-            View items
-          </Button>
-          <Button colorScheme="blue" onClick={() => window.location.reload()}>
-            Recalculate
-          </Button>
-        </Stack>
-      </Stack>
-
-      {/* Summary Cards */}
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4} mb={8}>
-        {/* UX Total Weeks Card */}
-        <Card>
-          <CardBody>
-            <Stack spacing={2}>
-              <HStack justify="space-between">
-                <Text fontSize="sm" color="gray.600" fontWeight="medium">
-                  UX Total Weeks
-                </Text>
-                <Tooltip
-                  label="Total designer-weeks needed for all UX work. Designer-weeks = sprints × sprint length in weeks."
-                  placement="top"
-                >
-                  <IconButton
-                    aria-label="Info about designer-weeks"
-                    icon={<InfoIcon />}
-                    size="xs"
-                    variant="ghost"
-                  />
-                </Tooltip>
-              </HStack>
-              <Text fontSize="2xl" fontWeight="bold">
-                {summary.totals.totalUxWeeks.toFixed(1)}
-              </Text>
-              <Text fontSize="sm" color="gray.500">
-                of {summary.totals.uxCapacityWeeks.toFixed(1)} capacity
-              </Text>
-              <Badge
-                colorScheme={summary.totals.uxSurplusDeficit >= 0 ? 'green' : 'red'}
-                alignSelf="flex-start"
-              >
-                {summary.totals.uxSurplusDeficit >= 0 ? '+' : ''}
-                {summary.totals.uxSurplusDeficit.toFixed(1)} weeks
-              </Badge>
-            </Stack>
-          </CardBody>
-        </Card>
-
-        {/* Content Total Weeks Card */}
-        <Card>
-          <CardBody>
-            <Stack spacing={2}>
-              <HStack justify="space-between">
-                <Text fontSize="sm" color="gray.600" fontWeight="medium">
-                  Content Total Weeks
-                </Text>
-                <Tooltip
-                  label="Total designer-weeks needed for all Content work. Designer-weeks = sprints × sprint length in weeks."
-                  placement="top"
-                >
-                  <IconButton
-                    aria-label="Info about designer-weeks"
-                    icon={<InfoIcon />}
-                    size="xs"
-                    variant="ghost"
-                  />
-                </Tooltip>
-              </HStack>
-              <Text fontSize="2xl" fontWeight="bold">
-                {summary.totals.totalContentWeeks.toFixed(1)}
-              </Text>
-              <Text fontSize="sm" color="gray.500">
-                of {summary.totals.contentCapacityWeeks.toFixed(1)} capacity
-              </Text>
-              <Badge
-                colorScheme={summary.totals.contentSurplusDeficit >= 0 ? 'green' : 'red'}
-                alignSelf="flex-start"
-              >
-                {summary.totals.contentSurplusDeficit >= 0 ? '+' : ''}
-                {summary.totals.contentSurplusDeficit.toFixed(1)} weeks
-              </Badge>
-            </Stack>
-          </CardBody>
-        </Card>
-
-        {/* UX Headcount Card */}
-        <Card>
-          <CardBody>
-            <Stack spacing={2}>
-              <HStack justify="space-between">
-                <Text fontSize="sm" color="gray.600" fontWeight="medium">
-                  UX Headcount Needed
-                </Text>
-                <Tooltip
-                  label="Estimated number of UX designers needed to complete all work within the planning period."
-                  placement="top"
-                >
-                  <IconButton
-                    aria-label="Info about headcount"
-                    icon={<InfoIcon />}
-                    size="xs"
-                    variant="ghost"
-                  />
-                </Tooltip>
-              </HStack>
-              <Text fontSize="2xl" fontWeight="bold">
-                {summary.totals.uxHeadcountNeeded}
-              </Text>
-              <Text fontSize="sm" color="gray.500">
-                currently {session.ux_designers} designers
-              </Text>
-            </Stack>
-          </CardBody>
-        </Card>
-
-        {/* Content Headcount Card */}
-        <Card>
-          <CardBody>
-            <Stack spacing={2}>
-              <HStack justify="space-between">
-                <Text fontSize="sm" color="gray.600" fontWeight="medium">
-                  Content Headcount Needed
-                </Text>
-                <Tooltip
-                  label="Estimated number of Content designers needed to complete all work within the planning period."
-                  placement="top"
-                >
-                  <IconButton
-                    aria-label="Info about headcount"
-                    icon={<InfoIcon />}
-                    size="xs"
-                    variant="ghost"
-                  />
-                </Tooltip>
-              </HStack>
-              <Text fontSize="2xl" fontWeight="bold">
-                {summary.totals.contentHeadcountNeeded}
-              </Text>
-              <Text fontSize="sm" color="gray.500">
-                currently {session.content_designers} designers
-              </Text>
-            </Stack>
-          </CardBody>
-        </Card>
-      </SimpleGrid>
-
-      {/* Roadmap Items Table */}
-      <Box>
-        <HStack spacing={2} mb={4}>
-          <Heading size="md">Roadmap Items</Heading>
-          <Tooltip
-            label="Items above the cut line exceed available capacity. The cut line marks where items fit within the available designer-weeks, sorted by initiative and priority."
-            placement="top"
-          >
-            <IconButton
-              aria-label="Info about cut line"
-              icon={<InfoIcon />}
-              size="sm"
-              variant="ghost"
-            />
-          </Tooltip>
+    <Box bg="#F9FAFB" minH="100vh" pb={8}>
+      <Box maxW="1400px" mx="auto" px={6} pt={6}>
+        {/* Header Section */}
+        <HStack spacing={4} mb={6} align="center">
+          <IconButton
+            aria-label="Back to home"
+            icon={<ChevronLeftIcon />}
+            variant="ghost"
+            onClick={() => navigate('/')}
+          />
+          <HStack spacing={2} fontSize="14px">
+            <Link to="/" style={{ color: '#3B82F6' }}>
+              Home
+            </Link>
+            <Text color="gray.500"> &gt; </Text>
+            <Text color="gray.600">
+              {session.name} - Summary
+            </Text>
+          </HStack>
         </HStack>
 
-        <TableContainer>
-          <Table variant="simple">
-            <Thead>
-              {/* Grouping row for role sections */}
-              <Tr>
-                <Th colSpan={3} bg="gray.50" borderRight="1px" borderColor="gray.300">
-                  <Text fontSize="xs" fontWeight="semibold" color="gray.700" textTransform="uppercase">
-                    Item Information
-                  </Text>
-                </Th>
-                <Th colSpan={3} bg="blue.50" borderRight="1px" borderColor="gray.300">
-                  <Text fontSize="xs" fontWeight="semibold" color="blue.700" textTransform="uppercase">
-                    UX Design
-                  </Text>
-                </Th>
-                <Th colSpan={3} bg="green.50" borderRight="1px" borderColor="gray.300">
-                  <Text fontSize="xs" fontWeight="semibold" color="green.700" textTransform="uppercase">
-                    Content Design
-                  </Text>
-                </Th>
-                <Th bg="gray.50">
-                  <Text fontSize="xs" fontWeight="semibold" color="gray.700" textTransform="uppercase">
-                    Status
-                  </Text>
-                </Th>
-              </Tr>
-              {/* Column headers */}
-              <Tr>
-                <Th bg="gray.50" borderRight="1px" borderColor="gray.300">Key</Th>
-                <Th bg="gray.50" borderRight="1px" borderColor="gray.300">Name</Th>
-                <Th bg="gray.50" borderRight="1px" borderColor="gray.300">Initiative</Th>
-                <Th bg="blue.50" borderRight="1px" borderColor="gray.300">
-                  <HStack spacing={1}>
-                    <Text>UX Size</Text>
-                    <Tooltip
-                      label="T-shirt size (XS, S, M, L, XL) representing the complexity of UX work."
-                      placement="top"
-                    >
-                      <IconButton
-                        aria-label="Info about UX size"
-                        icon={<InfoIcon />}
-                        size="xs"
-                        variant="ghost"
-                      />
-                    </Tooltip>
-                  </HStack>
-                </Th>
-                <Th bg="blue.50" borderRight="1px" borderColor="gray.300">
-                  <HStack spacing={1}>
-                    <Text>UX Focus Weeks</Text>
-                    <Tooltip
-                      label="Dedicated designer time (focus weeks) needed for UX work."
-                      placement="top"
-                    >
-                      <IconButton
-                        aria-label="Info about UX focus weeks"
-                        icon={<InfoIcon />}
-                        size="xs"
-                        variant="ghost"
-                      />
-                    </Tooltip>
-                  </HStack>
-                </Th>
-                <Th bg="blue.50" borderRight="1px" borderColor="gray.300">
-                  <HStack spacing={1}>
-                    <Text>UX Work Weeks</Text>
-                    <Tooltip
-                      label="Calendar span (work weeks) needed to complete UX focus weeks, accounting for context switching."
-                      placement="top"
-                    >
-                      <IconButton
-                        aria-label="Info about UX work weeks"
-                        icon={<InfoIcon />}
-                        size="xs"
-                        variant="ghost"
-                      />
-                    </Tooltip>
-                  </HStack>
-                </Th>
-                <Th bg="green.50" borderRight="1px" borderColor="gray.300">
-                  <HStack spacing={1}>
-                    <Text>Content Size</Text>
-                    <Tooltip
-                      label="T-shirt size (XS, S, M, L, XL) representing the complexity of Content work."
-                      placement="top"
-                    >
-                      <IconButton
-                        aria-label="Info about Content size"
-                        icon={<InfoIcon />}
-                        size="xs"
-                        variant="ghost"
-                      />
-                    </Tooltip>
-                  </HStack>
-                </Th>
-                <Th bg="green.50" borderRight="1px" borderColor="gray.300">
-                  <HStack spacing={1}>
-                    <Text>Content Focus Weeks</Text>
-                    <Tooltip
-                      label="Dedicated designer time (focus weeks) needed for Content work."
-                      placement="top"
-                    >
-                      <IconButton
-                        aria-label="Info about Content focus weeks"
-                        icon={<InfoIcon />}
-                        size="xs"
-                        variant="ghost"
-                      />
-                    </Tooltip>
-                  </HStack>
-                </Th>
-                <Th bg="green.50" borderRight="1px" borderColor="gray.300">
-                  <HStack spacing={1}>
-                    <Text>Content Work Weeks</Text>
-                    <Tooltip
-                      label="Calendar span (work weeks) needed to complete Content focus weeks, accounting for context switching."
-                      placement="top"
-                    >
-                      <IconButton
-                        aria-label="Info about Content work weeks"
-                        icon={<InfoIcon />}
-                        size="xs"
-                        variant="ghost"
-                      />
-                    </Tooltip>
-                  </HStack>
-                </Th>
-                <Th bg="gray.50">Status</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {summary.items?.map((itemEstimate, index) => {
-                const isAboveCutLine =
-                  itemEstimate.aboveCutLineUX || itemEstimate.aboveCutLineContent
-                const showDivider = index === cutLineIndex && cutLineIndex > 0
+        <Heading size="xl" mb={2} fontWeight="bold">
+          {session.name}
+        </Heading>
+        <Text fontSize="14px" color="gray.600" mb={8}>
+          {formatQuarter(session.planning_period)} • {session.ux_designers} UX Designers • {session.content_designers} Content Designers
+        </Text>
 
-                return (
-                  <>
-                    {showDivider && (
-                      <Tr>
-                        <Td colSpan={10} p={0}>
-                          <Divider borderColor="red.300" borderWidth="2px" />
-                        </Td>
-                      </Tr>
-                    )}
-                    <Tr
-                      key={itemEstimate.item.id}
-                      bg={isAboveCutLine ? 'red.50' : 'transparent'}
-                      _hover={{ bg: isAboveCutLine ? 'red.100' : '#F9FAFB', cursor: 'pointer' }}
-                      onClick={() => navigate(`/sessions/${id}/items/${itemEstimate.item.id}`)}
+        {/* Capacity Overview Cards */}
+        {capacityMetrics && (
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={8}>
+            {/* UX Design Capacity Card */}
+            <Box
+              bg="#F0FDF4"
+              borderRadius="md"
+              p={6}
+              border="1px solid"
+              borderColor={capacityMetrics.ux.surplus >= 0 ? 'green.200' : 'red.200'}
+            >
+              <Heading size="sm" mb={4} fontWeight="bold">
+                UX Design Capacity
+              </Heading>
+              <VStack spacing={4} align="stretch">
+                <Box>
+                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                    Team Size
+                  </Text>
+                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                    {capacityMetrics.ux.teamSize}
+                  </Text>
+                </Box>
+                <Box>
+                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                    Total Capacity
+                  </Text>
+                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                    {capacityMetrics.ux.capacity.toFixed(1)} focus weeks
+                  </Text>
+                </Box>
+                <Box>
+                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                    Total Demand
+                  </Text>
+                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                    {capacityMetrics.ux.demand.toFixed(1)} focus weeks
+                  </Text>
+                </Box>
+                <Box
+                  mt={4}
+                  pt={4}
+                  borderTop="1px solid"
+                  borderColor={capacityMetrics.ux.surplus >= 0 ? 'green.300' : 'red.300'}
+                >
+                  <HStack spacing={2} mb={1}>
+                    <Text fontSize="20px" color={capacityMetrics.ux.surplus >= 0 ? '#10B981' : '#EF4444'}>
+                      {capacityMetrics.ux.surplus >= 0 ? '↑' : '↓'}
+                    </Text>
+                    <Text
+                      fontSize="24px"
+                      fontWeight="bold"
+                      color={capacityMetrics.ux.surplus >= 0 ? '#10B981' : '#EF4444'}
                     >
-                      {/* Item Information columns */}
-                      <Td fontWeight="medium" borderRight="1px" borderColor="gray.200">
-                        {itemEstimate.item.short_key}
-                      </Td>
-                      <Td borderRight="1px" borderColor="gray.200">
-                        {itemEstimate.item.name}
-                      </Td>
-                      <Td borderRight="1px" borderColor="gray.300">
-                        {itemEstimate.item.initiative}
-                      </Td>
-                      
-                      {/* UX Design columns */}
-                      <Td bg={isAboveCutLine ? undefined : 'blue.50'} borderRight="1px" borderColor="gray.200">
-                        {itemEstimate.item.uxSizeBand ? (
-                          <Badge colorScheme="blue">
-                            {itemEstimate.item.uxSizeBand}
-                          </Badge>
-                        ) : itemEstimate.uxSizing?.tshirtSize ? (
-                          <Badge colorScheme="blue">
-                            {itemEstimate.uxSizing.tshirtSize}
-                          </Badge>
-                        ) : (
-                          <Text color="gray.400" fontSize="sm">Not sized</Text>
-                        )}
-                      </Td>
-                      <Td bg={isAboveCutLine ? undefined : 'blue.50'} borderRight="1px" borderColor="gray.200">
-                        {typeof itemEstimate.item.uxFocusWeeks === 'number' && itemEstimate.item.uxFocusWeeks > 0
-                          ? itemEstimate.item.uxFocusWeeks.toFixed(1)
-                          : '—'}
-                      </Td>
-                      <Td bg={isAboveCutLine ? undefined : 'blue.50'} borderRight="1px" borderColor="gray.300">
-                        {typeof itemEstimate.item.uxWorkWeeks === 'number' && itemEstimate.item.uxWorkWeeks > 0
-                          ? itemEstimate.item.uxWorkWeeks.toFixed(1)
-                          : '—'}
-                      </Td>
-                      
-                      {/* Content Design columns */}
-                      <Td bg={isAboveCutLine ? undefined : 'green.50'} borderRight="1px" borderColor="gray.200">
-                        {itemEstimate.item.contentSizeBand ? (
-                          <Badge colorScheme="green">
-                            {itemEstimate.item.contentSizeBand}
-                          </Badge>
-                        ) : itemEstimate.contentSizing?.tshirtSize && itemEstimate.contentSizing.tshirtSize !== 'None' ? (
-                          <Badge colorScheme="green">
-                            {itemEstimate.contentSizing.tshirtSize}
-                          </Badge>
-                        ) : (
-                          <Text color="gray.400" fontSize="sm">Not sized</Text>
-                        )}
-                      </Td>
-                      <Td bg={isAboveCutLine ? undefined : 'green.50'} borderRight="1px" borderColor="gray.200">
-                        {typeof itemEstimate.item.contentFocusWeeks === 'number' && itemEstimate.item.contentFocusWeeks > 0
-                          ? itemEstimate.item.contentFocusWeeks.toFixed(1)
-                          : '—'}
-                      </Td>
-                      <Td bg={isAboveCutLine ? undefined : 'green.50'} borderRight="1px" borderColor="gray.300">
-                        {typeof itemEstimate.item.contentWorkWeeks === 'number' && itemEstimate.item.contentWorkWeeks > 0
-                          ? itemEstimate.item.contentWorkWeeks.toFixed(1)
-                          : '—'}
-                      </Td>
-                      
-                      {/* Status column */}
-                      <Td>
-                        <Stack direction="row" spacing={2}>
-                          {itemEstimate.aboveCutLineUX && (
-                            <Badge colorScheme="red">UX Above</Badge>
-                          )}
-                          {itemEstimate.aboveCutLineContent && (
-                            <Badge colorScheme="red">CD Above</Badge>
-                          )}
-                          {!itemEstimate.aboveCutLineUX && !itemEstimate.aboveCutLineContent && (
-                            <Badge colorScheme="green">Within</Badge>
-                          )}
-                        </Stack>
-                      </Td>
+                      {capacityMetrics.ux.surplus >= 0 ? '+' : ''}
+                      {capacityMetrics.ux.surplus.toFixed(1)} focus weeks
+                    </Text>
+                  </HStack>
+                  <Text fontSize="12px" color="gray.600">
+                    {capacityMetrics.ux.surplus >= 0 ? 'Surplus' : 'Deficit'} • {capacityMetrics.ux.utilization.toFixed(0)}% utilized
+                  </Text>
+                </Box>
+              </VStack>
+            </Box>
+
+            {/* Content Design Capacity Card */}
+            <Box
+              bg="#F0FDF4"
+              borderRadius="md"
+              p={6}
+              border="1px solid"
+              borderColor={capacityMetrics.content.surplus >= 0 ? 'green.200' : 'red.200'}
+            >
+              <Heading size="sm" mb={4} fontWeight="bold">
+                Content Design Capacity
+              </Heading>
+              <VStack spacing={4} align="stretch">
+                <Box>
+                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                    Team Size
+                  </Text>
+                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                    {capacityMetrics.content.teamSize}
+                  </Text>
+                </Box>
+                <Box>
+                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                    Total Capacity
+                  </Text>
+                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                    {capacityMetrics.content.capacity.toFixed(1)} focus weeks
+                  </Text>
+                </Box>
+                <Box>
+                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                    Total Demand
+                  </Text>
+                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                    {capacityMetrics.content.demand.toFixed(1)} focus weeks
+                  </Text>
+                </Box>
+                <Box
+                  mt={4}
+                  pt={4}
+                  borderTop="1px solid"
+                  borderColor={capacityMetrics.content.surplus >= 0 ? 'green.300' : 'red.300'}
+                >
+                  <HStack spacing={2} mb={1}>
+                    <Text fontSize="20px" color={capacityMetrics.content.surplus >= 0 ? '#10B981' : '#EF4444'}>
+                      {capacityMetrics.content.surplus >= 0 ? '↑' : '↓'}
+                    </Text>
+                    <Text
+                      fontSize="24px"
+                      fontWeight="bold"
+                      color={capacityMetrics.content.surplus >= 0 ? '#10B981' : '#EF4444'}
+                    >
+                      {capacityMetrics.content.surplus >= 0 ? '+' : ''}
+                      {capacityMetrics.content.surplus.toFixed(1)} focus weeks
+                    </Text>
+                  </HStack>
+                  <Text fontSize="12px" color="gray.600">
+                    {capacityMetrics.content.surplus >= 0 ? 'Surplus' : 'Deficit'} • {capacityMetrics.content.utilization.toFixed(0)}% utilized
+                  </Text>
+                </Box>
+              </VStack>
+            </Box>
+          </SimpleGrid>
+        )}
+
+        {/* Roadmap Items Table */}
+        <Box bg="white" borderRadius="md" p={6} boxShadow="sm">
+          <Heading size="md" mb={6} fontWeight="bold">
+            Roadmap Items
+          </Heading>
+
+          {items.length === 0 ? (
+            // Empty State
+            <VStack spacing={4} py={12}>
+              <Text color="gray.600" fontSize="16px">
+                No roadmap items yet. Add items to see capacity calculations.
+              </Text>
+              <Button
+                as={Link}
+                to={`/sessions/${id}/items`}
+                bg="black"
+                color="white"
+                _hover={{ bg: 'gray.800' }}
+              >
+                + Add Your First Item
+              </Button>
+            </VStack>
+          ) : (
+            <>
+              <TableContainer>
+                <Table variant="simple">
+                  <Thead>
+                    <Tr>
+                      <Th>Key</Th>
+                      <Th>Name</Th>
+                      <Th>Priority</Th>
+                      <Th>Status</Th>
+                      <Th bg="blue.50" borderLeft="2px solid" borderColor="blue.200">
+                        UX Size
+                      </Th>
+                      <Th bg="blue.50">UX Focus Weeks</Th>
+                      <Th bg="blue.50">UX Sprints</Th>
+                      <Th bg="green.50" borderLeft="2px solid" borderColor="green.200">
+                        Content Size
+                      </Th>
+                      <Th bg="green.50">Content Focus Weeks</Th>
+                      <Th bg="green.50">Content Sprints</Th>
+                      <Th>Actions</Th>
                     </Tr>
-                  </>
-                )
-              })}
-            </Tbody>
-          </Table>
-        </TableContainer>
+                  </Thead>
+                  <Tbody>
+                    {items.map((item) => {
+                      const uxSprintEstimate = item.uxFocusWeeks
+                        ? estimateSprints(item.uxFocusWeeks)
+                        : 0
+                      const contentSprintEstimate = item.contentFocusWeeks
+                        ? estimateSprints(item.contentFocusWeeks)
+                        : 0
+
+                      return (
+                        <Tr
+                          key={item.id}
+                          _hover={{ bg: 'gray.50', cursor: 'pointer' }}
+                          onClick={() => handleRowClick(item.id)}
+                        >
+                          <Td fontWeight="medium">{item.short_key}</Td>
+                          <Td>{item.name}</Td>
+                          <Td>
+                            <Badge
+                              bg="#FEF3C7"
+                              color="#92400E"
+                              borderRadius="4px"
+                              px={2}
+                              py={1}
+                              fontWeight={500}
+                            >
+                              {formatPriority(item.priority)}
+                            </Badge>
+                          </Td>
+                          <Td>
+                            <Badge
+                              bg="gray.200"
+                              color="gray.700"
+                              borderRadius="full"
+                              px={2}
+                              py={1}
+                            >
+                              {formatStatus(item.status)}
+                            </Badge>
+                          </Td>
+                          <Td bg="blue.50" borderLeft="2px solid" borderColor="blue.200">
+                            {item.uxSizeBand ? (
+                              <Text
+                                fontWeight={600}
+                                fontSize="14px"
+                                color="#374151"
+                              >
+                                {item.uxSizeBand}
+                              </Text>
+                            ) : (
+                              <Text color="gray.400">—</Text>
+                            )}
+                          </Td>
+                          <Td bg="blue.50">
+                            {item.uxFocusWeeks ? item.uxFocusWeeks.toFixed(1) : '—'}
+                          </Td>
+                          <Td bg="blue.50">
+                            {item.uxFocusWeeks
+                              ? formatSprintEstimate(uxSprintEstimate)
+                              : '—'}
+                          </Td>
+                          <Td bg="green.50" borderLeft="2px solid" borderColor="green.200">
+                            {item.contentSizeBand ? (
+                              <Text
+                                fontWeight={600}
+                                fontSize="14px"
+                                color="#374151"
+                              >
+                                {item.contentSizeBand}
+                              </Text>
+                            ) : (
+                              <Text color="gray.400">—</Text>
+                            )}
+                          </Td>
+                          <Td bg="green.50">
+                            {item.contentFocusWeeks
+                              ? item.contentFocusWeeks.toFixed(1)
+                              : '—'}
+                          </Td>
+                          <Td bg="green.50">
+                            {item.contentFocusWeeks
+                              ? formatSprintEstimate(contentSprintEstimate)
+                              : '—'}
+                          </Td>
+                          <Td onClick={(e) => e.stopPropagation()}>
+                            <HStack spacing={2}>
+                              <IconButton
+                                aria-label="Save item"
+                                icon={<CheckIcon />}
+                                size="sm"
+                                bg="green.500"
+                                color="white"
+                                _hover={{ bg: 'green.600' }}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  toast({
+                                    title: 'Item saved',
+                                    status: 'success',
+                                    duration: 2000,
+                                    isClosable: true,
+                                  })
+                                }}
+                              />
+                              <IconButton
+                                aria-label="Remove item"
+                                icon={<DeleteIcon />}
+                                size="sm"
+                                bg="red.500"
+                                color="white"
+                                _hover={{ bg: 'red.600' }}
+                                onClick={(e) => handleRemoveClick(e, item.id, item.name)}
+                              />
+                            </HStack>
+                          </Td>
+                        </Tr>
+                      )
+                    })}
+                  </Tbody>
+                </Table>
+              </TableContainer>
+
+              {/* Add another feature button */}
+              <Box mt={6} textAlign="center">
+                <Button
+                  variant="link"
+                  color="#3B82F6"
+                  fontSize="14px"
+                  onClick={onCreateModalOpen}
+                  _hover={{ textDecoration: 'underline' }}
+                >
+                  + Add another feature
+                </Button>
+              </Box>
+            </>
+          )}
+        </Box>
       </Box>
+
+      {/* Remove Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Delete Item
+            </AlertDialogHeader>
+            <AlertDialogBody>
+              Delete <strong>{itemToDeleteRef.current?.name || 'this item'}</strong>? This cannot be undone.
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onClose}>
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={handleConfirmRemove} ml={3}>
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+
+      {/* Create Item Modal */}
+      <Modal isOpen={isCreateModalOpen} onClose={onCreateModalClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <form onSubmit={handleCreateItem}>
+            <ModalHeader>Create New Roadmap Item</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <Stack spacing={4}>
+                <FormControl isRequired>
+                  <FormLabel>Short Key</FormLabel>
+                  <Input
+                    value={formData.short_key}
+                    onChange={(e) => setFormData({ ...formData, short_key: e.target.value })}
+                    placeholder="e.g., PROJ-1"
+                  />
+                </FormControl>
+
+                <FormControl isRequired>
+                  <FormLabel>Name</FormLabel>
+                  <Input
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g., New Payment Method"
+                  />
+                </FormControl>
+
+                <FormControl isRequired>
+                  <FormLabel>Initiative</FormLabel>
+                  <Input
+                    value={formData.initiative}
+                    onChange={(e) => setFormData({ ...formData, initiative: e.target.value })}
+                    placeholder="e.g., Revenue"
+                  />
+                </FormControl>
+
+                <FormControl isRequired>
+                  <FormLabel>Priority</FormLabel>
+                  <NumberInput
+                    value={formData.priority}
+                    onChange={(_, valueAsNumber) =>
+                      setFormData({ ...formData, priority: valueAsNumber || 1 })
+                    }
+                    min={1}
+                  >
+                    <NumberInputField />
+                    <NumberInputStepper>
+                      <NumberIncrementStepper />
+                      <NumberDecrementStepper />
+                    </NumberInputStepper>
+                  </NumberInput>
+                </FormControl>
+              </Stack>
+            </ModalBody>
+
+            <ModalFooter>
+              <Button variant="ghost" mr={3} onClick={onCreateModalClose}>
+                Cancel
+              </Button>
+              <Button colorScheme="blue" type="submit">
+                Create Item
+              </Button>
+            </ModalFooter>
+          </form>
+        </ModalContent>
+      </Modal>
     </Box>
   )
 }

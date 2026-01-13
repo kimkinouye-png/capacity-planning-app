@@ -33,6 +33,8 @@ export interface EffortResult {
  * Weights determine how much each factor influences the final effort calculation.
  * Default base weight is 1.0; adjust up (>1.0) for factors that typically increase
  * effort more, or down (<1.0) for factors that have less impact.
+ * 
+ * Total weight sum = 3.1 (1.2 + 1.0 + 0.9)
  */
 export const uxFactors: Record<string, Omit<Factor, 'score'>> = {
   /**
@@ -59,19 +61,6 @@ export const uxFactors: Record<string, Omit<Factor, 'score'>> = {
     weight: 1.0,
     label: 'Problem Ambiguity',
     description: 'How well-defined the problem is (1=clear, 5=highly ambiguous)',
-  },
-  
-  /**
-   * Platform Complexity (weight: 1.1)
-   * 
-   * Slightly higher weight because supporting multiple platforms or complex
-   * technical requirements increases design iteration, testing, and adaptation work.
-   * Multi-platform work often requires platform-specific considerations and validation.
-   */
-  platformComplexity: {
-    weight: 1.1,
-    label: 'Platform Complexity',
-    description: 'Number of platforms and technical complexity (1=single platform, 5=multiple complex platforms)',
   },
   
   /**
@@ -158,7 +147,6 @@ export const contentFactors: Record<string, Omit<Factor, 'score'>> = {
 export const FACTOR_WEIGHTS_UX: Record<string, number> = {
   productRisk: 1.2,
   problemAmbiguity: 1.0,
-  platformComplexity: 1.1,
   discoveryDepth: 0.9,
 }
 
@@ -194,21 +182,73 @@ export function calculateWeightedScore(
     }
   }
 
+  // Calculate weighted average
+  const weightedAverage = totalWeight > 0 ? totalWeightedScore / totalWeight : 0
+
+  // Debug logging
+  console.log('UX factors used:', Object.keys(factorsWithScores))
+  console.log('Weights sum:', totalWeight)
+  console.log('Weighted average:', weightedAverage)
+
   // Return average weighted score, or 0 if no valid factors
-  return totalWeight > 0 ? totalWeightedScore / totalWeight : 0
+  return weightedAverage
 }
 
 /**
  * Map weighted score to size band
- * @param score Weighted score (typically 1-5 range)
+ * @param weightedAverage Weighted average score (typically 1-5 range)
  * @returns Size band
  */
-export function mapScoreToSizeBand(score: number): SizeBand {
-  if (score <= 1.5) return 'XS'
-  if (score <= 2.5) return 'S'
-  if (score <= 3.5) return 'M'
-  if (score <= 4.5) return 'L'
-  return 'XL'
+export function mapScoreToSizeBand(weightedAverage: number): SizeBand {
+  if (weightedAverage < 1.6) return 'XS'
+  if (weightedAverage < 2.6) return 'S'
+  if (weightedAverage < 3.6) return 'M'
+  if (weightedAverage < 4.6) return 'L'
+  return 'XL'  // Catches >= 4.6, including exactly 5.0
+}
+
+/**
+ * Calculate work weeks from focus weeks
+ * Work weeks = focus weeks ÷ 0.75 (accounting for context switching and dependencies)
+ * @param focusWeeks Focus weeks (dedicated designer time)
+ * @returns Work weeks rounded to 1 decimal place
+ */
+export function calculateWorkWeeks(focusWeeks: number): number {
+  return Number((focusWeeks / 0.75).toFixed(1))
+}
+
+/**
+ * Map size band to focus weeks for UX design
+ * @param sizeBand Size band
+ * @returns Focus weeks
+ */
+export function mapSizeBandToFocusWeeks(sizeBand: SizeBand): number {
+  switch (sizeBand) {
+    case 'XS': return 0.5
+    case 'S': return 1.5
+    case 'M': return 3.0
+    case 'L': return 5.0
+    case 'XL': return 8.0
+    default: return 3.0
+  }
+}
+
+/**
+ * Map size band to focus weeks for Content design
+ * @param sizeBand Size band
+ * @returns Focus weeks
+ * 
+ * Note: Content focus weeks now match UX focus weeks for consistency
+ */
+export function mapSizeBandToContentFocusWeeks(sizeBand: SizeBand): number {
+  switch (sizeBand) {
+    case 'XS': return 0.5
+    case 'S': return 1.5
+    case 'M': return 3.0
+    case 'L': return 5.0
+    case 'XL': return 8.0
+    default: return 3.0
+  }
 }
 
 /**
@@ -222,31 +262,24 @@ export function mapSizeBandToTime(
   sizeBand: SizeBand,
   role: Role
 ): { focusWeeks: number; workWeeks: number } {
-  // UX time estimates (focus weeks)
-  const uxFocusWeeks: Record<SizeBand, number> = {
-    XS: 0.5,
-    S: 1,
-    M: 2,
-    L: 3,
-    XL: 4,
+  // Get focus weeks based on role
+  const focusWeeks = role === 'ux' 
+    ? mapSizeBandToFocusWeeks(sizeBand)
+    : mapSizeBandToContentFocusWeeks(sizeBand)
+
+  // Debug logging for Content
+  if (role === 'content') {
+    console.log('Content size band:', sizeBand)
+    console.log('Content focus weeks from mapping:', focusWeeks)
+    console.log('Expected for XL: 8.0, Actual:', focusWeeks)
   }
 
-  // Content time estimates (focus weeks)
-  const contentFocusWeeks: Record<SizeBand, number> = {
-    XS: 0.5,
-    S: 1,
-    M: 1.5,
-    L: 2,
-    XL: 3,
-  }
-
-  // Calculate work weeks from focus weeks: work weeks = focus weeks ÷ 0.75
-  const focusWeeks = role === 'ux' ? uxFocusWeeks[sizeBand] : contentFocusWeeks[sizeBand]
-  const workWeeks = focusWeeks / 0.75
+  // Calculate work weeks from focus weeks
+  const workWeeks = calculateWorkWeeks(focusWeeks)
 
   return {
     focusWeeks,
-    workWeeks: Math.round(workWeeks * 10) / 10, // Round to 1 decimal place
+    workWeeks,
   }
 }
 
@@ -263,6 +296,9 @@ export function calculateEffort(role: Role, scores: FactorScores): EffortResult 
   const weightedScore = calculateWeightedScore(scores, factorDefinitions)
   const sizeBand = mapScoreToSizeBand(weightedScore)
   const { focusWeeks, workWeeks } = mapSizeBandToTime(sizeBand, role)
+
+  // Debug logging
+  console.log('Size band:', sizeBand)
 
   return {
     sizeBand,
