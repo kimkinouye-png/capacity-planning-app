@@ -152,7 +152,7 @@ function SessionItemsPage() {
                       <Td>{item.priority}</Td>
                       <Td>
                         <Badge
-                          colorScheme={item.status === 'draft' ? 'gray' : item.status === 'active' ? 'green' : 'blue'}
+                          colorScheme={item.status === 'draft' ? 'gray' : item.status === 'sized' ? 'green' : 'blue'}
                           px={2}
                           py={1}
                           borderRadius="full"

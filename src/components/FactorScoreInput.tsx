@@ -14,7 +14,6 @@ interface FactorDefinition {
 }
 
 interface FactorScoreInputProps {
-  factorName: string
   factor: FactorDefinition
   value: number | undefined
   onChange: (score: number) => void
@@ -26,7 +25,6 @@ interface FactorScoreInputProps {
  * and helper text explaining what the factor measures.
  */
 export default function FactorScoreInput({
-  factorName,
   factor,
   value,
   onChange,

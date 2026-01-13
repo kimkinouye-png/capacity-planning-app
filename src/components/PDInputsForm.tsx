@@ -22,7 +22,7 @@ interface PDInputsFormProps {
   sizeBand?: 'XS' | 'S' | 'M' | 'L' | 'XL' // Optional size band for visual indicator
 }
 
-export default function PDInputsForm({ value, onChange, sizeBand }: PDInputsFormProps) {
+export default function PDInputsForm({ value, onChange }: PDInputsFormProps) {
   // Define the 3 factors to display (excluding Platform Complexity)
   const factorsToShow = [
     {

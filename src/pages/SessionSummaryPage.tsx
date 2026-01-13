@@ -47,7 +47,6 @@ import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
 import { getWeeksForPeriod } from '../config/quarterConfig'
 import { estimateSprints, formatSprintEstimate } from '../config/sprints'
-import type { RoadmapItem } from '../domain/types'
 
 function SessionSummaryPage() {
   const { id } = useParams<{ id: string }>()

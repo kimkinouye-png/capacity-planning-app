@@ -22,7 +22,7 @@ interface CDInputsFormProps {
   sizeBand?: 'XS' | 'S' | 'M' | 'L' | 'XL' // Optional size band for visual indicator
 }
 
-export default function CDInputsForm({ value, onChange, sizeBand }: CDInputsFormProps) {
+export default function CDInputsForm({ value, onChange }: CDInputsFormProps) {
   // Define the 4 Content factors to display
   const factorsToShow = [
     {

@@ -35,18 +35,11 @@ import { useNavigate } from 'react-router-dom'
 import { useState, useMemo } from 'react'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
-import { useItemInputs } from '../context/ItemInputsContext'
 import type { PlanningSession, PlanningPeriod } from '../domain/types'
 import { getWeeksForPeriod } from '../config/quarterConfig'
 import { SPRINT_LENGTH_WEEKS } from '../config/sprints'
 
 const QUARTER_OPTIONS: PlanningPeriod[] = ['2026-Q1', '2026-Q2', '2026-Q3', '2026-Q4']
-import {
-  demoItems,
-  demoIntakes,
-  demoProductDesignInputs,
-  demoContentDesignInputs,
-} from '../demo/demoSession'
 
 interface ScenarioMetrics {
   uxFocusCapacity: number
@@ -146,8 +139,7 @@ function calculateScenarioMetrics(
 
 function SessionsListPage() {
   const { sessions, createSession } = usePlanningSessions()
-  const { createItem, getItemsForSession } = useRoadmapItems()
-  const { setInputsForItem } = useItemInputs()
+  const { getItemsForSession } = useRoadmapItems()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const navigate = useNavigate()
 
@@ -178,52 +170,6 @@ function SessionsListPage() {
       ux_designers: 3,
       content_designers: 2,
     })
-    navigate(`/sessions/${newSession.id}`)
-  }
-
-  const handleCreateDemoSession = () => {
-    // Create a new session with default capacity
-    const currentYear = new Date().getFullYear()
-    const currentQuarter = Math.ceil((new Date().getMonth() + 1) / 3)
-    const defaultPeriod: PlanningPeriod = `${currentYear}-Q${currentQuarter}` as PlanningPeriod
-    const weeksPerPeriod = getWeeksForPeriod(defaultPeriod)
-    
-    const newSession = createSession({
-      name: 'Demo Session',
-      planningPeriod: defaultPeriod,
-      weeks_per_period: weeksPerPeriod,
-      sprint_length_weeks: SPRINT_LENGTH_WEEKS, // Fixed constant
-      ux_designers: 3,
-      content_designers: 1,
-    })
-
-    // Seed 2-3 roadmap items from demo data (using first 2 items)
-    const itemsToSeed = demoItems.slice(0, 2)
-    itemsToSeed.forEach((demoItem) => {
-      // Create the item (without the demo item ID, let it generate a new one)
-      const newItem = createItem(newSession.id, {
-        short_key: demoItem.short_key,
-        name: demoItem.name,
-        initiative: demoItem.initiative,
-        priority: demoItem.priority,
-      })
-
-      // Find the corresponding inputs from demo data
-      const intake = demoIntakes.find((i) => i.roadmap_item_id === demoItem.id)
-      const pd = demoProductDesignInputs.find((p) => p.roadmap_item_id === demoItem.id)
-      const cd = demoContentDesignInputs.find((c) => c.roadmap_item_id === demoItem.id)
-
-      // Set the inputs for the new item (update roadmap_item_id to match new item ID)
-      if (intake && pd && cd) {
-        setInputsForItem(newItem.id, {
-          intake: { ...intake, roadmap_item_id: newItem.id },
-          pd: { ...pd, roadmap_item_id: newItem.id },
-          cd: { ...cd, roadmap_item_id: newItem.id },
-        })
-      }
-    })
-
-    // Navigate to the new session's summary page
     navigate(`/sessions/${newSession.id}`)
   }
 

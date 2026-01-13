@@ -5,7 +5,6 @@ import {
   Textarea,
   Stack,
   Checkbox,
-  Box,
 } from '@chakra-ui/react'
 import type { PMIntake } from '../domain/types'
 

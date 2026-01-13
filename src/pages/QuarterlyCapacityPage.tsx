@@ -1,7 +1,6 @@
 import {
   Box,
   Heading,
-  Stack,
   Text,
   Badge,
   SimpleGrid,
