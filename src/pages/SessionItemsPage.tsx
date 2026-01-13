@@ -31,11 +31,9 @@ import {
   VStack,
   Card,
   CardBody,
-  Icon,
-  IconButton,
   Badge,
+  Link as ChakraLink,
 } from '@chakra-ui/react'
-import { ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useState, useMemo } from 'react'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
@@ -81,45 +79,20 @@ function SessionItemsPage() {
     )
   }
 
-  const planningPeriod = session?.planningPeriod || session?.planning_period || '—'
   const sessionName = session?.name || 'Unknown Session'
-
-  // Format planning period for display (e.g., "2026-Q1" -> "Q1 2026")
-  const formatPlanningPeriod = (period: string): string => {
-    const match = period.match(/(\d{4})-Q(\d)/)
-    if (match) {
-      return `Q${match[2]} ${match[1]}`
-    }
-    return period
-  }
-
-  const formattedPeriod = formatPlanningPeriod(planningPeriod)
 
   return (
     <Box minH="100vh" bg="#F9FAFB">
       <Box maxW="1200px" mx="auto" px={6} py={8}>
         {/* Breadcrumb Navigation */}
-        <HStack spacing={2} mb={6} align="center">
-          <IconButton
-            aria-label="Back to session summary"
-            icon={<ChevronLeftIcon />}
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(`/sessions/${id}`)}
-          />
-          <Link to="/" style={{ color: '#3182CE', textDecoration: 'none' }}>
-            <Text fontSize="sm" color="blue.500" _hover={{ textDecoration: 'underline' }}>
-              Home
-            </Text>
-          </Link>
-          <ChevronRightIcon w={3} h={3} color="gray.400" />
-          <Text fontSize="sm" color="gray.600">
-            {formattedPeriod} {sessionName}
-          </Text>
-          <ChevronRightIcon w={3} h={3} color="gray.400" />
-          <Text fontSize="sm" color="gray.900" fontWeight="medium">
-            Roadmap Items
-          </Text>
+        <HStack spacing={1} mb={6} align="center" fontSize="sm">
+          <ChakraLink as={Link} to="/" color="gray.600" _hover={{ textDecoration: 'underline' }}>
+            Home
+          </ChakraLink>
+          <Text color="gray.400"> &gt; </Text>
+          <Text color="gray.600">{sessionName}</Text>
+          <Text color="gray.400"> &gt; </Text>
+          <Text color="gray.900" fontWeight="medium">Roadmap Items</Text>
         </HStack>
 
         {/* Header */}
@@ -129,7 +102,7 @@ function SessionItemsPage() {
               Roadmap Items
             </Heading>
             <Text fontSize="sm" color="gray.600">
-              {items.length} {items.length === 1 ? 'item' : 'items'} in {formattedPeriod} {sessionName}
+              {items.length} {items.length === 1 ? 'item' : 'items'} in {sessionName}
             </Text>
           </Box>
           <Button colorScheme="black" onClick={onOpen}>
