@@ -13,8 +13,13 @@ import {
   Tab,
   TabPanel,
   Button,
+  HStack,
+  IconButton,
+  Link as ChakraLink,
+  Badge,
 } from '@chakra-ui/react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { ChevronLeftIcon } from '@chakra-ui/icons'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import type { PMIntake, ProductDesignInputs, ContentDesignInputs } from '../domain/types'
 import PMIntakeForm from '../components/PMIntakeForm'
@@ -22,6 +27,7 @@ import PDInputsForm from '../components/PDInputsForm'
 import CDInputsForm from '../components/CDInputsForm'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
 import { useItemInputs } from '../context/ItemInputsContext'
+import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { calculateEffort, type FactorScores } from '../config/effortModel'
 import {
   demoItems,
@@ -35,6 +41,7 @@ function ItemDetailPage() {
   const navigate = useNavigate()
   const { getItemsForSession, updateItem } = useRoadmapItems()
   const { getInputsForItem, setInputsForItem } = useItemInputs()
+  const { getSessionById } = usePlanningSessions()
 
   // Load the RoadmapItem - reload when items change (e.g., after updateItem)
   const items = useMemo(() => {
@@ -375,85 +382,221 @@ function ItemDetailPage() {
     )
   }
 
+  // Get session data for breadcrumb
+  const session = useMemo(() => {
+    if (sessionId === 'demo') {
+      return { name: 'Demo Session' }
+    }
+    return sessionId ? getSessionById(sessionId) : undefined
+  }, [sessionId, getSessionById])
+
+  const sessionName = session?.name || 'Unknown Session'
+  
+  // Format status for display
+  const formatStatus = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      draft: 'Draft',
+      ready_for_sizing: 'Ready for Sizing',
+      sized: 'In Progress',
+      locked: 'Locked',
+    }
+    return statusMap[status] || status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ')
+  }
+
+  // Get status badge color scheme
+  const getStatusColorScheme = (status: string): string => {
+    const colorMap: Record<string, string> = {
+      draft: 'gray',
+      ready_for_sizing: 'yellow',
+      sized: 'green',
+      locked: 'blue',
+    }
+    return colorMap[status] || 'gray'
+  }
+
   return (
-    <Box p={8}>
-      {/* Breadcrumb navigation */}
-      <Stack direction="row" spacing={3} mb={4}>
-        <Button
-          variant="link"
-          colorScheme="blue"
-          onClick={() => navigate(`/sessions/${sessionId}`)}
-        >
-          ← Back to session
-        </Button>
-        <Button
-          variant="link"
-          colorScheme="blue"
-          onClick={() => navigate(`/sessions/${sessionId}/items`)}
-        >
-          ← Back to items
-        </Button>
-      </Stack>
+    <Box minH="100vh" bg="#F9FAFB">
+      <Box maxW="1200px" mx="auto" px={6} py={8}>
+        {/* Breadcrumb Navigation */}
+        <HStack spacing={2} mb={6} align="center" fontSize="14px">
+          <IconButton
+            aria-label="Back to roadmap items"
+            icon={<ChevronLeftIcon />}
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(`/sessions/${sessionId}/items`)}
+            color="gray.700"
+            _hover={{ bg: 'gray.100' }}
+          />
+          <ChakraLink as={Link} to="/" color="#3B82F6" _hover={{ textDecoration: 'underline' }}>
+            Home
+          </ChakraLink>
+          <Text color="gray.400"> &gt; </Text>
+          <ChakraLink 
+            as={Link} 
+            to={`/sessions/${sessionId}/items`} 
+            color="#3B82F6" 
+            _hover={{ textDecoration: 'underline' }}
+          >
+            {sessionName}
+          </ChakraLink>
+          <Text color="gray.400"> &gt; </Text>
+          <Text color="#374151" fontWeight="medium">
+            {item.short_key}: {item.name}
+          </Text>
+        </HStack>
 
-      {/* Item key/name at the top */}
-      <Heading size="lg" mb={6}>
-        {item.short_key} - {item.name}
-      </Heading>
+        {/* Page Heading */}
+        <Heading size="xl" mb={2} color="gray.900">
+          {item.short_key}: {item.name}
+        </Heading>
 
-      <Stack spacing={8}>
-        {/* Forms in Tabs */}
-        <Tabs>
-          <TabList>
-            <Tab>PM Intake</Tab>
-            <Tab>Product Design</Tab>
-            <Tab>Content Design</Tab>
-          </TabList>
+        {/* Metadata */}
+        <HStack spacing={2} mb={8} fontSize="sm" color="gray.600">
+          <Text>{item.initiative}</Text>
+          <Text>•</Text>
+          <Text>P{item.priority}</Text>
+          <Text>•</Text>
+          <Badge
+            colorScheme={getStatusColorScheme(item.status)}
+            px={2}
+            py={1}
+            borderRadius="full"
+            fontSize="xs"
+          >
+            {formatStatus(item.status)}
+          </Badge>
+        </HStack>
 
-          <TabPanels>
-            {/* PM Intake Tab */}
-            <TabPanel>
-              <Text fontSize="sm" color="gray.600" mb={4}>
-                Filled by the product manager to describe business context, goals, market, and
-                requirements.
-              </Text>
-              <PMIntakeForm value={pmIntake} onChange={setPMIntake} />
-            </TabPanel>
+        <Box bg="white" borderRadius="md" boxShadow="sm" p={6}>
+          <Stack spacing={8}>
+            {/* Forms in Tabs */}
+            <Tabs>
+              <TabList
+                borderBottom="none"
+                gap={2}
+              >
+                <Tab
+                  borderRadius="full"
+                  border="1px"
+                  borderColor="gray.200"
+                  _selected={{
+                    borderColor: '#3B82F6',
+                    color: '#3B82F6',
+                    bg: 'transparent',
+                  }}
+                  _hover={{
+                    bg: 'gray.50',
+                  }}
+                  px={4}
+                  py={2}
+                >
+                  PM Intake
+                </Tab>
+                <Tab
+                  borderRadius="full"
+                  border="1px"
+                  borderColor="gray.200"
+                  _selected={{
+                    borderColor: '#3B82F6',
+                    color: '#3B82F6',
+                    bg: 'transparent',
+                  }}
+                  _hover={{
+                    bg: 'gray.50',
+                  }}
+                  px={4}
+                  py={2}
+                >
+                  Product Design
+                </Tab>
+                <Tab
+                  borderRadius="full"
+                  border="1px"
+                  borderColor="gray.200"
+                  _selected={{
+                    borderColor: '#3B82F6',
+                    color: '#3B82F6',
+                    bg: 'transparent',
+                  }}
+                  _hover={{
+                    bg: 'gray.50',
+                  }}
+                  px={4}
+                  py={2}
+                >
+                  Content Design
+                </Tab>
+              </TabList>
 
-            {/* Product Design Inputs Tab */}
-            <TabPanel>
-              <Text fontSize="sm" color="gray.600" mb={4}>
-                Filled by the product designer to describe UX complexity factors, patterns, and
-                design considerations.
-              </Text>
-              <PDInputsForm value={pdInputs} onChange={setPDInputs} sizeBand={item.uxSizeBand} />
-              {item && (
-                <Box mt={6} p={4} bg="blue.50" borderRadius="md" borderLeft="4px" borderColor="blue.500">
-                  <Text fontSize="md" fontWeight="medium" color="gray.800">
-                    UX size: {item.uxSizeBand} · ~{item.uxFocusWeeks.toFixed(1)} focus weeks over {item.uxWorkWeeks.toFixed(1)} work weeks
+              <TabPanels>
+                {/* PM Intake Tab */}
+                <TabPanel px={0} pt={6}>
+                  <Text fontSize="sm" color="gray.600" mb={6}>
+                    Filled by the product manager to describe business context, goals, market, and
+                    requirements.
                   </Text>
-                </Box>
-              )}
-            </TabPanel>
+                  <PMIntakeForm value={pmIntake} onChange={setPMIntake} />
+                  
+                  {/* Footer */}
+                  <Box mt={8} pt={6} borderTop="1px" borderColor="gray.200">
+                    <Stack spacing={4} align="center">
+                      <Text fontSize="sm" color="#6B7280" textAlign="center">
+                        Changes are saved automatically
+                      </Text>
+                      <Button
+                        variant="outline"
+                        bg="white"
+                        borderColor="gray.300"
+                        color="gray.700"
+                        onClick={() => navigate(`/sessions/${sessionId}/items`)}
+                        _hover={{
+                          bg: 'gray.50',
+                          borderColor: 'gray.400',
+                        }}
+                      >
+                        Back to roadmap
+                      </Button>
+                    </Stack>
+                  </Box>
+                </TabPanel>
 
-            {/* Content Design Inputs Tab */}
-            <TabPanel>
-              <Text fontSize="sm" color="gray.600" mb={4}>
-                Filled by the content designer to describe content requirements, compliance needs,
-                and guidance complexity.
-              </Text>
-              <CDInputsForm value={cdInputs} onChange={setCDInputs} sizeBand={item.contentSizeBand} />
-              {item && (
-                <Box mt={6} p={4} bg="green.50" borderRadius="md" borderLeft="4px" borderColor="green.500">
-                  <Text fontSize="md" fontWeight="medium" color="gray.800">
-                    Content size: {item.contentSizeBand} · ~{item.contentFocusWeeks.toFixed(1)} focus weeks over {item.contentWorkWeeks.toFixed(1)} work weeks
+                {/* Product Design Inputs Tab */}
+                <TabPanel>
+                  <Text fontSize="sm" color="gray.600" mb={4}>
+                    Filled by the product designer to describe UX complexity factors, patterns, and
+                    design considerations.
                   </Text>
-                </Box>
-              )}
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
+                  <PDInputsForm value={pdInputs} onChange={setPDInputs} sizeBand={item.uxSizeBand} />
+                  {item && (
+                    <Box mt={6} p={4} bg="blue.50" borderRadius="md" borderLeft="4px" borderColor="blue.500">
+                      <Text fontSize="md" fontWeight="medium" color="gray.800">
+                        UX size: {item.uxSizeBand} · ~{item.uxFocusWeeks.toFixed(1)} focus weeks over {item.uxWorkWeeks.toFixed(1)} work weeks
+                      </Text>
+                    </Box>
+                  )}
+                </TabPanel>
 
-      </Stack>
+                {/* Content Design Inputs Tab */}
+                <TabPanel>
+                  <Text fontSize="sm" color="gray.600" mb={4}>
+                    Filled by the content designer to describe content requirements, compliance needs,
+                    and guidance complexity.
+                  </Text>
+                  <CDInputsForm value={cdInputs} onChange={setCDInputs} sizeBand={item.contentSizeBand} />
+                  {item && (
+                    <Box mt={6} p={4} bg="green.50" borderRadius="md" borderLeft="4px" borderColor="green.500">
+                      <Text fontSize="md" fontWeight="medium" color="gray.800">
+                        Content size: {item.contentSizeBand} · ~{item.contentFocusWeeks.toFixed(1)} focus weeks over {item.contentWorkWeeks.toFixed(1)} work weeks
+                      </Text>
+                    </Box>
+                  )}
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
+          </Stack>
+        </Box>
+      </Box>
     </Box>
   )
 }
