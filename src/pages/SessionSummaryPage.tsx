@@ -24,7 +24,7 @@ import {
   HStack,
   Divider,
 } from '@chakra-ui/react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useMemo } from 'react'
 import { InfoIcon } from '@chakra-ui/icons'
 import { summarizeSession } from '../estimation/logic'
@@ -92,6 +92,7 @@ const getDefaultCDInputs = (itemId: string): ContentDesignInputs => ({
 
 function SessionSummaryPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { getSessionById } = usePlanningSessions()
   const { getItemsForSession } = useRoadmapItems()
   const { getInputsForItem } = useItemInputs()
@@ -572,7 +573,8 @@ function SessionSummaryPage() {
                     <Tr
                       key={itemEstimate.item.id}
                       bg={isAboveCutLine ? 'red.50' : 'transparent'}
-                      _hover={{ bg: isAboveCutLine ? 'red.100' : 'gray.50' }}
+                      _hover={{ bg: isAboveCutLine ? 'red.100' : '#F9FAFB', cursor: 'pointer' }}
+                      onClick={() => navigate(`/sessions/${id}/items/${itemEstimate.item.id}`)}
                     >
                       {/* Item Information columns */}
                       <Td fontWeight="medium" borderRight="1px" borderColor="gray.200">

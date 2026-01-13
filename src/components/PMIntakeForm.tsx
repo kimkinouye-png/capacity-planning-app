@@ -3,9 +3,9 @@ import {
   FormLabel,
   Input,
   Textarea,
-  Select,
   Stack,
   Checkbox,
+  Box,
 } from '@chakra-ui/react'
 import type { PMIntake } from '../domain/types'
 
@@ -27,12 +27,37 @@ export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
     onChange({ ...value, surfaces_in_scope: updatedSurfaces })
   }
 
+  const handleNewOrExistingChange = (option: 'new' | 'existing') => {
+    onChange({ ...value, new_or_existing: option })
+  }
+
+
+  // Shared textarea styles
+  const textareaStyles = {
+    bg: '#F3F4F6',
+    borderRadius: '6px',
+    border: 'none',
+    p: '12px',
+    _focus: {
+      outline: 'none',
+      boxShadow: '0 0 0 2px #3B82F6',
+    },
+  }
+
+  // Shared label styles
+  const labelStyles = {
+    textAlign: 'left' as const,
+    fontWeight: 500,
+    color: '#374151',
+    mb: '6px',
+  }
 
   return (
-    <Stack spacing={4}>
+    <Stack spacing={6}>
       <FormControl>
-        <FormLabel>Objective</FormLabel>
+        <FormLabel {...labelStyles}>Objective</FormLabel>
         <Textarea
+          {...textareaStyles}
           value={value.objective || ''}
           onChange={(e) => handleChange('objective', e.target.value)}
           placeholder="Describe the objective of this roadmap item"
@@ -40,29 +65,19 @@ export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
       </FormControl>
 
       <FormControl>
-        <FormLabel>KPIs</FormLabel>
+        <FormLabel {...labelStyles}>KPIs</FormLabel>
         <Textarea
+          {...textareaStyles}
           value={value.kpis || ''}
           onChange={(e) => handleChange('kpis', e.target.value)}
           placeholder='Enter KPIs as JSON array, e.g., ["Metric 1", "Metric 2"]'
         />
       </FormControl>
 
-      {/* Goals field hidden from UI but preserved in data structure for backwards compatibility */}
-      {/* {value.goals !== undefined && (
-        <FormControl>
-          <FormLabel>Goals</FormLabel>
-          <Textarea
-            value={value.goals || ''}
-            onChange={(e) => handleChange('goals', e.target.value)}
-            placeholder="Describe the goals"
-          />
-        </FormControl>
-      )} */}
-
       <FormControl>
-        <FormLabel>Market</FormLabel>
-        <Input
+        <FormLabel {...labelStyles}>Market</FormLabel>
+        <Textarea
+          {...textareaStyles}
           value={value.market || ''}
           onChange={(e) => handleChange('market', e.target.value)}
           placeholder="e.g., US, UK, Canada"
@@ -70,8 +85,9 @@ export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
       </FormControl>
 
       <FormControl>
-        <FormLabel>Audience</FormLabel>
-        <Input
+        <FormLabel {...labelStyles}>Audience</FormLabel>
+        <Textarea
+          {...textareaStyles}
           value={value.audience || ''}
           onChange={(e) => handleChange('audience', e.target.value)}
           placeholder="e.g., Millennials and Gen Z shoppers"
@@ -79,17 +95,27 @@ export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
       </FormControl>
 
       <FormControl>
-        <FormLabel>Timeline</FormLabel>
+        <FormLabel {...labelStyles}>Desired Launch Date</FormLabel>
         <Input
+          type="date"
           value={value.timeline || ''}
           onChange={(e) => handleChange('timeline', e.target.value)}
-          placeholder="e.g., Q2 2026"
+          bg="#F3F4F6"
+          borderRadius="6px"
+          border="none"
+          p="12px"
+          h="auto"
+          _focus={{
+            outline: 'none',
+            boxShadow: '0 0 0 2px #3B82F6',
+          }}
         />
       </FormControl>
 
       <FormControl>
-        <FormLabel>Business Requirements</FormLabel>
+        <FormLabel {...labelStyles}>Business Requirements</FormLabel>
         <Textarea
+          {...textareaStyles}
           value={value.requirements_business || ''}
           onChange={(e) => handleChange('requirements_business', e.target.value)}
           placeholder="Describe business requirements"
@@ -97,8 +123,9 @@ export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
       </FormControl>
 
       <FormControl>
-        <FormLabel>Technical Requirements</FormLabel>
+        <FormLabel {...labelStyles}>Technical Requirements</FormLabel>
         <Textarea
+          {...textareaStyles}
           value={value.requirements_technical || ''}
           onChange={(e) => handleChange('requirements_technical', e.target.value)}
           placeholder="Describe technical requirements"
@@ -106,8 +133,9 @@ export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
       </FormControl>
 
       <FormControl>
-        <FormLabel>Design Requirements</FormLabel>
+        <FormLabel {...labelStyles}>Design Requirements</FormLabel>
         <Textarea
+          {...textareaStyles}
           value={value.requirements_design || ''}
           onChange={(e) => handleChange('requirements_design', e.target.value)}
           placeholder="Describe design requirements"
@@ -115,27 +143,35 @@ export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
       </FormControl>
 
       <FormControl>
-        <FormLabel>Surfaces in Scope</FormLabel>
-        <Stack spacing={2} mt={2}>
+        <FormLabel {...labelStyles}>Surfaces in Scope</FormLabel>
+        <Stack spacing={3} mt={2} align="flex-start">
           <Checkbox
+            size="md"
+            colorScheme="blue"
             isChecked={(value.surfaces_in_scope || []).includes('Mobile iOS')}
             onChange={(e) => handleSurfacesChange('Mobile iOS', e.target.checked)}
           >
             Mobile iOS
           </Checkbox>
           <Checkbox
+            size="md"
+            colorScheme="blue"
             isChecked={(value.surfaces_in_scope || []).includes('Mobile Android')}
             onChange={(e) => handleSurfacesChange('Mobile Android', e.target.checked)}
           >
             Mobile Android
           </Checkbox>
           <Checkbox
+            size="md"
+            colorScheme="blue"
             isChecked={(value.surfaces_in_scope || []).includes('Mobile Web')}
             onChange={(e) => handleSurfacesChange('Mobile Web', e.target.checked)}
           >
             Mobile Web
           </Checkbox>
           <Checkbox
+            size="md"
+            colorScheme="blue"
             isChecked={(value.surfaces_in_scope || []).includes('Web')}
             onChange={(e) => handleSurfacesChange('Web', e.target.checked)}
           >
@@ -145,14 +181,25 @@ export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
       </FormControl>
 
       <FormControl>
-        <FormLabel>New or Existing</FormLabel>
-        <Select
-          value={value.new_or_existing || 'existing'}
-          onChange={(e) => handleChange('new_or_existing', e.target.value as 'new' | 'existing')}
-        >
-          <option value="new">New</option>
-          <option value="existing">Existing</option>
-        </Select>
+        <FormLabel {...labelStyles}>New or Existing</FormLabel>
+        <Stack spacing={3} mt={2} align="flex-start">
+          <Checkbox
+            size="md"
+            colorScheme="blue"
+            isChecked={value.new_or_existing === 'new'}
+            onChange={() => handleNewOrExistingChange('new')}
+          >
+            New
+          </Checkbox>
+          <Checkbox
+            size="md"
+            colorScheme="blue"
+            isChecked={value.new_or_existing === 'existing'}
+            onChange={() => handleNewOrExistingChange('existing')}
+          >
+            Existing
+          </Checkbox>
+        </Stack>
       </FormControl>
     </Stack>
   )

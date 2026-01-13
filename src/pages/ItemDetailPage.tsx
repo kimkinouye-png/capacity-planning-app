@@ -562,8 +562,8 @@ function ItemDetailPage() {
                 </TabPanel>
 
                 {/* Product Design Inputs Tab */}
-                <TabPanel>
-                  <Text fontSize="sm" color="gray.600" mb={4}>
+                <TabPanel px={0} pt={6}>
+                  <Text fontSize="sm" color="gray.600" mb={6}>
                     Filled by the product designer to describe UX complexity factors, patterns, and
                     design considerations.
                   </Text>
@@ -575,11 +575,33 @@ function ItemDetailPage() {
                       </Text>
                     </Box>
                   )}
+                  
+                  {/* Footer */}
+                  <Box mt={8} pt={6} borderTop="1px" borderColor="gray.200">
+                    <Stack spacing={4} align="center">
+                      <Text fontSize="sm" color="#6B7280" textAlign="center">
+                        Changes are saved automatically
+                      </Text>
+                      <Button
+                        variant="outline"
+                        bg="white"
+                        borderColor="gray.300"
+                        color="gray.700"
+                        onClick={() => navigate(`/sessions/${sessionId}/items`)}
+                        _hover={{
+                          bg: 'gray.50',
+                          borderColor: 'gray.400',
+                        }}
+                      >
+                        Back to roadmap
+                      </Button>
+                    </Stack>
+                  </Box>
                 </TabPanel>
 
                 {/* Content Design Inputs Tab */}
-                <TabPanel>
-                  <Text fontSize="sm" color="gray.600" mb={4}>
+                <TabPanel px={0} pt={6}>
+                  <Text fontSize="sm" color="gray.600" mb={6}>
                     Filled by the content designer to describe content requirements, compliance needs,
                     and guidance complexity.
                   </Text>
@@ -591,6 +613,28 @@ function ItemDetailPage() {
                       </Text>
                     </Box>
                   )}
+                  
+                  {/* Footer */}
+                  <Box mt={8} pt={6} borderTop="1px" borderColor="gray.200">
+                    <Stack spacing={4} align="center">
+                      <Text fontSize="sm" color="#6B7280" textAlign="center">
+                        Changes are saved automatically
+                      </Text>
+                      <Button
+                        variant="outline"
+                        bg="white"
+                        borderColor="gray.300"
+                        color="gray.700"
+                        onClick={() => navigate(`/sessions/${sessionId}/items`)}
+                        _hover={{
+                          bg: 'gray.50',
+                          borderColor: 'gray.400',
+                        }}
+                      >
+                        Back to roadmap
+                      </Button>
+                    </Stack>
+                  </Box>
                 </TabPanel>
               </TabPanels>
             </Tabs>

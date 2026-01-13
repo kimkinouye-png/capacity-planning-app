@@ -1,4 +1,4 @@
-import { Box, Stack, Link as ChakraLink, Heading, Text, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, Button, useDisclosure } from '@chakra-ui/react'
+import { Box, Stack, Link as ChakraLink, Heading, Text, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, Button, useDisclosure, HStack, Flex } from '@chakra-ui/react'
 import { Routes, Route, Link } from 'react-router-dom'
 import { useEffect, useRef } from 'react'
 import SessionsListPage from './pages/SessionsListPage'
@@ -64,25 +64,32 @@ function App() {
 
   return (
     <Box minH="100vh" bg="white">
-      {/* Header */}
+      {/* Global Header */}
       <Box as="header" borderBottom="1px" borderColor="gray.200" bg="white">
         <Box maxW="1200px" mx="auto" px={6} py={6}>
-          <Stack spacing={2} mb={4}>
-            <Heading size="lg" fontWeight="bold">
-              Capacity Planning
-            </Heading>
-            <Text fontSize="sm" color="gray.600">
-              Manage team capacity across quarterly planning cycles
-            </Text>
-          </Stack>
-          <Stack direction="row" spacing={4}>
-            <ChakraLink as={Link} to="/" color="blue.500" _hover={{ textDecoration: 'underline' }}>
-              Home
-            </ChakraLink>
-            <ChakraLink as={Link} to="/quarterly-capacity" color="blue.500" _hover={{ textDecoration: 'underline' }}>
-              Quarterly Capacity
-            </ChakraLink>
-          </Stack>
+          <Flex direction="row" justify="space-between" align="flex-start">
+            {/* Left side: Title and subtitle */}
+            <Stack spacing={2} flex="1">
+              <Heading size="lg" fontWeight="bold">
+                Capacity Planning
+              </Heading>
+              <Text fontSize="sm" color="gray.600">
+                Manage team capacity across quarterly planning cycles
+              </Text>
+            </Stack>
+            
+            {/* Right side: Navigation links */}
+            <HStack spacing={4} align="center" fontSize="sm">
+              <ChakraLink 
+                as={Link} 
+                to="/quarterly-capacity" 
+                color="#6B7280" 
+                _hover={{ color: '#3B82F6', textDecoration: 'underline' }}
+              >
+                Quarterly Capacity
+              </ChakraLink>
+            </HStack>
+          </Flex>
         </Box>
       </Box>
       
