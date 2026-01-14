@@ -332,11 +332,11 @@ function SessionSummaryPage() {
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={8}>
             {/* UX Design Capacity Card */}
             <Box
-              bg="#F0FDF4"
+              bg="gray.50"
               borderRadius="md"
               p={6}
               border="1px solid"
-              borderColor={capacityMetrics.ux.surplus >= 0 ? 'green.200' : 'red.200'}
+              borderColor="gray.200"
             >
               <Heading size="sm" mb={4} fontWeight="bold">
                 UX Design Capacity
@@ -370,7 +370,7 @@ function SessionSummaryPage() {
                   mt={4}
                   pt={4}
                   borderTop="1px solid"
-                  borderColor={capacityMetrics.ux.surplus >= 0 ? 'green.300' : 'red.300'}
+                  borderColor="gray.200"
                 >
                   <HStack spacing={2} mb={1}>
                     <Text fontSize="20px" color={capacityMetrics.ux.surplus >= 0 ? '#10B981' : '#EF4444'}>
@@ -394,11 +394,11 @@ function SessionSummaryPage() {
 
             {/* Content Design Capacity Card */}
             <Box
-              bg="#F0FDF4"
+              bg="gray.50"
               borderRadius="md"
               p={6}
               border="1px solid"
-              borderColor={capacityMetrics.content.surplus >= 0 ? 'green.200' : 'red.200'}
+              borderColor="gray.200"
             >
               <Heading size="sm" mb={4} fontWeight="bold">
                 Content Design Capacity
@@ -432,7 +432,7 @@ function SessionSummaryPage() {
                   mt={4}
                   pt={4}
                   borderTop="1px solid"
-                  borderColor={capacityMetrics.content.surplus >= 0 ? 'green.300' : 'red.300'}
+                  borderColor="gray.200"
                 >
                   <HStack spacing={2} mb={1}>
                     <Text fontSize="20px" color={capacityMetrics.content.surplus >= 0 ? '#10B981' : '#EF4444'}>
@@ -484,21 +484,21 @@ function SessionSummaryPage() {
                 <Table variant="simple">
                   <Thead>
                     <Tr>
-                      <Th>Key</Th>
-                      <Th>Name</Th>
-                      <Th>Priority</Th>
-                      <Th>Status</Th>
-                      <Th bg="blue.50" borderLeft="2px solid" borderColor="blue.200">
+                      <Th bg="gray.50">Key</Th>
+                      <Th bg="gray.50">Name</Th>
+                      <Th bg="gray.50">Priority</Th>
+                      <Th bg="gray.50">Status</Th>
+                      <Th bg="gray.50" borderLeft="1px solid" borderColor="gray.200">
                         UX Size
                       </Th>
-                      <Th bg="blue.50">UX Focus Weeks</Th>
-                      <Th bg="blue.50">UX Sprints</Th>
-                      <Th bg="green.50" borderLeft="2px solid" borderColor="green.200">
+                      <Th bg="gray.50">UX Focus Weeks</Th>
+                      <Th bg="gray.50">UX Sprints</Th>
+                      <Th bg="gray.50" borderLeft="1px solid" borderColor="gray.200">
                         Content Size
                       </Th>
-                      <Th bg="green.50">Content Focus Weeks</Th>
-                      <Th bg="green.50">Content Sprints</Th>
-                      <Th>Actions</Th>
+                      <Th bg="gray.50">Content Focus Weeks</Th>
+                      <Th bg="gray.50">Content Sprints</Th>
+                      <Th bg="gray.50">Actions</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -541,7 +541,7 @@ function SessionSummaryPage() {
                               {formatStatus(item.status)}
                             </Badge>
                           </Td>
-                          <Td bg="blue.50" borderLeft="2px solid" borderColor="blue.200">
+                          <Td borderLeft="1px solid" borderColor="gray.200">
                             {item.uxSizeBand ? (
                               <Text
                                 fontWeight={600}
@@ -554,15 +554,15 @@ function SessionSummaryPage() {
                               <Text color="gray.400">—</Text>
                             )}
                           </Td>
-                          <Td bg="blue.50">
+                          <Td>
                             {item.uxFocusWeeks ? item.uxFocusWeeks.toFixed(1) : '—'}
                           </Td>
-                          <Td bg="blue.50">
+                          <Td>
                             {item.uxFocusWeeks
                               ? formatSprintEstimate(uxSprintEstimate)
                               : '—'}
                           </Td>
-                          <Td bg="green.50" borderLeft="2px solid" borderColor="green.200">
+                          <Td borderLeft="1px solid" borderColor="gray.200">
                             {item.contentSizeBand ? (
                               <Text
                                 fontWeight={600}
@@ -575,12 +575,12 @@ function SessionSummaryPage() {
                               <Text color="gray.400">—</Text>
                             )}
                           </Td>
-                          <Td bg="green.50">
+                          <Td>
                             {item.contentFocusWeeks
                               ? item.contentFocusWeeks.toFixed(1)
                               : '—'}
                           </Td>
-                          <Td bg="green.50">
+                          <Td>
                             {item.contentFocusWeeks
                               ? formatSprintEstimate(contentSprintEstimate)
                               : '—'}
