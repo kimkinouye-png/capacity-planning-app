@@ -34,7 +34,7 @@ import InlineEditableText from '../components/InlineEditableText'
 
 function HomePage() {
   const navigate = useNavigate()
-  const { sessions, commitSession, deleteSession, updateSession } = usePlanningSessions()
+  const { sessions, commitSession, uncommitSession, deleteSession, updateSession } = usePlanningSessions()
   const { getItemsForSession } = useRoadmapItems()
   const { activity } = useActivity()
   const { isOpen, onOpen, onClose } = useDisclosure()
@@ -464,16 +464,27 @@ function HomePage() {
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   if (session.id && itemCount > 0) {
-                                    commitSession(session.id, itemCount)
-                                    
-                                    // Show toast notification
-                                    toast({
-                                      title: session.status === 'committed' ? 'Scenario uncommitted' : 'Scenario committed',
-                                      description: `${session.name} has been ${session.status === 'committed' ? 'uncommitted' : 'set as the committed plan'}.`,
-                                      status: 'success',
-                                      duration: 3000,
-                                      isClosable: true,
-                                    })
+                                    if (session.status === 'committed') {
+                                      // Uncommit if already committed
+                                      uncommitSession(session.id)
+                                      toast({
+                                        title: 'Scenario uncommitted',
+                                        description: `${session.name} has been uncommitted.`,
+                                        status: 'success',
+                                        duration: 3000,
+                                        isClosable: true,
+                                      })
+                                    } else {
+                                      // Commit if not committed
+                                      commitSession(session.id, itemCount)
+                                      toast({
+                                        title: 'Scenario committed',
+                                        description: `${session.name} has been set as the committed plan.`,
+                                        status: 'success',
+                                        duration: 3000,
+                                        isClosable: true,
+                                      })
+                                    }
                                     
                                     // Highlight the card briefly
                                     setHighlightedCardId(session.id)

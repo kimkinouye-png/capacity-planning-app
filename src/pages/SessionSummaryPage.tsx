@@ -53,7 +53,7 @@ function SessionSummaryPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const toast = useToast()
-  const { getSessionById, commitSession, updateSession } = usePlanningSessions()
+  const { getSessionById, commitSession, uncommitSession, updateSession } = usePlanningSessions()
   const { getItemsForSession, removeItem, createItem } = useRoadmapItems()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isCreateModalOpen, onOpen: onCreateModalOpen, onClose: onCreateModalClose } = useDisclosure()
@@ -286,19 +286,31 @@ function SessionSummaryPage() {
           </Box>
           <HStack spacing={3}>
             {session.status === 'committed' ? (
-              <Badge
-                bg="rgba(16, 185, 129, 0.1)"
-                color="#10b981"
-                border="1px solid"
-                borderColor="rgba(16, 185, 129, 0.5)"
-                px={4}
-                py={2}
-                borderRadius="full"
-                fontSize="sm"
-                fontWeight="600"
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => {
+                  if (session.id) {
+                    uncommitSession(session.id)
+                    toast({
+                      title: 'Scenario uncommitted',
+                      description: `${session.name} has been uncommitted.`,
+                      status: 'success',
+                      duration: 3000,
+                      isClosable: true,
+                    })
+                  }
+                }}
+                borderColor="rgba(255, 255, 255, 0.1)"
+                color="gray.300"
+                _hover={{
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                  color: 'white',
+                  bg: 'rgba(255, 255, 255, 0.05)',
+                }}
               >
-                Committed
-              </Badge>
+                Uncommit
+              </Button>
             ) : (
               <Button
                 colorScheme="cyan"

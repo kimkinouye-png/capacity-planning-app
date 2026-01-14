@@ -7,6 +7,7 @@ interface PlanningSessionsContextType {
   createSession: (session: Omit<PlanningSession, 'id' | 'created_at' | 'updated_at' | 'status' | 'isCommitted'>) => PlanningSession
   updateSession: (id: string, updates: Partial<PlanningSession>) => void
   commitSession: (id: string, itemCount?: number) => void
+  uncommitSession: (id: string) => void
   deleteSession: (id: string) => void
   getSessionById: (id: string) => PlanningSession | undefined
 }
@@ -172,6 +173,34 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
     })
   }, [logActivity])
 
+  const uncommitSession = useCallback((id: string) => {
+    setSessions((prev) => {
+      const sessionToUncommit = prev.find((s) => s.id === id)
+      if (!sessionToUncommit) return prev
+
+      // Log activity before updating
+      logActivity({
+        type: 'scenario_committed', // Reusing the same type for now
+        scenarioId: sessionToUncommit.id,
+        scenarioName: sessionToUncommit.name,
+        description: `Uncommitted scenario '${sessionToUncommit.name}'.`,
+      })
+
+      return prev.map((session) => {
+        if (session.id === id) {
+          // Uncommit this session
+          return {
+            ...session,
+            status: 'draft',
+            isCommitted: false,
+            updated_at: new Date().toISOString(),
+          }
+        }
+        return session
+      })
+    })
+  }, [logActivity])
+
   const getSessionById = useCallback(
     (id: string): PlanningSession | undefined => {
       return sessions.find((session) => session.id === id)
@@ -196,7 +225,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
   }, [sessions, logActivity])
 
   return (
-    <PlanningSessionsContext.Provider value={{ sessions, createSession, updateSession, commitSession, deleteSession, getSessionById }}>
+    <PlanningSessionsContext.Provider value={{ sessions, createSession, updateSession, commitSession, uncommitSession, deleteSession, getSessionById }}>
       {children}
     </PlanningSessionsContext.Provider>
   )
