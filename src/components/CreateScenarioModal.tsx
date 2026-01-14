@@ -68,29 +68,65 @@ export default function CreateScenarioModal({ isOpen, onClose }: CreateScenarioM
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <ModalOverlay />
-      <ModalContent>
+      <ModalOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)" />
+      <ModalContent
+        bg="#141419"
+        border="1px solid"
+        borderColor="rgba(255, 255, 255, 0.1)"
+        boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)"
+      >
         <form onSubmit={handleSubmit}>
-          <ModalHeader>Create New Scenario</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
+          <ModalHeader
+            fontSize="lg"
+            fontWeight="bold"
+            color="white"
+            borderBottom="1px solid"
+            borderColor="rgba(255, 255, 255, 0.1)"
+            px={6}
+            py={4}
+          >
+            Create New Scenario
+          </ModalHeader>
+          <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
+          <ModalBody px={6} py={4}>
             <Stack spacing={4}>
               <FormControl isRequired>
-                <FormLabel>Name</FormLabel>
+                <FormLabel color="gray.300">Name</FormLabel>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Payments Q2 2026"
+                  bg="#1a1a20"
+                  borderColor="rgba(255, 255, 255, 0.1)"
+                  color="white"
+                  _placeholder={{ color: 'gray.500' }}
+                  _focus={{
+                    borderColor: '#00d9ff',
+                    boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
+                  }}
                 />
               </FormControl>
 
               <FormControl isRequired>
-                <FormLabel>Planning Period</FormLabel>
+                <FormLabel color="gray.300">Planning Period</FormLabel>
                 <Select
                   value={formData.planningPeriod}
                   onChange={(e) =>
                     setFormData({ ...formData, planningPeriod: e.target.value as PlanningPeriod })
                   }
+                  bg="#1a1a20"
+                  borderColor="rgba(255, 255, 255, 0.1)"
+                  color="white"
+                  _focus={{
+                    borderColor: '#00d9ff',
+                    boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
+                  }}
+                  sx={{
+                    '& option': {
+                      bg: '#1a1a20',
+                      color: 'white',
+                    },
+                  }}
                 >
                   {QUARTER_OPTIONS.map((period) => (
                     <option key={period} value={period}>
@@ -98,16 +134,16 @@ export default function CreateScenarioModal({ isOpen, onClose }: CreateScenarioM
                     </option>
                   ))}
                 </Select>
-                <Text fontSize="sm" color="gray.500" mt={1}>
+                <Text fontSize="sm" color="gray.400" mt={1}>
                   {getWeeksForPeriod(formData.planningPeriod)} weeks per period
                 </Text>
-                <Text fontSize="sm" color="gray.500" mt={1}>
+                <Text fontSize="sm" color="gray.400" mt={1}>
                   Assumes {SPRINT_LENGTH_WEEKS}-week sprints (about {Math.floor(getWeeksForPeriod(formData.planningPeriod) / SPRINT_LENGTH_WEEKS)} sprints per quarter).
                 </Text>
               </FormControl>
 
               <FormControl isRequired>
-                <FormLabel>UX Designers</FormLabel>
+                <FormLabel color="gray.300">UX Designers</FormLabel>
                 <NumberInput
                   value={formData.ux_designers}
                   onChange={(_, valueAsNumber) =>
@@ -115,16 +151,32 @@ export default function CreateScenarioModal({ isOpen, onClose }: CreateScenarioM
                   }
                   min={0}
                 >
-                  <NumberInputField />
+                  <NumberInputField
+                    bg="#1a1a20"
+                    borderColor="rgba(255, 255, 255, 0.1)"
+                    color="white"
+                    _focus={{
+                      borderColor: '#00d9ff',
+                      boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
+                    }}
+                  />
                   <NumberInputStepper>
-                    <NumberIncrementStepper />
-                    <NumberDecrementStepper />
+                    <NumberIncrementStepper
+                      borderColor="rgba(255, 255, 255, 0.1)"
+                      color="gray.400"
+                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
+                    />
+                    <NumberDecrementStepper
+                      borderColor="rgba(255, 255, 255, 0.1)"
+                      color="gray.400"
+                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
+                    />
                   </NumberInputStepper>
                 </NumberInput>
               </FormControl>
 
               <FormControl isRequired>
-                <FormLabel>Content Designers</FormLabel>
+                <FormLabel color="gray.300">Content Designers</FormLabel>
                 <NumberInput
                   value={formData.content_designers}
                   onChange={(_, valueAsNumber) =>
@@ -132,21 +184,42 @@ export default function CreateScenarioModal({ isOpen, onClose }: CreateScenarioM
                   }
                   min={0}
                 >
-                  <NumberInputField />
+                  <NumberInputField
+                    bg="#1a1a20"
+                    borderColor="rgba(255, 255, 255, 0.1)"
+                    color="white"
+                    _focus={{
+                      borderColor: '#00d9ff',
+                      boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
+                    }}
+                  />
                   <NumberInputStepper>
-                    <NumberIncrementStepper />
-                    <NumberDecrementStepper />
+                    <NumberIncrementStepper
+                      borderColor="rgba(255, 255, 255, 0.1)"
+                      color="gray.400"
+                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
+                    />
+                    <NumberDecrementStepper
+                      borderColor="rgba(255, 255, 255, 0.1)"
+                      color="gray.400"
+                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
+                    />
                   </NumberInputStepper>
                 </NumberInput>
               </FormControl>
             </Stack>
           </ModalBody>
 
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onClose}>
+          <ModalFooter
+            borderTop="1px solid"
+            borderColor="rgba(255, 255, 255, 0.1)"
+            px={6}
+            py={4}
+          >
+            <Button variant="outline" mr={3} onClick={onClose}>
               Cancel
             </Button>
-            <Button colorScheme="blue" type="submit">
+            <Button colorScheme="cyan" type="submit">
               Create Scenario
             </Button>
           </ModalFooter>
