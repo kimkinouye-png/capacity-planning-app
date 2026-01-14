@@ -2,7 +2,6 @@ import {
   Box,
   Heading,
   Text,
-  Badge,
   SimpleGrid,
   Card,
   CardBody,
@@ -10,12 +9,14 @@ import {
   VStack,
   IconButton,
   Divider,
+  Tooltip,
 } from '@chakra-ui/react'
 import { ChevronLeftIcon } from '@chakra-ui/icons'
-import { useMemo } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
+import { useToast } from '@chakra-ui/react'
 import { getWeeksForPeriod } from '../config/quarterConfig'
 import type { PlanningPeriod, PlanningSession } from '../domain/types'
 
@@ -34,8 +35,11 @@ interface ScenarioMetrics {
 
 function QuarterlyCapacityPage() {
   const navigate = useNavigate()
-  const { sessions } = usePlanningSessions()
+  const { sessions, commitSession } = usePlanningSessions()
   const { getItemsForSession } = useRoadmapItems()
+  const toast = useToast()
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const [highlightedCardId, setHighlightedCardId] = useState<string | null>(null)
 
   // Calculate metrics for each scenario
   const scenarioMetrics = useMemo((): ScenarioMetrics[] => {
@@ -95,7 +99,7 @@ function QuarterlyCapacityPage() {
     )
   }, [scenarioMetrics])
 
-  // Group scenarios by quarter
+  // Group scenarios by quarter and sort within each quarter
   const scenariosByQuarter = useMemo(() => {
     const grouped: Record<PlanningPeriod, ScenarioMetrics[]> = {
       '2026-Q1': [],
@@ -109,6 +113,22 @@ function QuarterlyCapacityPage() {
       if (quarter && grouped[quarter]) {
         grouped[quarter].push(metrics)
       }
+    })
+
+    // Sort scenarios within each quarter: committed first, then by title
+    Object.keys(grouped).forEach((quarter) => {
+      grouped[quarter as PlanningPeriod].sort((a, b) => {
+        // First: sort by status (committed first)
+        const statusOrderA = a.session.status === 'committed' ? 0 : 1
+        const statusOrderB = b.session.status === 'committed' ? 0 : 1
+        const statusDiff = statusOrderA - statusOrderB
+        if (statusDiff !== 0) return statusDiff
+
+        // Second: sort by title alphabetically (case-insensitive)
+        const nameA = (a.session.name || '').toLowerCase()
+        const nameB = (b.session.name || '').toLowerCase()
+        return nameA.localeCompare(nameB)
+      })
     })
 
     return grouped
@@ -271,34 +291,138 @@ function QuarterlyCapacityPage() {
                       return (
                         <Card
                           key={metrics.session.id}
-                          bg="white"
-                          border="1px solid"
-                          borderColor="gray.200"
+                          ref={(el) => {
+                            cardRefs.current[metrics.session.id] = el
+                          }}
+                          bg={
+                            highlightedCardId === metrics.session.id 
+                              ? 'blue.50' 
+                              : metrics.session.status === 'committed' 
+                                ? 'green.50' 
+                                : 'white'
+                          }
+                          border={highlightedCardId === metrics.session.id ? '2px solid' : '1px solid'}
+                          borderColor={
+                            highlightedCardId === metrics.session.id 
+                              ? 'blue.300' 
+                              : metrics.session.status === 'committed' 
+                                ? 'green.200' 
+                                : 'gray.200'
+                          }
                           boxShadow="sm"
                           cursor="pointer"
                           _hover={{
                             boxShadow: 'md',
-                            borderColor: 'blue.300',
+                            borderColor: metrics.session.status === 'committed' ? 'green.300' : 'blue.300',
                           }}
                           onClick={() => navigate(`/sessions/${metrics.session.id}`)}
                         >
                           <CardBody p={5}>
                             {/* Scenario Header */}
-                            <HStack justify="space-between" align="start" mb={3}>
-                              <Heading size="sm" fontWeight="bold" flex={1}>
-                                {metrics.session.name}
-                              </Heading>
-                              <Badge
-                                bg={isWithinCapacity ? '#D1FAE5' : '#FEE2E2'}
-                                color={isWithinCapacity ? '#065F46' : '#991B1B'}
-                                borderRadius="full"
-                                px={3}
-                                py={1}
-                                fontSize="11px"
-                                fontWeight="600"
-                              >
-                                {isWithinCapacity ? 'Within capacity' : 'Over capacity'}
-                              </Badge>
+                            <HStack justify="space-between" align="center" mb={3}>
+                              <HStack spacing={3} align="center" flex={1}>
+                                <Heading size="sm" fontWeight="bold">
+                                  {metrics.session.name}
+                                </Heading>
+                                <HStack spacing={1.5} align="center">
+                                  <Box
+                                    w={2}
+                                    h={2}
+                                    borderRadius="full"
+                                    bg={isWithinCapacity ? 'green.500' : 'orange.500'}
+                                  />
+                                  <Text fontSize="sm" color="gray.600" fontWeight="medium">
+                                    {isWithinCapacity ? 'Within' : 'Over'}
+                                  </Text>
+                                </HStack>
+                              </HStack>
+                              <HStack spacing={2} align="center">
+                                {metrics.itemCount === 0 && metrics.session.status === 'draft' ? (
+                                  <Tooltip
+                                    label="Add at least one roadmap item before committing this scenario."
+                                    placement="top"
+                                    hasArrow
+                                  >
+                                    <HStack
+                                      spacing={2}
+                                      align="center"
+                                      cursor="not-allowed"
+                                      opacity={0.5}
+                                    >
+                                      <Box
+                                        w={4}
+                                        h={4}
+                                        borderRadius="full"
+                                        border="2px solid"
+                                        borderColor="gray.300"
+                                        bg="transparent"
+                                        display="flex"
+                                        alignItems="center"
+                                        justifyContent="center"
+                                      />
+                                      <Text fontSize="sm" color="gray.500" fontWeight="medium">
+                                        Commit as plan
+                                      </Text>
+                                    </HStack>
+                                  </Tooltip>
+                                ) : (
+                                  <HStack
+                                    spacing={2}
+                                    align="center"
+                                    cursor="pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      if (metrics.session.id && metrics.itemCount > 0) {
+                                        commitSession(metrics.session.id, metrics.itemCount)
+                                        
+                                        // Show toast notification
+                                        toast({
+                                          title: metrics.session.status === 'committed' ? 'Scenario uncommitted' : 'Scenario committed',
+                                          description: `${metrics.session.name} has been ${metrics.session.status === 'committed' ? 'uncommitted' : 'set as the committed plan'}.`,
+                                          status: 'success',
+                                          duration: 3000,
+                                          isClosable: true,
+                                        })
+                                        
+                                        // Highlight the card briefly
+                                        setHighlightedCardId(metrics.session.id)
+                                        setTimeout(() => setHighlightedCardId(null), 2000)
+                                        
+                                        // Scroll card into view if needed
+                                        const cardElement = cardRefs.current[metrics.session.id]
+                                        if (cardElement) {
+                                          cardElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+                                        }
+                                      }
+                                    }}
+                                    _hover={{ opacity: 0.8 }}
+                                  >
+                                    <Box
+                                      w={4}
+                                      h={4}
+                                      borderRadius="full"
+                                      border="2px solid"
+                                      borderColor={metrics.session.status === 'committed' ? 'blue.500' : 'gray.300'}
+                                      bg={metrics.session.status === 'committed' ? 'blue.500' : 'transparent'}
+                                      display="flex"
+                                      alignItems="center"
+                                      justifyContent="center"
+                                    >
+                                      {metrics.session.status === 'committed' && (
+                                        <Box
+                                          w={2}
+                                          h={2}
+                                          borderRadius="full"
+                                          bg="white"
+                                        />
+                                      )}
+                                    </Box>
+                                    <Text fontSize="sm" color="gray.700" fontWeight="medium">
+                                      {metrics.session.status === 'committed' ? 'Committed plan' : 'Commit as plan'}
+                                    </Text>
+                                  </HStack>
+                                )}
+                              </HStack>
                             </HStack>
 
                             {/* Meta Line */}

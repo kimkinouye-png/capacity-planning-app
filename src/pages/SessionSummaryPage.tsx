@@ -47,12 +47,13 @@ import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
 import { getWeeksForPeriod } from '../config/quarterConfig'
 import { estimateSprints, formatSprintEstimate } from '../config/sprints'
+import InlineEditableText from '../components/InlineEditableText'
 
 function SessionSummaryPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const toast = useToast()
-  const { getSessionById } = usePlanningSessions()
+  const { getSessionById, commitSession, updateSession } = usePlanningSessions()
   const { getItemsForSession, removeItem, createItem } = useRoadmapItems()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isCreateModalOpen, onOpen: onCreateModalOpen, onClose: onCreateModalClose } = useDisclosure()
@@ -245,18 +246,86 @@ function SessionSummaryPage() {
               Home
             </Link>
             <Text color="gray.500"> &gt; </Text>
-            <Text color="gray.600">
-              {session.name} - Summary
+            <Link to={`/sessions/${id}`} style={{ color: '#3B82F6' }}>
+              {session.name}
+            </Link>
+            <Text color="gray.500"> &gt; </Text>
+            <Text color="gray.600" fontWeight="medium">
+              Scenario Summary
             </Text>
           </HStack>
         </HStack>
 
-        <Heading size="xl" mb={2} fontWeight="bold">
-          {session.name}
-        </Heading>
-        <Text fontSize="14px" color="gray.600" mb={8}>
-          {formatQuarter(session.planning_period)} • {session.ux_designers} UX Designers • {session.content_designers} Content Designers
-        </Text>
+        <HStack justify="space-between" align="start" mb={4}>
+          <Box>
+            <Box mb={2}>
+              <InlineEditableText
+                value={session.name}
+                onChange={(newName) => {
+                  if (session.id && newName.trim()) {
+                    updateSession(session.id, { name: newName.trim() })
+                    toast({
+                      title: 'Scenario renamed',
+                      description: `Scenario name updated to "${newName.trim()}".`,
+                      status: 'success',
+                      duration: 2000,
+                      isClosable: true,
+                    })
+                  }
+                }}
+                ariaLabel="Scenario name"
+                fontSize="xl"
+                fontWeight="bold"
+              />
+            </Box>
+            <Text fontSize="14px" color="gray.600">
+              {formatQuarter(session.planning_period)} • {session.ux_designers} UX Designers • {session.content_designers} Content Designers
+            </Text>
+          </Box>
+          <HStack spacing={3}>
+            {session.status === 'committed' ? (
+              <Badge
+                bg="#D1FAE5"
+                color="#065F46"
+                px={4}
+                py={2}
+                borderRadius="full"
+                fontSize="sm"
+                fontWeight="600"
+              >
+                Committed
+              </Badge>
+            ) : (
+              <Button
+                colorScheme="blue"
+                size="md"
+                isDisabled={items.length === 0}
+                onClick={() => {
+                  if (session.id && items.length > 0) {
+                    commitSession(session.id, items.length)
+                    toast({
+                      title: 'Scenario committed',
+                      description: `${session.name} is now the committed plan for ${formatQuarter(session.planning_period)}.`,
+                      status: 'success',
+                      duration: 3000,
+                      isClosable: true,
+                    })
+                  } else if (items.length === 0) {
+                    toast({
+                      title: 'Cannot commit empty scenario',
+                      description: 'Add at least one roadmap item before committing this scenario.',
+                      status: 'warning',
+                      duration: 3000,
+                      isClosable: true,
+                    })
+                  }
+                }}
+              >
+                Commit this scenario
+              </Button>
+            )}
+          </HStack>
+        </HStack>
 
         {/* Capacity Overview Cards */}
         {capacityMetrics && (

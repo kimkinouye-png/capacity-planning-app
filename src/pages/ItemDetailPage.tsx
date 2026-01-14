@@ -28,6 +28,7 @@ import CDInputsForm from '../components/CDInputsForm'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
 import { useItemInputs } from '../context/ItemInputsContext'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
+import { useActivity } from '../context/ActivityContext'
 import { calculateEffort, type FactorScores } from '../config/effortModel'
 import {
   demoItems,
@@ -42,6 +43,7 @@ function ItemDetailPage() {
   const { getItemsForSession, updateItem } = useRoadmapItems()
   const { getInputsForItem, setInputsForItem } = useItemInputs()
   const { getSessionById } = usePlanningSessions()
+  const { logActivity } = useActivity()
 
   // Load the RoadmapItem - reload when items change (e.g., after updateItem)
   const items = useMemo(() => {
@@ -325,12 +327,24 @@ function ItemDetailPage() {
     }
 
     const uxEffort = calculateEffort('ux', uxScores)
+    const session = sessionId ? getSessionById(sessionId) : undefined
+    const sessionName = session?.name || 'Unknown scenario'
+    const itemName = item?.name || 'Unknown item'
+    
     updateItem(itemId, {
       uxSizeBand: uxEffort.sizeBand,
       uxFocusWeeks: uxEffort.focusWeeks,
       uxWorkWeeks: uxEffort.workWeeks,
     })
-  }, [itemId, sessionId, pdInputs.productRisk, pdInputs.problemAmbiguity, pdInputs.discoveryDepth, updateItem])
+    
+    // Log effort update
+    logActivity({
+      type: 'effort_updated',
+      scenarioId: sessionId,
+      scenarioName: sessionName,
+      description: `Updated UX effort for '${itemName}' in scenario '${sessionName}' (${uxEffort.sizeBand}, ${uxEffort.focusWeeks} focus weeks).`,
+    })
+  }, [itemId, sessionId, pdInputs.productRisk, pdInputs.problemAmbiguity, pdInputs.discoveryDepth, updateItem, logActivity, getSessionById, item?.name])
 
   // Calculate Content effort when Content factor scores change
   // Factor scores are stored per-item in cdInputs and default to 3 if not set
@@ -346,12 +360,24 @@ function ItemDetailPage() {
     }
 
     const contentEffort = calculateEffort('content', contentScores)
+    const session = sessionId ? getSessionById(sessionId) : undefined
+    const sessionName = session?.name || 'Unknown scenario'
+    const itemName = item?.name || 'Unknown item'
+    
     updateItem(itemId, {
       contentSizeBand: contentEffort.sizeBand,
       contentFocusWeeks: contentEffort.focusWeeks,
       contentWorkWeeks: contentEffort.workWeeks,
     })
-  }, [itemId, sessionId, cdInputs.contentSurfaceArea, cdInputs.localizationScope, cdInputs.regulatoryBrandRisk, cdInputs.legalComplianceDependency, updateItem])
+    
+    // Log effort update
+    logActivity({
+      type: 'effort_updated',
+      scenarioId: sessionId,
+      scenarioName: sessionName,
+      description: `Updated Content effort for '${itemName}' in scenario '${sessionName}' (${contentEffort.sizeBand}, ${contentEffort.focusWeeks} focus weeks).`,
+    })
+  }, [itemId, sessionId, cdInputs.contentSurfaceArea, cdInputs.localizationScope, cdInputs.regulatoryBrandRisk, cdInputs.legalComplianceDependency, updateItem, logActivity, getSessionById, item?.name])
 
 
   // Handle missing itemId
@@ -420,11 +446,11 @@ function ItemDetailPage() {
         {/* Breadcrumb Navigation */}
         <HStack spacing={2} mb={6} align="center" fontSize="14px">
           <IconButton
-            aria-label="Back to roadmap items"
+            aria-label="Back to scenario summary"
             icon={<ChevronLeftIcon />}
             variant="ghost"
             size="sm"
-            onClick={() => navigate(`/sessions/${sessionId}/items`)}
+            onClick={() => navigate(`/sessions/${sessionId}`)}
             color="gray.700"
             _hover={{ bg: 'gray.100' }}
           />
@@ -434,7 +460,7 @@ function ItemDetailPage() {
           <Text color="gray.400"> &gt; </Text>
           <ChakraLink 
             as={Link} 
-            to={`/sessions/${sessionId}/items`} 
+            to={`/sessions/${sessionId}`} 
             color="#3B82F6" 
             _hover={{ textDecoration: 'underline' }}
           >
@@ -549,13 +575,13 @@ function ItemDetailPage() {
                         bg="white"
                         borderColor="gray.300"
                         color="gray.700"
-                        onClick={() => navigate(`/sessions/${sessionId}/items`)}
+                        onClick={() => navigate(`/sessions/${sessionId}`)}
                         _hover={{
                           bg: 'gray.50',
                           borderColor: 'gray.400',
                         }}
                       >
-                        Back to roadmap
+                        View scenario summary
                       </Button>
                     </Stack>
                   </Box>
@@ -580,13 +606,13 @@ function ItemDetailPage() {
                         bg="white"
                         borderColor="gray.300"
                         color="gray.700"
-                        onClick={() => navigate(`/sessions/${sessionId}/items`)}
+                        onClick={() => navigate(`/sessions/${sessionId}`)}
                         _hover={{
                           bg: 'gray.50',
                           borderColor: 'gray.400',
                         }}
                       >
-                        Back to roadmap
+                        View scenario summary
                       </Button>
                     </Stack>
                   </Box>
@@ -611,13 +637,13 @@ function ItemDetailPage() {
                         bg="white"
                         borderColor="gray.300"
                         color="gray.700"
-                        onClick={() => navigate(`/sessions/${sessionId}/items`)}
+                        onClick={() => navigate(`/sessions/${sessionId}`)}
                         _hover={{
                           bg: 'gray.50',
                           borderColor: 'gray.400',
                         }}
                       >
-                        Back to roadmap
+                        View scenario summary
                       </Button>
                     </Stack>
                   </Box>

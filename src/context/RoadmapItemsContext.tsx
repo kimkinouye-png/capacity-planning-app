@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { RoadmapItem, PMIntake, ProductDesignInputs, ContentDesignInputs } from '../domain/types'
+import { useActivity } from './ActivityContext'
+import { usePlanningSessions } from './PlanningSessionsContext'
 
 interface ItemInputs {
   intake: PMIntake
@@ -81,6 +83,9 @@ function saveInputsToStorage(inputs: Record<string, ItemInputs>): void {
 }
 
 export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
+  const { logActivity } = useActivity()
+  const { getSessionById } = usePlanningSessions()
+  
   // Store items as a map: planning_session_id -> RoadmapItem[]
   const [itemsBySession, setItemsBySession] = useState<Record<string, RoadmapItem[]>>(() =>
     loadItemsFromStorage()
@@ -135,14 +140,35 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
   const updateItem = useCallback((itemId: string, updates: Partial<RoadmapItem>) => {
     setItemsBySession((prev) => {
       const updated: Record<string, RoadmapItem[]> = {}
-      for (const [sessionId, items] of Object.entries(prev)) {
-        updated[sessionId] = items.map((item) =>
-          item.id === itemId ? { ...item, ...updates } : item
-        )
+      let updatedItem: RoadmapItem | undefined
+      let sessionId: string | undefined
+      
+      for (const [sid, items] of Object.entries(prev)) {
+        updated[sid] = items.map((item) => {
+          if (item.id === itemId) {
+            updatedItem = { ...item, ...updates }
+            sessionId = sid
+            return updatedItem
+          }
+          return item
+        })
       }
+      
+      // Log activity if item was updated
+      if (updatedItem && sessionId) {
+        const session = getSessionById(sessionId)
+        const sessionName = session?.name || 'Unknown scenario'
+        logActivity({
+          type: 'roadmap_item_updated',
+          scenarioId: sessionId,
+          scenarioName: sessionName,
+          description: `Updated roadmap item '${updatedItem.name}' in scenario '${sessionName}'.`,
+        })
+      }
+      
       return updated
     })
-  }, [])
+  }, [logActivity, getSessionById])
 
   const removeItem = useCallback((sessionId: string, itemId: string) => {
     // Remove item from session's items array

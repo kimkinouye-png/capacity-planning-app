@@ -1,16 +1,19 @@
 import { Box, Stack, Link as ChakraLink, Heading, Text, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, Button, useDisclosure, HStack, Flex } from '@chakra-ui/react'
-import { Routes, Route, Link } from 'react-router-dom'
+import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import { useEffect, useRef } from 'react'
+import HomePage from './pages/HomePage'
 import SessionsListPage from './pages/SessionsListPage'
 import SessionSummaryPage from './pages/SessionSummaryPage'
 import SessionItemsPage from './pages/SessionItemsPage'
 import ItemDetailPage from './pages/ItemDetailPage'
 import QuarterlyCapacityPage from './pages/QuarterlyCapacityPage'
+import CommittedPlanPage from './pages/CommittedPlanPage'
 
 function App() {
   const toast = useToast()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const cancelRef = useRef<HTMLButtonElement>(null)
+  const location = useLocation()
 
   // Debug feature: Clear all localStorage data
   useEffect(() => {
@@ -70,9 +73,15 @@ function App() {
           <Flex direction="row" justify="space-between" align="flex-start">
             {/* Left side: Title and subtitle */}
             <Stack spacing={2} flex="1">
-              <Heading size="lg" fontWeight="bold">
-                Capacity Planning
-              </Heading>
+              <ChakraLink 
+                as={Link} 
+                to="/"
+                _hover={{ textDecoration: 'none' }}
+              >
+                <Heading size="lg" fontWeight="bold" color="gray.900" _hover={{ color: '#3B82F6' }}>
+                  Capacity Planning
+                </Heading>
+              </ChakraLink>
               <Text fontSize="sm" color="gray.600">
                 Manage team capacity across quarterly planning cycles
               </Text>
@@ -80,13 +89,45 @@ function App() {
             
             {/* Right side: Navigation links */}
             <HStack spacing={4} align="center" fontSize="sm">
-              <ChakraLink 
-                as={Link} 
-                to="/quarterly-capacity" 
-                color="#6B7280" 
+              <ChakraLink
+                as={Link}
+                to="/"
+                color={location.pathname === '/' ? '#3B82F6' : '#6B7280'}
+                fontWeight={location.pathname === '/' ? '600' : 'normal'}
+                textDecoration={location.pathname === '/' ? 'underline' : 'none'}
                 _hover={{ color: '#3B82F6', textDecoration: 'underline' }}
               >
-                Quarterly Capacity
+                Home
+              </ChakraLink>
+              <ChakraLink
+                as={Link}
+                to="/scenarios"
+                color={location.pathname === '/scenarios' ? '#3B82F6' : '#6B7280'}
+                fontWeight={location.pathname === '/scenarios' ? '600' : 'normal'}
+                textDecoration={location.pathname === '/scenarios' ? 'underline' : 'none'}
+                _hover={{ color: '#3B82F6', textDecoration: 'underline' }}
+              >
+                Scenarios
+              </ChakraLink>
+              <ChakraLink
+                as={Link}
+                to="/committed-plan"
+                color={location.pathname === '/committed-plan' ? '#3B82F6' : '#6B7280'}
+                fontWeight={location.pathname === '/committed-plan' ? '600' : 'normal'}
+                textDecoration={location.pathname === '/committed-plan' ? 'underline' : 'none'}
+                _hover={{ color: '#3B82F6', textDecoration: 'underline' }}
+              >
+                Committed Plan
+              </ChakraLink>
+              <ChakraLink
+                as={Link}
+                to="/guide"
+                color={location.pathname === '/guide' ? '#3B82F6' : '#6B7280'}
+                fontWeight={location.pathname === '/guide' ? '600' : 'normal'}
+                textDecoration={location.pathname === '/guide' ? 'underline' : 'none'}
+                _hover={{ color: '#3B82F6', textDecoration: 'underline' }}
+              >
+                Guide
               </ChakraLink>
             </HStack>
           </Flex>
@@ -96,7 +137,10 @@ function App() {
       {/* Main Content */}
       <Box as="main">
         <Routes>
-          <Route path="/" element={<SessionsListPage />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/scenarios" element={<SessionsListPage />} />
+          <Route path="/committed-plan" element={<CommittedPlanPage />} />
+          <Route path="/guide" element={<Box p={8}><Heading size="lg" mb={4}>Guide</Heading><Text color="gray.600">Guide content goes here.</Text></Box>} />
           <Route path="/quarterly-capacity" element={<QuarterlyCapacityPage />} />
           <Route path="/sessions/:id" element={<SessionSummaryPage />} />
           <Route path="/sessions/:id/items" element={<SessionItemsPage />} />

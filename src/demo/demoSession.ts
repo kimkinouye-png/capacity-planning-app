@@ -15,6 +15,8 @@ export const demoSession: PlanningSession = {
   sprint_length_weeks: 2,
   ux_designers: 3,
   content_designers: 2,
+  status: 'draft',
+  isCommitted: false,
   created_by: 'demo-user',
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
