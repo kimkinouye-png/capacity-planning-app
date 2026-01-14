@@ -469,8 +469,7 @@ function SessionSummaryPage() {
                 No roadmap items yet. Add items to see capacity calculations.
               </Text>
               <Button
-                as={Link}
-                to={`/sessions/${id}/items`}
+                onClick={onCreateModalOpen}
                 bg="black"
                 color="white"
                 _hover={{ bg: 'gray.800' }}
