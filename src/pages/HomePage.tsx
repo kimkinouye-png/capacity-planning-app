@@ -20,8 +20,9 @@ import {
   AlertDialogOverlay,
   useDisclosure,
   useToast,
+  SimpleGrid,
 } from '@chakra-ui/react'
-import { CalendarIcon, DeleteIcon } from '@chakra-ui/icons'
+import { CalendarIcon, DeleteIcon, ViewIcon, CheckCircleIcon, SettingsIcon } from '@chakra-ui/icons'
 import { useNavigate } from 'react-router-dom'
 import { useMemo, useRef, useState } from 'react'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
@@ -127,36 +128,154 @@ function HomePage() {
               </HStack>
             </VStack>
           ) : (
-            <VStack spacing={6} align="center" textAlign="center" py={8}>
-              <Box
-                w={24}
-                h={24}
-                borderRadius="full"
-                bg="#EFF6FF"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <Icon as={CalendarIcon} w={12} h={12} color="#3B82F6" />
+            <VStack spacing={12} align="stretch">
+              {/* Hero Section */}
+              <VStack spacing={4} align="center" textAlign="center" py={8}>
+                <Box
+                  w={24}
+                  h={24}
+                  borderRadius="full"
+                  bg="#EFF6FF"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                >
+                  <Icon as={CalendarIcon} w={12} h={12} color="#3B82F6" />
+                </Box>
+                <Heading size="xl" fontWeight="bold" color="gray.900">
+                  Welcome to Planning Assistant
+                </Heading>
+                <Text fontSize="lg" color="gray.600" maxW="700px" lineHeight="tall">
+                  Your intelligent companion for capacity planning and roadmap management. Make data-driven decisions with confidence using factor-based sizing and real-time capacity analysis.
+                </Text>
+              </VStack>
+
+              {/* Three Feature Cards */}
+              <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
+                <Card variant="outline" bg="white" borderColor="gray.200">
+                  <CardBody p={6}>
+                    <VStack spacing={3} align="start">
+                      <Icon as={SettingsIcon} w={8} h={8} color="#3B82F6" />
+                      <Heading size="sm" fontWeight="bold" color="gray.900">
+                        Plan Your Roadmaps
+                      </Heading>
+                      <Text fontSize="sm" color="gray.600" lineHeight="tall">
+                        Create and manage multiple scenarios to explore different planning options. Adjust team capacity and evaluate trade-offs before committing to a plan.
+                      </Text>
+                    </VStack>
+                  </CardBody>
+                </Card>
+
+                <Card variant="outline" bg="white" borderColor="gray.200">
+                  <CardBody p={6}>
+                    <VStack spacing={3} align="start">
+                      <Icon as={ViewIcon} w={8} h={8} color="#3B82F6" />
+                      <Heading size="sm" fontWeight="bold" color="gray.900">
+                        Review Capacity vs Demand
+                      </Heading>
+                      <Text fontSize="sm" color="gray.600" lineHeight="tall">
+                        Understand your team's capacity constraints with visual indicators. Track surplus or deficit across UX and Content Design resources in real-time.
+                      </Text>
+                    </VStack>
+                  </CardBody>
+                </Card>
+
+                <Card variant="outline" bg="white" borderColor="gray.200">
+                  <CardBody p={6}>
+                    <VStack spacing={3} align="start">
+                      <Icon as={CheckCircleIcon} w={8} h={8} color="#3B82F6" />
+                      <Heading size="sm" fontWeight="bold" color="gray.900">
+                        Review Your Committed Plan
+                      </Heading>
+                      <Text fontSize="sm" color="gray.600" lineHeight="tall">
+                        Commit to scenarios and view your complete quarterly plan. Get a comprehensive view of all committed work across your organization.
+                      </Text>
+                    </VStack>
+                  </CardBody>
+                </Card>
+              </SimpleGrid>
+
+              {/* Key Features Section */}
+              <Box>
+                <Heading size="md" mb={6} textAlign="center">
+                  Key Features
+                </Heading>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                  <Card variant="outline" bg="gray.50" borderColor="gray.200">
+                    <CardBody p={6}>
+                      <VStack spacing={2} align="start">
+                        <Heading size="sm" fontWeight="bold" color="gray.900">
+                          Factor-Based Sizing
+                        </Heading>
+                        <Text fontSize="sm" color="gray.600">
+                          Estimate effort using complexity factors across Product Management, UX Design, and Content Design
+                        </Text>
+                      </VStack>
+                    </CardBody>
+                  </Card>
+
+                  <Card variant="outline" bg="gray.50" borderColor="gray.200">
+                    <CardBody p={6}>
+                      <VStack spacing={2} align="start">
+                        <Heading size="sm" fontWeight="bold" color="gray.900">
+                          Real-Time Calculations
+                        </Heading>
+                        <Text fontSize="sm" color="gray.600">
+                          See capacity and demand update instantly as you adjust complexity factors and team size
+                        </Text>
+                      </VStack>
+                    </CardBody>
+                  </Card>
+
+                  <Card variant="outline" bg="gray.50" borderColor="gray.200">
+                    <CardBody p={6}>
+                      <VStack spacing={2} align="start">
+                        <Heading size="sm" fontWeight="bold" color="gray.900">
+                          Auto-Save Functionality
+                        </Heading>
+                        <Text fontSize="sm" color="gray.600">
+                          Never lose your work with automatic saving of all changes and scenario updates
+                        </Text>
+                      </VStack>
+                    </CardBody>
+                  </Card>
+
+                  <Card variant="outline" bg="gray.50" borderColor="gray.200">
+                    <CardBody p={6}>
+                      <VStack spacing={2} align="start">
+                        <Heading size="sm" fontWeight="bold" color="gray.900">
+                          Scenario Management
+                        </Heading>
+                        <Text fontSize="sm" color="gray.600">
+                          Create, edit, and compare multiple scenarios to find the best plan for your team
+                        </Text>
+                      </VStack>
+                    </CardBody>
+                  </Card>
+                </SimpleGrid>
               </Box>
-              <Heading size="xl" fontWeight="bold" color="gray.900">
-                Welcome to Capacity Planning!
-              </Heading>
-              <Text fontSize="lg" color="gray.600" maxW="600px" lineHeight="tall">
-                Create your first planning scenario to get started. You can estimate effort and manage team capacity across quarterly cycles.
-              </Text>
-              <Button
-                colorScheme="black"
-                size="lg"
-                onClick={onOpen}
-                borderRadius="md"
-                px={8}
-                py={6}
-                fontSize="md"
-                fontWeight="medium"
-              >
-                + Create New Scenario
-              </Button>
+
+              {/* CTA Section */}
+              <VStack spacing={4} align="center" textAlign="center" py={8} bg="gray.50" borderRadius="md" px={6}>
+                <Heading size="md" fontWeight="bold" color="gray.900">
+                  Ready to get started?
+                </Heading>
+                <Text fontSize="md" color="gray.600" maxW="600px">
+                  Begin by creating your first scenario or exploring existing planning scenarios.
+                </Text>
+                <Button
+                  colorScheme="blue"
+                  size="lg"
+                  onClick={onOpen}
+                  borderRadius="md"
+                  px={8}
+                  py={6}
+                  fontSize="md"
+                  fontWeight="medium"
+                >
+                  Create Your First Scenario
+                </Button>
+              </VStack>
             </VStack>
           )}
         </Box>
@@ -382,41 +501,43 @@ function HomePage() {
           </Box>
         )}
 
-        {/* Activity Section */}
-        <Box>
-          <Heading size="md" mb={4}>Recent activity</Heading>
-          {recentActivity.length > 0 ? (
-            <Card variant="outline" bg="white" borderColor="gray.200">
-              <CardBody p={6}>
-                <VStack spacing={3} align="stretch">
-                  {recentActivity.map((event) => (
-                    <Box key={event.id}>
-                      <HStack justify="space-between" align="start" spacing={4}>
-                        <Text fontSize="sm" color="gray.700" flex={1}>
-                          {event.description}
-                        </Text>
-                        <Text fontSize="xs" color="gray.500" whiteSpace="nowrap">
-                          {formatRelativeTime(event.timestamp)}
-                        </Text>
-                      </HStack>
-                      {event.id !== recentActivity[recentActivity.length - 1].id && (
-                        <Divider mt={3} />
-                      )}
-                    </Box>
-                  ))}
-                </VStack>
-              </CardBody>
-            </Card>
-          ) : (
-            <Card variant="outline" bg="gray.50" borderColor="gray.200">
-              <CardBody p={6}>
-                <Text fontSize="sm" color="gray.500" textAlign="center">
-                  Activity will show your recent changes across scenarios.
-                </Text>
-              </CardBody>
-            </Card>
-          )}
-        </Box>
+        {/* Activity Section - Only show for returning users */}
+        {sessions.length > 0 && (
+          <Box>
+            <Heading size="md" mb={4}>Recent activity</Heading>
+            {recentActivity.length > 0 ? (
+              <Card variant="outline" bg="white" borderColor="gray.200">
+                <CardBody p={6}>
+                  <VStack spacing={3} align="stretch">
+                    {recentActivity.map((event) => (
+                      <Box key={event.id}>
+                        <HStack justify="space-between" align="start" spacing={4}>
+                          <Text fontSize="sm" color="gray.700" flex={1}>
+                            {event.description}
+                          </Text>
+                          <Text fontSize="xs" color="gray.500" whiteSpace="nowrap">
+                            {formatRelativeTime(event.timestamp)}
+                          </Text>
+                        </HStack>
+                        {event.id !== recentActivity[recentActivity.length - 1].id && (
+                          <Divider mt={3} />
+                        )}
+                      </Box>
+                    ))}
+                  </VStack>
+                </CardBody>
+              </Card>
+            ) : (
+              <Card variant="outline" bg="gray.50" borderColor="gray.200">
+                <CardBody p={6}>
+                  <Text fontSize="sm" color="gray.500" textAlign="center">
+                    Activity will show your recent changes across scenarios.
+                  </Text>
+                </CardBody>
+              </Card>
+            )}
+          </Box>
+        )}
       </Stack>
 
       {/* Create Scenario Modal */}
