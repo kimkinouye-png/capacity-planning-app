@@ -17,7 +17,8 @@
 ## Implementation Status (Updated: January 13, 2026)
 
 **Iteration 3:** ✅ Complete  
-**Figma Implementation:** ✅ Complete (Steps 1-8)
+**Figma Implementation:** ✅ Complete (Steps 1-8)  
+**Phase 2:** ✅ Complete (January 13, 2026)
 
 ### Completed Steps
 - ✅ Step 1-2: Home page with scenario cards (empty and populated states)
@@ -28,6 +29,18 @@
 - ✅ Step 7: Session Summary with capacity cards and full table
 - ✅ Step 8: Quarterly Capacity with year overview
 
+### Phase 2 Features Delivered
+- ✅ Contextual homepage with "Open last scenario" and recent activity
+- ✅ Activity logging system (ActivityContext) tracking all key actions
+- ✅ Committed Plan workflow (scenarios can be committed as official quarterly plan)
+- ✅ Scenario status field ('draft' | 'committed') with commit logic
+- ✅ Inline scenario name editing from cards and summary page
+- ✅ Scenario deletion for empty scenarios with confirmation
+- ✅ Enhanced navigation (Home, Scenarios, Committed Plan, Guide)
+- ✅ Visual cleanup (neutral gray backgrounds, clean table styling)
+- ✅ Routing improvements (keep users in context on Scenario Summary)
+- ✅ Smart sorting (committed first, then by quarter, then alphabetically)
+
 ### Key Features Delivered
 - Factor-based effort estimation (weighted scoring)
 - Real-time calculation of size bands (XS-XL)
@@ -37,8 +50,9 @@
 - Multi-scenario planning support
 - localStorage persistence
 - Responsive design
+- Activity tracking and logging
 
-**Next Phase:** Phase 2 Enhancements (see BACKLOG.md)
+**Next Phase:** Phase 3 Advanced Features (see BACKLOG.md)
 
 ---
 
@@ -108,7 +122,26 @@
 - Each scenario = A "what-if" capacity planning exercise for a specific quarter
 - Scenarios are saved, persistent (localStorage), and can be compared
 - Each scenario contains: planning period, designer counts, roadmap items with sizing
+- Scenarios have a `status` field: 'draft' | 'committed'
+- Only one scenario per quarter can be committed as the official plan
 - Users typically work in one active roadmap at a time, but can create multiple scenarios to compare options
+
+### Activity Logging System
+
+- **ActivityContext**: Global context for tracking user actions
+- **Event Types**: scenario_created, scenario_renamed, scenario_committed, scenario_deleted, roadmap_item_updated, effort_updated
+- **Event Structure**: id, timestamp (ISO), type, scenarioId, scenarioName, description
+- **Storage**: In-memory only, capped at 10 most recent events
+- **Display**: Shown on homepage with relative timestamps (e.g., "2 hours ago")
+
+### Routing Structure
+
+- **Home** (`/`): Contextual homepage with recent scenarios and activity
+- **Scenarios** (`/scenarios`): Full list of all scenarios
+- **Scenario Summary** (`/sessions/:id`): Main workspace for a scenario
+- **Item Detail** (`/sessions/:id/items/:itemId`): Detailed item editing with PM/PD/CD tabs
+- **Committed Plan** (`/committed-plan`): View of committed scenarios only
+- **Quarterly Capacity** (`/quarterly-capacity`): Year-at-a-glance overview
 
 ---
 

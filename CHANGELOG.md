@@ -4,6 +4,39 @@ All notable changes to the Capacity Planning App will be documented in this file
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-01-13
+
+### Phase 2: Enhanced User Experience and Workflow
+
+#### Added
+- **New Homepage**: Contextual homepage with "Open last scenario" button, recent scenarios list (sorted by last updated), and recent activity log (last 10 events)
+- **Activity Logging**: Tracks scenario creation, renaming, committing, deletion, and roadmap item updates with timestamps
+- **Committed Plan Concept**: Scenarios can now be committed as the official quarterly plan; only one scenario per quarter can be committed
+- **Scenario Commit Controls**: Radio-style commit control on scenario cards; scenarios must have at least one roadmap item to be committed
+- **Scenario Deletion**: Empty scenarios (with no roadmap items) can now be deleted with confirmation dialog
+- **Inline Editing**: Scenario names can be edited inline directly from scenario cards and summary page
+- **Activity Context**: New ActivityContext for global activity tracking with automatic event logging
+
+#### Changed
+- **Navigation**: New header with Home, Scenarios, Committed Plan, and Guide links; "Capacity Planning" title links to Home
+- **Visual Refinements**:
+  - Committed scenarios display with light background color and sort to the top of lists
+  - Capacity status indicators redesigned as small dots next to scenario names ("Within" with green dot, "Over" with orange dot)
+  - Removed green shading from capacity cards, using neutral gray instead
+  - Cleaned up roadmap table styling (removed colored column backgrounds, using neutral gray headers)
+- **Routing Improvements**:
+  - New scenarios route to Scenario Summary instead of old Roadmap Items page
+  - New roadmap items keep users on Scenario Summary instead of routing away
+  - PM Intake/Product Design/Content Design tab links updated to go to Scenario Summary
+- **Breadcrumb Improvements**: Removed "New Scenario Here" link; breadcrumbs now show proper hierarchy ending at Scenario Summary
+- **Sorting**: Scenarios sort by: committed first, then by quarter, then alphabetically by title
+
+#### Fixed
+- Fixed routing after creating new scenarios to go to Scenario Summary
+- Fixed routing after creating new roadmap items to stay on Scenario Summary
+- Fixed scenario card commit controls to prevent committing empty scenarios
+- Fixed activity log to cap at 10 most recent events
+
 ### Added (Steps 5-8)
 - Product Design tab with button-based factor scoring (3 UX factors with weights)
 - Content Design tab with button-based factor scoring (4 Content factors with weights)
