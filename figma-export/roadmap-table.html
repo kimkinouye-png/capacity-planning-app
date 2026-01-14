@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roadmap Items Table</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: #F9FAFB;
+      padding: 24px;
+    }
+    .table-container {
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .table-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 24px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead {
+      background: #F9FAFB;
+    }
+    th {
+      padding: 12px;
+      text-align: left;
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+      border-bottom: 1px solid #E5E7EB;
+    }
+    th.border-left {
+      border-left: 1px solid #E5E7EB;
+      padding-left: 12px;
+    }
+    td {
+      padding: 12px;
+      font-size: 14px;
+      color: #111827;
+      border-bottom: 1px solid #E5E7EB;
+    }
+    td.border-left {
+      border-left: 1px solid #E5E7EB;
+    }
+    tbody tr:hover {
+      background: #F9FAFB;
+      cursor: pointer;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .badge-priority {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+    .badge-status {
+      background: #E5E7EB;
+      color: #374151;
+      border-radius: 9999px;
+    }
+    .size-text {
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+    }
+    .button-group {
+      display: flex;
+      gap: 8px;
+    }
+    .icon-button {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .icon-button.save {
+      background: #10B981;
+      color: white;
+    }
+    .icon-button.save:hover {
+      background: #059669;
+    }
+    .icon-button.delete {
+      background: #EF4444;
+      color: white;
+    }
+    .icon-button.delete:hover {
+      background: #DC2626;
+    }
+  </style>
+</head>
+<body>
+  <div class="table-container">
+    <h2 class="table-title">Roadmap Items</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Key</th>
+          <th>Name</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th class="border-left">UX Size</th>
+          <th>UX Focus Weeks</th>
+          <th>UX Sprints</th>
+          <th class="border-left">Content Size</th>
+          <th>Content Focus Weeks</th>
+          <th>Content Sprints</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="font-weight: 500;">PROJ-1</td>
+          <td>Payment Flow Redesign</td>
+          <td><span class="badge badge-priority">P0</span></td>
+          <td><span class="badge badge-status">draft</span></td>
+          <td class="border-left"><span class="size-text">M</span></td>
+          <td>3.2</td>
+          <td>1-2 sprints</td>
+          <td class="border-left"><span class="size-text">S</span></td>
+          <td>2.1</td>
+          <td>1 sprint</td>
+          <td>
+            <div class="button-group">
+              <button class="icon-button save">✓</button>
+              <button class="icon-button delete">×</button>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style="font-weight: 500;">PROJ-2</td>
+          <td>User Onboarding Experience</td>
+          <td><span class="badge badge-priority">P1</span></td>
+          <td><span class="badge badge-status">sized</span></td>
+          <td class="border-left"><span class="size-text">L</span></td>
+          <td>4.5</td>
+          <td>2-3 sprints</td>
+          <td class="border-left"><span class="size-text">M</span></td>
+          <td>3.2</td>
+          <td>1-2 sprints</td>
+          <td>
+            <div class="button-group">
+              <button class="icon-button save">✓</button>
+              <button class="icon-button delete">×</button>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style="font-weight: 500;">PROJ-3</td>
+          <td>Settings Page Update</td>
+          <td><span class="badge badge-priority">P2</span></td>
+          <td><span class="badge badge-status">draft</span></td>
+          <td class="border-left"><span class="size-text">S</span></td>
+          <td>2.0</td>
+          <td>1 sprint</td>
+          <td class="border-left"><span class="size-text">XS</span></td>
+          <td>1.2</td>
+          <td>0-1 sprints</td>
+          <td>
+            <div class="button-group">
+              <button class="icon-button save">✓</button>
+              <button class="icon-button delete">×</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

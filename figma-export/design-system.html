@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Design System - Capacity Planning</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: white;
+      padding: 32px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 32px;
+    }
+    h2 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #111827;
+      margin: 32px 0 16px;
+    }
+    .section {
+      margin-bottom: 48px;
+    }
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .color-swatch {
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .color-box {
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+    }
+    .color-info {
+      padding: 12px;
+      background: white;
+    }
+    .color-name {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .color-hex {
+      font-size: 12px;
+      color: #6B7280;
+      font-family: monospace;
+    }
+    .typography-sample {
+      margin-bottom: 16px;
+    }
+    .typography-label {
+      font-size: 12px;
+      color: #6B7280;
+      margin-bottom: 4px;
+    }
+    .button-sample {
+      display: inline-block;
+      margin-right: 12px;
+      margin-bottom: 12px;
+    }
+    .btn {
+      padding: 10px 24px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: #3B82F6;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #2563EB;
+    }
+    .btn-secondary {
+      background: white;
+      color: #374151;
+      border: 1px solid #D1D5DB;
+    }
+    .btn-secondary:hover {
+      background: #F9FAFB;
+    }
+    .btn-black {
+      background: #000000;
+      color: white;
+    }
+    .btn-black:hover {
+      background: #1F2937;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Capacity Planning - Design System</h1>
+
+    <!-- Colors -->
+    <section class="section">
+      <h2>Colors</h2>
+      <div class="color-grid">
+        <div class="color-swatch">
+          <div class="color-box" style="background: #3B82F6;">Blue 500</div>
+          <div class="color-info">
+            <div class="color-name">Primary Blue</div>
+            <div class="color-hex">#3B82F6</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-box" style="background: #10B981;">Green 500</div>
+          <div class="color-info">
+            <div class="color-name">Success Green</div>
+            <div class="color-hex">#10B981</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-box" style="background: #F59E0B;">Amber 500</div>
+          <div class="color-info">
+            <div class="color-name">Warning Amber</div>
+            <div class="color-hex">#F59E0B</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-box" style="background: #EF4444;">Red 500</div>
+          <div class="color-info">
+            <div class="color-name">Error Red</div>
+            <div class="color-hex">#EF4444</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-box" style="background: #111827; color: white;">Gray 900</div>
+          <div class="color-info">
+            <div class="color-name">Text Primary</div>
+            <div class="color-hex">#111827</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-box" style="background: #4B5563; color: white;">Gray 600</div>
+          <div class="color-info">
+            <div class="color-name">Text Secondary</div>
+            <div class="color-hex">#4B5563</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-box" style="background: #F9FAFB; color: #111827;">Gray 50</div>
+          <div class="color-info">
+            <div class="color-name">Background Light</div>
+            <div class="color-hex">#F9FAFB</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-box" style="background: #E5E7EB; color: #111827;">Gray 200</div>
+          <div class="color-info">
+            <div class="color-name">Border</div>
+            <div class="color-hex">#E5E7EB</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Typography -->
+    <section class="section">
+      <h2>Typography</h2>
+      <div class="typography-sample">
+        <div class="typography-label">Heading XL (36px, Bold)</div>
+        <h1 style="font-size: 36px; font-weight: 700; color: #111827;">Welcome to Planning Assistant</h1>
+      </div>
+      <div class="typography-sample">
+        <div class="typography-label">Heading LG (24px, Bold)</div>
+        <h2 style="font-size: 24px; font-weight: 700; color: #111827;">Welcome back</h2>
+      </div>
+      <div class="typography-sample">
+        <div class="typography-label">Heading MD (20px, Bold)</div>
+        <h3 style="font-size: 20px; font-weight: 700; color: #111827;">Recent scenarios</h3>
+      </div>
+      <div class="typography-sample">
+        <div class="typography-label">Heading SM (16px, Bold)</div>
+        <h4 style="font-size: 16px; font-weight: 700; color: #111827;">UX Design Capacity</h4>
+      </div>
+      <div class="typography-sample">
+        <div class="typography-label">Body LG (18px, Regular)</div>
+        <p style="font-size: 18px; color: #4B5563;">Your intelligent companion for capacity planning and roadmap management.</p>
+      </div>
+      <div class="typography-sample">
+        <div class="typography-label">Body MD (16px, Regular)</div>
+        <p style="font-size: 16px; color: #4B5563;">Begin by creating your first scenario or exploring existing planning scenarios.</p>
+      </div>
+      <div class="typography-sample">
+        <div class="typography-label">Body SM (14px, Regular)</div>
+        <p style="font-size: 14px; color: #4B5563;">Create and manage multiple scenarios to explore different planning options.</p>
+      </div>
+      <div class="typography-sample">
+        <div class="typography-label">Body XS (12px, Regular)</div>
+        <p style="font-size: 12px; color: #4B5563;">Team Size</p>
+      </div>
+    </section>
+
+    <!-- Buttons -->
+    <section class="section">
+      <h2>Buttons</h2>
+      <div class="button-sample">
+        <button class="btn btn-primary">Primary Button</button>
+      </div>
+      <div class="button-sample">
+        <button class="btn btn-secondary">Secondary Button</button>
+      </div>
+      <div class="button-sample">
+        <button class="btn btn-black">Black Button</button>
+      </div>
+    </section>
+
+    <!-- Badges -->
+    <section class="section">
+      <h2>Badges</h2>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; background: #FEF3C7; color: #92400E; font-size: 14px; font-weight: 500;">P0</span>
+        <span style="display: inline-block; padding: 4px 8px; border-radius: 9999px; background: #E5E7EB; color: #374151; font-size: 14px; font-weight: 500;">draft</span>
+        <span style="display: inline-block; padding: 4px 16px; border-radius: 9999px; background: #D1FAE5; color: #065F46; font-size: 14px; font-weight: 600;">Committed</span>
+      </div>
+    </section>
+
+    <!-- Spacing -->
+    <section class="section">
+      <h2>Spacing Scale</h2>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="width: 4px; height: 4px; background: #E5E7EB; border: 1px solid #D1D5DB;"></div>
+          <span>4px (spacing={1})</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="width: 8px; height: 8px; background: #E5E7EB; border: 1px solid #D1D5DB;"></div>
+          <span>8px (spacing={2})</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="width: 16px; height: 16px; background: #E5E7EB; border: 1px solid #D1D5DB;"></div>
+          <span>16px (spacing={4})</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="width: 24px; height: 24px; background: #E5E7EB; border: 1px solid #D1D5DB;"></div>
+          <span>24px (spacing={6})</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="width: 32px; height: 32px; background: #E5E7EB; border: 1px solid #D1D5DB;"></div>
+          <span>32px (spacing={8})</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

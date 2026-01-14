@@ -101,17 +101,17 @@ function HomePage() {
   }, [activity])
 
   return (
-    <Box maxW="1200px" mx="auto" px={6} py={8}>
+    <Box maxW="1400px" mx="auto" px={6} py={8}>
       <Stack spacing={8}>
         {/* Welcome Back Section */}
         <Box>
           {sessions.length > 0 ? (
             <VStack spacing={4} align="stretch">
-              <Heading size="lg">Welcome back</Heading>
+              <Heading size="lg" color="white">Welcome back</Heading>
               <HStack spacing={4}>
                 {mostRecentScenario && (
                   <Button
-                    colorScheme="blue"
+                    colorScheme="cyan"
                     size="md"
                     onClick={() => navigate(`/sessions/${mostRecentScenario.id}`)}
                   >
@@ -135,59 +135,92 @@ function HomePage() {
                   w={24}
                   h={24}
                   borderRadius="full"
-                  bg="#EFF6FF"
+                  bg="linear-gradient(135deg, rgba(0, 217, 255, 0.2), rgba(37, 99, 235, 0.2))"
+                  border="1px solid"
+                  borderColor="rgba(0, 217, 255, 0.3)"
                   display="flex"
                   alignItems="center"
                   justifyContent="center"
+                  boxShadow="0 0 20px rgba(0, 217, 255, 0.3)"
                 >
-                  <Icon as={CalendarIcon} w={12} h={12} color="#3B82F6" />
+                  <Icon as={CalendarIcon} w={12} h={12} color="#00d9ff" />
                 </Box>
-                <Heading size="xl" fontWeight="bold" color="gray.900">
+                <Heading size="xl" fontWeight="bold" color="white">
                   Welcome to Planning Assistant
                 </Heading>
-                <Text fontSize="lg" color="gray.600" maxW="700px" lineHeight="tall">
+                <Text fontSize="lg" color="gray.300" maxW="700px" lineHeight="tall">
                   Your intelligent companion for capacity planning and roadmap management. Make data-driven decisions with confidence using factor-based sizing and real-time capacity analysis.
                 </Text>
               </VStack>
 
               {/* Three Feature Cards */}
               <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
-                <Card variant="outline" bg="white" borderColor="gray.200">
+                <Card 
+                  variant="outline" 
+                  bg="#141419" 
+                  borderColor="rgba(255, 255, 255, 0.1)"
+                  _hover={{
+                    borderColor: 'rgba(0, 217, 255, 0.5)',
+                    boxShadow: '0 10px 15px -3px rgba(0, 217, 255, 0.2), 0 4px 6px -2px rgba(0, 217, 255, 0.2)',
+                    transform: 'translateY(-2px)',
+                  }}
+                  transition="all 0.3s ease"
+                >
                   <CardBody p={6}>
                     <VStack spacing={3} align="start">
-                      <Icon as={SettingsIcon} w={8} h={8} color="#3B82F6" />
-                      <Heading size="sm" fontWeight="bold" color="gray.900">
+                      <Icon as={SettingsIcon} w={8} h={8} color="#00d9ff" />
+                      <Heading size="sm" fontWeight="bold" color="white">
                         Plan Your Roadmaps
                       </Heading>
-                      <Text fontSize="sm" color="gray.600" lineHeight="tall">
+                      <Text fontSize="sm" color="gray.300" lineHeight="tall">
                         Create and manage multiple scenarios to explore different planning options. Adjust team capacity and evaluate trade-offs before committing to a plan.
                       </Text>
                     </VStack>
                   </CardBody>
                 </Card>
 
-                <Card variant="outline" bg="white" borderColor="gray.200">
+                <Card 
+                  variant="outline" 
+                  bg="#141419" 
+                  borderColor="rgba(255, 255, 255, 0.1)"
+                  _hover={{
+                    borderColor: 'rgba(0, 217, 255, 0.5)',
+                    boxShadow: '0 10px 15px -3px rgba(0, 217, 255, 0.2), 0 4px 6px -2px rgba(0, 217, 255, 0.2)',
+                    transform: 'translateY(-2px)',
+                  }}
+                  transition="all 0.3s ease"
+                >
                   <CardBody p={6}>
                     <VStack spacing={3} align="start">
-                      <Icon as={ViewIcon} w={8} h={8} color="#3B82F6" />
-                      <Heading size="sm" fontWeight="bold" color="gray.900">
+                      <Icon as={ViewIcon} w={8} h={8} color="#00d9ff" />
+                      <Heading size="sm" fontWeight="bold" color="white">
                         Review Capacity vs Demand
                       </Heading>
-                      <Text fontSize="sm" color="gray.600" lineHeight="tall">
+                      <Text fontSize="sm" color="gray.300" lineHeight="tall">
                         Understand your team's capacity constraints with visual indicators. Track surplus or deficit across UX and Content Design resources in real-time.
                       </Text>
                     </VStack>
                   </CardBody>
                 </Card>
 
-                <Card variant="outline" bg="white" borderColor="gray.200">
+                <Card 
+                  variant="outline" 
+                  bg="#141419" 
+                  borderColor="rgba(255, 255, 255, 0.1)"
+                  _hover={{
+                    borderColor: 'rgba(0, 217, 255, 0.5)',
+                    boxShadow: '0 10px 15px -3px rgba(0, 217, 255, 0.2), 0 4px 6px -2px rgba(0, 217, 255, 0.2)',
+                    transform: 'translateY(-2px)',
+                  }}
+                  transition="all 0.3s ease"
+                >
                   <CardBody p={6}>
                     <VStack spacing={3} align="start">
-                      <Icon as={CheckCircleIcon} w={8} h={8} color="#3B82F6" />
-                      <Heading size="sm" fontWeight="bold" color="gray.900">
+                      <Icon as={CheckCircleIcon} w={8} h={8} color="#00d9ff" />
+                      <Heading size="sm" fontWeight="bold" color="white">
                         Review Your Committed Plan
                       </Heading>
-                      <Text fontSize="sm" color="gray.600" lineHeight="tall">
+                      <Text fontSize="sm" color="gray.300" lineHeight="tall">
                         Commit to scenarios and view your complete quarterly plan. Get a comprehensive view of all committed work across your organization.
                       </Text>
                     </VStack>
@@ -197,56 +230,56 @@ function HomePage() {
 
               {/* Key Features Section */}
               <Box>
-                <Heading size="md" mb={6} textAlign="center">
+                <Heading size="md" mb={6} textAlign="center" color="white">
                   Key Features
                 </Heading>
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                  <Card variant="outline" bg="gray.50" borderColor="gray.200">
+                  <Card variant="outline" bg="#1a1a20" borderColor="rgba(255, 255, 255, 0.05)">
                     <CardBody p={6}>
                       <VStack spacing={2} align="start">
-                        <Heading size="sm" fontWeight="bold" color="gray.900">
+                        <Heading size="sm" fontWeight="bold" color="white">
                           Factor-Based Sizing
                         </Heading>
-                        <Text fontSize="sm" color="gray.600">
+                        <Text fontSize="sm" color="gray.300">
                           Estimate effort using complexity factors across Product Management, UX Design, and Content Design
                         </Text>
                       </VStack>
                     </CardBody>
                   </Card>
 
-                  <Card variant="outline" bg="gray.50" borderColor="gray.200">
+                  <Card variant="outline" bg="#1a1a20" borderColor="rgba(255, 255, 255, 0.05)">
                     <CardBody p={6}>
                       <VStack spacing={2} align="start">
-                        <Heading size="sm" fontWeight="bold" color="gray.900">
+                        <Heading size="sm" fontWeight="bold" color="white">
                           Real-Time Calculations
                         </Heading>
-                        <Text fontSize="sm" color="gray.600">
+                        <Text fontSize="sm" color="gray.300">
                           See capacity and demand update instantly as you adjust complexity factors and team size
                         </Text>
                       </VStack>
                     </CardBody>
                   </Card>
 
-                  <Card variant="outline" bg="gray.50" borderColor="gray.200">
+                  <Card variant="outline" bg="#1a1a20" borderColor="rgba(255, 255, 255, 0.05)">
                     <CardBody p={6}>
                       <VStack spacing={2} align="start">
-                        <Heading size="sm" fontWeight="bold" color="gray.900">
+                        <Heading size="sm" fontWeight="bold" color="white">
                           Auto-Save Functionality
                         </Heading>
-                        <Text fontSize="sm" color="gray.600">
+                        <Text fontSize="sm" color="gray.300">
                           Never lose your work with automatic saving of all changes and scenario updates
                         </Text>
                       </VStack>
                     </CardBody>
                   </Card>
 
-                  <Card variant="outline" bg="gray.50" borderColor="gray.200">
+                  <Card variant="outline" bg="#1a1a20" borderColor="rgba(255, 255, 255, 0.05)">
                     <CardBody p={6}>
                       <VStack spacing={2} align="start">
-                        <Heading size="sm" fontWeight="bold" color="gray.900">
+                        <Heading size="sm" fontWeight="bold" color="white">
                           Scenario Management
                         </Heading>
-                        <Text fontSize="sm" color="gray.600">
+                        <Text fontSize="sm" color="gray.300">
                           Create, edit, and compare multiple scenarios to find the best plan for your team
                         </Text>
                       </VStack>
@@ -256,15 +289,15 @@ function HomePage() {
               </Box>
 
               {/* CTA Section */}
-              <VStack spacing={4} align="center" textAlign="center" py={8} bg="gray.50" borderRadius="md" px={6}>
-                <Heading size="md" fontWeight="bold" color="gray.900">
+              <VStack spacing={4} align="center" textAlign="center" py={8} bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" borderRadius="md" px={6}>
+                <Heading size="md" fontWeight="bold" color="white">
                   Ready to get started?
                 </Heading>
-                <Text fontSize="md" color="gray.600" maxW="600px">
+                <Text fontSize="md" color="gray.300" maxW="600px">
                   Begin by creating your first scenario or exploring existing planning scenarios.
                 </Text>
                 <Button
-                  colorScheme="blue"
+                  colorScheme="cyan"
                   size="lg"
                   onClick={onOpen}
                   borderRadius="md"
@@ -283,7 +316,7 @@ function HomePage() {
         {/* Recent Scenarios Section */}
         {sessions.length > 0 && (
           <Box>
-            <Heading size="md" mb={4}>Recent scenarios</Heading>
+            <Heading size="md" mb={4} color="white">Recent scenarios</Heading>
             <VStack spacing={4} align="stretch">
               {recentScenarios.map((session) => {
                 const items = getItemsForSession(session.id)
@@ -297,23 +330,27 @@ function HomePage() {
                       cardRefs.current[session.id] = el
                     }}
                     variant="outline"
-                    _hover={{ boxShadow: 'md' }}
-                    transition="all 0.2s"
                     bg={
                       highlightedCardId === session.id 
-                        ? 'blue.50' 
+                        ? 'rgba(0, 217, 255, 0.1)' 
                         : session.status === 'committed' 
-                          ? 'green.50' 
-                          : 'white'
+                          ? 'rgba(16, 185, 129, 0.1)' 
+                          : '#141419'
                     }
                     borderColor={
                       highlightedCardId === session.id 
-                        ? 'blue.300' 
+                        ? 'rgba(0, 217, 255, 0.5)' 
                         : session.status === 'committed' 
-                          ? 'green.200' 
-                          : 'gray.200'
+                          ? 'rgba(16, 185, 129, 0.3)' 
+                          : 'rgba(255, 255, 255, 0.1)'
                     }
                     borderWidth={highlightedCardId === session.id ? '2px' : '1px'}
+                    _hover={{
+                      borderColor: 'rgba(0, 217, 255, 0.5)',
+                      boxShadow: '0 10px 15px -3px rgba(0, 217, 255, 0.2), 0 4px 6px -2px rgba(0, 217, 255, 0.2)',
+                      transform: 'translateY(-2px)',
+                    }}
+                    transition="all 0.3s ease"
                     cursor="pointer"
                     onClick={() => navigate(`/sessions/${session.id}`)}
                   >
@@ -356,9 +393,10 @@ function HomePage() {
                                     w={2}
                                     h={2}
                                     borderRadius="full"
-                                    bg={isWithinCapacity ? 'green.500' : 'orange.500'}
+                                    bg={isWithinCapacity ? '#10b981' : '#f59e0b'}
+                                    boxShadow={isWithinCapacity ? '0 0 8px rgba(16, 185, 129, 0.5)' : '0 0 8px rgba(245, 158, 11, 0.5)'}
                                   />
-                                  <Text fontSize="sm" color="gray.600" fontWeight="medium">
+                                  <Text fontSize="sm" color={isWithinCapacity ? '#10b981' : '#f59e0b'} fontWeight="medium">
                                     {isWithinCapacity ? 'Within' : 'Over'}
                                   </Text>
                                 </HStack>
@@ -386,7 +424,7 @@ function HomePage() {
                                       onDeleteOpen()
                                     }
                                   }}
-                                  _hover={{ bg: 'red.50', color: 'red.600' }}
+                                  _hover={{ bg: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}
                                 />
                               </Tooltip>
                             )}
@@ -413,7 +451,7 @@ function HomePage() {
                                     alignItems="center"
                                     justifyContent="center"
                                   />
-                                  <Text fontSize="sm" color="gray.500" fontWeight="medium">
+                                  <Text fontSize="sm" color="gray.400" fontWeight="medium">
                                     Commit as plan
                                   </Text>
                                 </HStack>
@@ -455,22 +493,23 @@ function HomePage() {
                                   h={4}
                                   borderRadius="full"
                                   border="2px solid"
-                                  borderColor={session.status === 'committed' ? 'blue.500' : 'gray.300'}
-                                  bg={session.status === 'committed' ? 'blue.500' : 'transparent'}
+                                  borderColor={session.status === 'committed' ? '#00d9ff' : 'rgba(255, 255, 255, 0.2)'}
+                                  bg={session.status === 'committed' ? '#00d9ff' : 'transparent'}
                                   display="flex"
                                   alignItems="center"
                                   justifyContent="center"
+                                  boxShadow={session.status === 'committed' ? '0 0 8px rgba(0, 217, 255, 0.5)' : 'none'}
                                 >
                                   {session.status === 'committed' && (
                                     <Box
                                       w={2}
                                       h={2}
                                       borderRadius="full"
-                                      bg="white"
+                                      bg="#0a0a0f"
                                     />
                                   )}
                                 </Box>
-                                <Text fontSize="sm" color="gray.700" fontWeight="medium">
+                                <Text fontSize="sm" color="gray.300" fontWeight="medium">
                                   {session.status === 'committed' ? 'Committed plan' : 'Commit as plan'}
                                 </Text>
                               </HStack>
@@ -479,7 +518,7 @@ function HomePage() {
                         </HStack>
 
                         {/* Details Line */}
-                        <HStack spacing={4} color="gray.600" fontSize="sm">
+                        <HStack spacing={4} color="gray.400" fontSize="sm">
                           <HStack spacing={1}>
                             <Icon as={CalendarIcon} w={4} h={4} />
                             <Text>{planningPeriod}</Text>
@@ -504,23 +543,23 @@ function HomePage() {
         {/* Activity Section - Only show for returning users */}
         {sessions.length > 0 && (
           <Box>
-            <Heading size="md" mb={4}>Recent activity</Heading>
+            <Heading size="md" mb={4} color="white">Recent activity</Heading>
             {recentActivity.length > 0 ? (
-              <Card variant="outline" bg="white" borderColor="gray.200">
+              <Card variant="outline" bg="#141419" borderColor="rgba(255, 255, 255, 0.1)">
                 <CardBody p={6}>
                   <VStack spacing={3} align="stretch">
                     {recentActivity.map((event) => (
                       <Box key={event.id}>
                         <HStack justify="space-between" align="start" spacing={4}>
-                          <Text fontSize="sm" color="gray.700" flex={1}>
+                          <Text fontSize="sm" color="gray.300" flex={1}>
                             {event.description}
                           </Text>
-                          <Text fontSize="xs" color="gray.500" whiteSpace="nowrap">
+                          <Text fontSize="xs" color="gray.400" whiteSpace="nowrap">
                             {formatRelativeTime(event.timestamp)}
                           </Text>
                         </HStack>
                         {event.id !== recentActivity[recentActivity.length - 1].id && (
-                          <Divider mt={3} />
+                          <Divider mt={3} borderColor="rgba(255, 255, 255, 0.1)" />
                         )}
                       </Box>
                     ))}
@@ -528,9 +567,9 @@ function HomePage() {
                 </CardBody>
               </Card>
             ) : (
-              <Card variant="outline" bg="gray.50" borderColor="gray.200">
+              <Card variant="outline" bg="#141419" borderColor="rgba(255, 255, 255, 0.1)">
                 <CardBody p={6}>
-                  <Text fontSize="sm" color="gray.500" textAlign="center">
+                  <Text fontSize="sm" color="gray.400" textAlign="center">
                     Activity will show your recent changes across scenarios.
                   </Text>
                 </CardBody>
@@ -549,20 +588,27 @@ function HomePage() {
         leastDestructiveRef={cancelDeleteRef}
         onClose={onDeleteClose}
       >
-        <AlertDialogOverlay>
-          <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+        <AlertDialogOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)">
+          <AlertDialogContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white" borderBottom="1px solid" borderColor="rgba(255, 255, 255, 0.1)" px={6} py={4}>
               Delete this scenario?
             </AlertDialogHeader>
-            <AlertDialogBody>
+            <AlertDialogBody color="gray.300" px={6} py={4}>
               This scenario has no roadmap items and will be permanently removed.
             </AlertDialogBody>
-            <AlertDialogFooter>
-              <Button ref={cancelDeleteRef} onClick={onDeleteClose}>
+            <AlertDialogFooter borderTop="1px solid" borderColor="rgba(255, 255, 255, 0.1)" px={6} py={4}>
+              <Button ref={cancelDeleteRef} onClick={onDeleteClose} variant="outline">
                 Cancel
               </Button>
               <Button
-                colorScheme="red"
+                bg="rgba(239, 68, 68, 0.1)"
+                border="1px solid"
+                borderColor="rgba(239, 68, 68, 0.5)"
+                color="#ef4444"
+                _hover={{
+                  bg: 'rgba(239, 68, 68, 0.2)',
+                  borderColor: '#ef4444',
+                }}
                 onClick={() => {
                   if (sessionToDelete) {
                     deleteSession(sessionToDelete.id)

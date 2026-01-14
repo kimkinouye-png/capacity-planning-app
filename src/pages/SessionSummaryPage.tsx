@@ -231,7 +231,7 @@ function SessionSummaryPage() {
   }
 
   return (
-    <Box bg="#F9FAFB" minH="100vh" pb={8}>
+    <Box bg="#0a0a0f" minH="100vh" pb={8}>
       <Box maxW="1400px" mx="auto" px={6} pt={6}>
         {/* Header Section */}
         <HStack spacing={4} mb={6} align="center">
@@ -240,17 +240,19 @@ function SessionSummaryPage() {
             icon={<ChevronLeftIcon />}
             variant="ghost"
             onClick={() => navigate('/')}
+            color="gray.300"
+            _hover={{ color: '#00d9ff', bg: 'rgba(255, 255, 255, 0.05)' }}
           />
           <HStack spacing={2} fontSize="14px">
-            <Link to="/" style={{ color: '#3B82F6' }}>
+            <Link to="/" style={{ color: '#00d9ff' }}>
               Home
             </Link>
-            <Text color="gray.500"> &gt; </Text>
-            <Link to={`/sessions/${id}`} style={{ color: '#3B82F6' }}>
+            <Text color="gray.400"> &gt; </Text>
+            <Link to={`/sessions/${id}`} style={{ color: '#00d9ff' }}>
               {session.name}
             </Link>
-            <Text color="gray.500"> &gt; </Text>
-            <Text color="gray.600" fontWeight="medium">
+            <Text color="gray.400"> &gt; </Text>
+            <Text color="gray.300" fontWeight="medium">
               Scenario Summary
             </Text>
           </HStack>
@@ -278,15 +280,17 @@ function SessionSummaryPage() {
                 fontWeight="bold"
               />
             </Box>
-            <Text fontSize="14px" color="gray.600">
+            <Text fontSize="14px" color="gray.400">
               {formatQuarter(session.planning_period)} • {session.ux_designers} UX Designers • {session.content_designers} Content Designers
             </Text>
           </Box>
           <HStack spacing={3}>
             {session.status === 'committed' ? (
               <Badge
-                bg="#D1FAE5"
-                color="#065F46"
+                bg="rgba(16, 185, 129, 0.1)"
+                color="#10b981"
+                border="1px solid"
+                borderColor="rgba(16, 185, 129, 0.5)"
                 px={4}
                 py={2}
                 borderRadius="full"
@@ -297,7 +301,7 @@ function SessionSummaryPage() {
               </Badge>
             ) : (
               <Button
-                colorScheme="blue"
+                colorScheme="cyan"
                 size="md"
                 isDisabled={items.length === 0}
                 onClick={() => {
@@ -332,37 +336,37 @@ function SessionSummaryPage() {
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={8}>
             {/* UX Design Capacity Card */}
             <Box
-              bg="gray.50"
+              bg="#141419"
               borderRadius="md"
               p={6}
               border="1px solid"
-              borderColor="gray.200"
+              borderColor="rgba(255, 255, 255, 0.1)"
             >
-              <Heading size="sm" mb={4} fontWeight="bold">
+              <Heading size="sm" mb={4} fontWeight="bold" color="white">
                 UX Design Capacity
               </Heading>
               <VStack spacing={4} align="stretch">
                 <Box>
-                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
                     Team Size
                   </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                  <Text fontSize="24px" fontWeight="bold" color="white">
                     {capacityMetrics.ux.teamSize}
                   </Text>
                 </Box>
                 <Box>
-                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
                     Total Capacity
                   </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                  <Text fontSize="24px" fontWeight="bold" color="white">
                     {capacityMetrics.ux.capacity.toFixed(1)} focus weeks
                   </Text>
                 </Box>
                 <Box>
-                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
                     Total Demand
                   </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                  <Text fontSize="24px" fontWeight="bold" color="white">
                     {capacityMetrics.ux.demand.toFixed(1)} focus weeks
                   </Text>
                 </Box>
@@ -370,22 +374,22 @@ function SessionSummaryPage() {
                   mt={4}
                   pt={4}
                   borderTop="1px solid"
-                  borderColor="gray.200"
+                  borderColor="rgba(255, 255, 255, 0.1)"
                 >
                   <HStack spacing={2} mb={1}>
-                    <Text fontSize="20px" color={capacityMetrics.ux.surplus >= 0 ? '#10B981' : '#EF4444'}>
+                    <Text fontSize="20px" color={capacityMetrics.ux.surplus >= 0 ? '#10b981' : '#ef4444'}>
                       {capacityMetrics.ux.surplus >= 0 ? '↑' : '↓'}
                     </Text>
                     <Text
                       fontSize="24px"
                       fontWeight="bold"
-                      color={capacityMetrics.ux.surplus >= 0 ? '#10B981' : '#EF4444'}
+                      color={capacityMetrics.ux.surplus >= 0 ? '#10b981' : '#ef4444'}
                     >
                       {capacityMetrics.ux.surplus >= 0 ? '+' : ''}
                       {capacityMetrics.ux.surplus.toFixed(1)} focus weeks
                     </Text>
                   </HStack>
-                  <Text fontSize="12px" color="gray.600">
+                  <Text fontSize="12px" color="gray.400">
                     {capacityMetrics.ux.surplus >= 0 ? 'Surplus' : 'Deficit'} • {capacityMetrics.ux.utilization.toFixed(0)}% utilized
                   </Text>
                 </Box>
@@ -394,37 +398,37 @@ function SessionSummaryPage() {
 
             {/* Content Design Capacity Card */}
             <Box
-              bg="gray.50"
+              bg="#141419"
               borderRadius="md"
               p={6}
               border="1px solid"
-              borderColor="gray.200"
+              borderColor="rgba(255, 255, 255, 0.1)"
             >
-              <Heading size="sm" mb={4} fontWeight="bold">
+              <Heading size="sm" mb={4} fontWeight="bold" color="white">
                 Content Design Capacity
               </Heading>
               <VStack spacing={4} align="stretch">
                 <Box>
-                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
                     Team Size
                   </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                  <Text fontSize="24px" fontWeight="bold" color="white">
                     {capacityMetrics.content.teamSize}
                   </Text>
                 </Box>
                 <Box>
-                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
                     Total Capacity
                   </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                  <Text fontSize="24px" fontWeight="bold" color="white">
                     {capacityMetrics.content.capacity.toFixed(1)} focus weeks
                   </Text>
                 </Box>
                 <Box>
-                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
                     Total Demand
                   </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                  <Text fontSize="24px" fontWeight="bold" color="white">
                     {capacityMetrics.content.demand.toFixed(1)} focus weeks
                   </Text>
                 </Box>
@@ -432,22 +436,22 @@ function SessionSummaryPage() {
                   mt={4}
                   pt={4}
                   borderTop="1px solid"
-                  borderColor="gray.200"
+                  borderColor="rgba(255, 255, 255, 0.1)"
                 >
                   <HStack spacing={2} mb={1}>
-                    <Text fontSize="20px" color={capacityMetrics.content.surplus >= 0 ? '#10B981' : '#EF4444'}>
+                    <Text fontSize="20px" color={capacityMetrics.content.surplus >= 0 ? '#10b981' : '#ef4444'}>
                       {capacityMetrics.content.surplus >= 0 ? '↑' : '↓'}
                     </Text>
                     <Text
                       fontSize="24px"
                       fontWeight="bold"
-                      color={capacityMetrics.content.surplus >= 0 ? '#10B981' : '#EF4444'}
+                      color={capacityMetrics.content.surplus >= 0 ? '#10b981' : '#ef4444'}
                     >
                       {capacityMetrics.content.surplus >= 0 ? '+' : ''}
                       {capacityMetrics.content.surplus.toFixed(1)} focus weeks
                     </Text>
                   </HStack>
-                  <Text fontSize="12px" color="gray.600">
+                  <Text fontSize="12px" color="gray.400">
                     {capacityMetrics.content.surplus >= 0 ? 'Surplus' : 'Deficit'} • {capacityMetrics.content.utilization.toFixed(0)}% utilized
                   </Text>
                 </Box>
@@ -457,22 +461,20 @@ function SessionSummaryPage() {
         )}
 
         {/* Roadmap Items Table */}
-        <Box bg="white" borderRadius="md" p={6} boxShadow="sm">
-          <Heading size="md" mb={6} fontWeight="bold">
+        <Box bg="#141419" borderRadius="md" p={6} border="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
+          <Heading size="md" mb={6} fontWeight="bold" color="white">
             Roadmap Items
           </Heading>
 
           {items.length === 0 ? (
             // Empty State
             <VStack spacing={4} py={12}>
-              <Text color="gray.600" fontSize="16px">
+              <Text color="gray.300" fontSize="16px">
                 No roadmap items yet. Add items to see capacity calculations.
               </Text>
               <Button
                 onClick={onCreateModalOpen}
-                bg="black"
-                color="white"
-                _hover={{ bg: 'gray.800' }}
+                colorScheme="cyan"
               >
                 + Add Your First Item
               </Button>
@@ -483,21 +485,21 @@ function SessionSummaryPage() {
                 <Table variant="simple">
                   <Thead>
                     <Tr>
-                      <Th bg="gray.50">Key</Th>
-                      <Th bg="gray.50">Name</Th>
-                      <Th bg="gray.50">Priority</Th>
-                      <Th bg="gray.50">Status</Th>
-                      <Th bg="gray.50" borderLeft="1px solid" borderColor="gray.200">
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Key</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Name</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Priority</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Status</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider" borderLeft="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
                         UX Size
                       </Th>
-                      <Th bg="gray.50">UX Focus Weeks</Th>
-                      <Th bg="gray.50">UX Sprints</Th>
-                      <Th bg="gray.50" borderLeft="1px solid" borderColor="gray.200">
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">UX Focus Weeks</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">UX Sprints</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider" borderLeft="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
                         Content Size
                       </Th>
-                      <Th bg="gray.50">Content Focus Weeks</Th>
-                      <Th bg="gray.50">Content Sprints</Th>
-                      <Th bg="gray.50">Actions</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Content Focus Weeks</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Content Sprints</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Actions</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -512,15 +514,19 @@ function SessionSummaryPage() {
                       return (
                         <Tr
                           key={item.id}
-                          _hover={{ bg: 'gray.50', cursor: 'pointer' }}
+                          _hover={{ bg: 'rgba(255, 255, 255, 0.05)', cursor: 'pointer' }}
                           onClick={() => handleRowClick(item.id)}
+                          borderBottom="1px solid"
+                          borderColor="rgba(255, 255, 255, 0.05)"
                         >
-                          <Td fontWeight="medium">{item.short_key}</Td>
-                          <Td>{item.name}</Td>
+                          <Td fontWeight="medium" color="gray.300">{item.short_key}</Td>
+                          <Td color="gray.300">{item.name}</Td>
                           <Td>
                             <Badge
-                              bg="#FEF3C7"
-                              color="#92400E"
+                              bg="rgba(245, 158, 11, 0.1)"
+                              color="#f59e0b"
+                              border="1px solid"
+                              borderColor="rgba(245, 158, 11, 0.5)"
                               borderRadius="4px"
                               px={2}
                               py={1}
@@ -531,8 +537,8 @@ function SessionSummaryPage() {
                           </Td>
                           <Td>
                             <Badge
-                              bg="gray.200"
-                              color="gray.700"
+                              bg="rgba(255, 255, 255, 0.1)"
+                              color="gray.300"
                               borderRadius="full"
                               px={2}
                               py={1}
@@ -540,46 +546,46 @@ function SessionSummaryPage() {
                               {formatStatus(item.status)}
                             </Badge>
                           </Td>
-                          <Td borderLeft="1px solid" borderColor="gray.200">
+                          <Td borderLeft="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
                             {item.uxSizeBand ? (
                               <Text
                                 fontWeight={600}
                                 fontSize="14px"
-                                color="#374151"
+                                color="gray.300"
                               >
                                 {item.uxSizeBand}
                               </Text>
                             ) : (
-                              <Text color="gray.400">—</Text>
+                              <Text color="gray.500">—</Text>
                             )}
                           </Td>
-                          <Td>
+                          <Td color="gray.300">
                             {item.uxFocusWeeks ? item.uxFocusWeeks.toFixed(1) : '—'}
                           </Td>
-                          <Td>
+                          <Td color="gray.300">
                             {item.uxFocusWeeks
                               ? formatSprintEstimate(uxSprintEstimate)
                               : '—'}
                           </Td>
-                          <Td borderLeft="1px solid" borderColor="gray.200">
+                          <Td borderLeft="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
                             {item.contentSizeBand ? (
                               <Text
                                 fontWeight={600}
                                 fontSize="14px"
-                                color="#374151"
+                                color="gray.300"
                               >
                                 {item.contentSizeBand}
                               </Text>
                             ) : (
-                              <Text color="gray.400">—</Text>
+                              <Text color="gray.500">—</Text>
                             )}
                           </Td>
-                          <Td>
+                          <Td color="gray.300">
                             {item.contentFocusWeeks
                               ? item.contentFocusWeeks.toFixed(1)
                               : '—'}
                           </Td>
-                          <Td>
+                          <Td color="gray.300">
                             {item.contentFocusWeeks
                               ? formatSprintEstimate(contentSprintEstimate)
                               : '—'}
@@ -590,9 +596,9 @@ function SessionSummaryPage() {
                                 aria-label="Save item"
                                 icon={<CheckIcon />}
                                 size="sm"
-                                bg="green.500"
+                                bg="#10b981"
                                 color="white"
-                                _hover={{ bg: 'green.600' }}
+                                _hover={{ bg: '#059669', boxShadow: '0 0 8px rgba(16, 185, 129, 0.5)' }}
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   toast({
@@ -607,9 +613,9 @@ function SessionSummaryPage() {
                                 aria-label="Remove item"
                                 icon={<DeleteIcon />}
                                 size="sm"
-                                bg="red.500"
+                                bg="#ef4444"
                                 color="white"
-                                _hover={{ bg: 'red.600' }}
+                                _hover={{ bg: '#dc2626', boxShadow: '0 0 8px rgba(239, 68, 68, 0.5)' }}
                                 onClick={(e) => handleRemoveClick(e, item.id, item.name)}
                               />
                             </HStack>
@@ -625,10 +631,10 @@ function SessionSummaryPage() {
               <Box mt={6} textAlign="center">
                 <Button
                   variant="link"
-                  color="#3B82F6"
+                  color="#00d9ff"
                   fontSize="14px"
                   onClick={onCreateModalOpen}
-                  _hover={{ textDecoration: 'underline' }}
+                  _hover={{ color: '#00b8d9', textDecoration: 'underline' }}
                 >
                   + Add another feature
                 </Button>
@@ -644,19 +650,30 @@ function SessionSummaryPage() {
         leastDestructiveRef={cancelRef}
         onClose={onClose}
       >
-        <AlertDialogOverlay>
-          <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+        <AlertDialogOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)">
+          <AlertDialogContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white" borderBottom="1px solid" borderColor="rgba(255, 255, 255, 0.1)" px={6} py={4}>
               Delete Item
             </AlertDialogHeader>
-            <AlertDialogBody>
+            <AlertDialogBody color="gray.300" px={6} py={4}>
               Delete <strong>{itemToDeleteRef.current?.name || 'this item'}</strong>? This cannot be undone.
             </AlertDialogBody>
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onClose}>
+            <AlertDialogFooter borderTop="1px solid" borderColor="rgba(255, 255, 255, 0.1)" px={6} py={4}>
+              <Button ref={cancelRef} onClick={onClose} variant="outline">
                 Cancel
               </Button>
-              <Button colorScheme="red" onClick={handleConfirmRemove} ml={3}>
+              <Button
+                bg="rgba(239, 68, 68, 0.1)"
+                border="1px solid"
+                borderColor="rgba(239, 68, 68, 0.5)"
+                color="#ef4444"
+                _hover={{
+                  bg: 'rgba(239, 68, 68, 0.2)',
+                  borderColor: '#ef4444',
+                }}
+                onClick={handleConfirmRemove}
+                ml={3}
+              >
                 Delete
               </Button>
             </AlertDialogFooter>
@@ -666,42 +683,57 @@ function SessionSummaryPage() {
 
       {/* Create Item Modal */}
       <Modal isOpen={isCreateModalOpen} onClose={onCreateModalClose}>
-        <ModalOverlay />
-        <ModalContent>
+        <ModalOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)" />
+        <ModalContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
           <form onSubmit={handleCreateItem}>
-            <ModalHeader>Create New Roadmap Item</ModalHeader>
-            <ModalCloseButton />
+            <ModalHeader color="white" borderBottom="1px solid" borderColor="rgba(255, 255, 255, 0.1)">Create New Roadmap Item</ModalHeader>
+            <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
             <ModalBody>
               <Stack spacing={4}>
                 <FormControl isRequired>
-                  <FormLabel>Short Key</FormLabel>
+                  <FormLabel color="gray.300">Short Key</FormLabel>
                   <Input
+                    bg="#1a1a20"
+                    borderColor="rgba(255, 255, 255, 0.1)"
+                    color="white"
+                    _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                    placeholder="e.g., PROJ-1"
+                    _placeholder={{ color: 'gray.500' }}
                     value={formData.short_key}
                     onChange={(e) => setFormData({ ...formData, short_key: e.target.value })}
-                    placeholder="e.g., PROJ-1"
                   />
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel color="gray.300">Name</FormLabel>
                   <Input
+                    bg="#1a1a20"
+                    borderColor="rgba(255, 255, 255, 0.1)"
+                    color="white"
+                    _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                    placeholder="e.g., New Payment Method"
+                    _placeholder={{ color: 'gray.500' }}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g., New Payment Method"
                   />
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel>Initiative</FormLabel>
+                  <FormLabel color="gray.300">Initiative</FormLabel>
                   <Input
+                    bg="#1a1a20"
+                    borderColor="rgba(255, 255, 255, 0.1)"
+                    color="white"
+                    _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                    placeholder="e.g., Revenue"
+                    _placeholder={{ color: 'gray.500' }}
                     value={formData.initiative}
                     onChange={(e) => setFormData({ ...formData, initiative: e.target.value })}
-                    placeholder="e.g., Revenue"
                   />
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel>Priority</FormLabel>
+                  <FormLabel color="gray.300">Priority</FormLabel>
                   <NumberInput
                     value={formData.priority}
                     onChange={(_, valueAsNumber) =>
@@ -709,21 +741,26 @@ function SessionSummaryPage() {
                     }
                     min={1}
                   >
-                    <NumberInputField />
+                    <NumberInputField
+                      bg="#1a1a20"
+                      borderColor="rgba(255, 255, 255, 0.1)"
+                      color="white"
+                      _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                    />
                     <NumberInputStepper>
-                      <NumberIncrementStepper />
-                      <NumberDecrementStepper />
+                      <NumberIncrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
+                      <NumberDecrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
                     </NumberInputStepper>
                   </NumberInput>
                 </FormControl>
               </Stack>
             </ModalBody>
 
-            <ModalFooter>
+            <ModalFooter borderTop="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
               <Button variant="ghost" mr={3} onClick={onCreateModalClose}>
                 Cancel
               </Button>
-              <Button colorScheme="blue" type="submit">
+              <Button colorScheme="cyan" type="submit">
                 Create Item
               </Button>
             </ModalFooter>

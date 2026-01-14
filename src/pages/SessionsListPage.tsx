@@ -303,16 +303,21 @@ function SessionsListPage() {
 
         {/* Modal for creating new scenario */}
         <Modal isOpen={isOpen} onClose={onClose}>
-          <ModalOverlay />
-          <ModalContent>
+          <ModalOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)" />
+          <ModalContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
             <form onSubmit={handleSubmit}>
-              <ModalHeader>Create New Scenario</ModalHeader>
-              <ModalCloseButton />
+              <ModalHeader color="white" borderBottom="1px solid" borderColor="rgba(255, 255, 255, 0.1)">Create New Scenario</ModalHeader>
+              <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
               <ModalBody>
                 <Stack spacing={4}>
                   <FormControl isRequired>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel color="gray.300">Name</FormLabel>
                     <Input
+                      bg="#1a1a20"
+                      borderColor="rgba(255, 255, 255, 0.1)"
+                      color="white"
+                      _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                      _placeholder={{ color: 'gray.500' }}
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="e.g., Payments Q2 2026"
@@ -320,29 +325,33 @@ function SessionsListPage() {
                   </FormControl>
 
                   <FormControl isRequired>
-                    <FormLabel>Planning Period</FormLabel>
+                    <FormLabel color="gray.300">Planning Period</FormLabel>
                     <Select
+                      bg="#1a1a20"
+                      borderColor="rgba(255, 255, 255, 0.1)"
+                      color="white"
+                      _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
                       value={formData.planningPeriod}
                       onChange={(e) =>
                         setFormData({ ...formData, planningPeriod: e.target.value as PlanningPeriod })
                       }
                     >
                       {QUARTER_OPTIONS.map((period) => (
-                        <option key={period} value={period}>
+                        <option key={period} value={period} style={{ background: '#1a1a20', color: 'white' }}>
                           {period}
                         </option>
                       ))}
                     </Select>
-                    <Text fontSize="sm" color="gray.500" mt={1}>
+                    <Text fontSize="sm" color="gray.400" mt={1}>
                       {getWeeksForPeriod(formData.planningPeriod)} weeks per period
                     </Text>
-                    <Text fontSize="sm" color="gray.500" mt={1}>
+                    <Text fontSize="sm" color="gray.400" mt={1}>
                       Assumes {SPRINT_LENGTH_WEEKS}-week sprints (about {Math.floor(getWeeksForPeriod(formData.planningPeriod) / SPRINT_LENGTH_WEEKS)} sprints per quarter).
                     </Text>
                   </FormControl>
 
                   <FormControl isRequired>
-                    <FormLabel>UX Designers</FormLabel>
+                    <FormLabel color="gray.300">UX Designers</FormLabel>
                     <NumberInput
                       value={formData.ux_designers}
                       onChange={(_, valueAsNumber) =>
@@ -350,16 +359,21 @@ function SessionsListPage() {
                       }
                       min={0}
                     >
-                      <NumberInputField />
+                      <NumberInputField
+                        bg="#1a1a20"
+                        borderColor="rgba(255, 255, 255, 0.1)"
+                        color="white"
+                        _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                      />
                       <NumberInputStepper>
-                        <NumberIncrementStepper />
-                        <NumberDecrementStepper />
+                        <NumberIncrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
+                        <NumberDecrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
                       </NumberInputStepper>
                     </NumberInput>
                   </FormControl>
 
                   <FormControl isRequired>
-                    <FormLabel>Content Designers</FormLabel>
+                    <FormLabel color="gray.300">Content Designers</FormLabel>
                     <NumberInput
                       value={formData.content_designers}
                       onChange={(_, valueAsNumber) =>
@@ -367,21 +381,26 @@ function SessionsListPage() {
                       }
                       min={0}
                     >
-                      <NumberInputField />
+                      <NumberInputField
+                        bg="#1a1a20"
+                        borderColor="rgba(255, 255, 255, 0.1)"
+                        color="white"
+                        _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                      />
                       <NumberInputStepper>
-                        <NumberIncrementStepper />
-                        <NumberDecrementStepper />
+                        <NumberIncrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
+                        <NumberDecrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
                       </NumberInputStepper>
                     </NumberInput>
                   </FormControl>
                 </Stack>
               </ModalBody>
 
-              <ModalFooter>
+              <ModalFooter borderTop="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
                 <Button variant="ghost" mr={3} onClick={onClose}>
                   Cancel
                 </Button>
-                <Button colorScheme="blue" type="submit">
+                <Button colorScheme="cyan" type="submit">
                   Create Scenario
                 </Button>
               </ModalFooter>
@@ -394,16 +413,16 @@ function SessionsListPage() {
 
   // Show populated state with cards when scenarios exist
   return (
-    <Box maxW="1200px" mx="auto" px={6} py={8}>
+    <Box maxW="1400px" mx="auto" px={6} py={8}>
       <Stack direction="row" justify="space-between" align="center" mb={6}>
         <Box>
-          <Heading size="lg" mb={1}>Planning Scenarios</Heading>
-          <Text fontSize="sm" color="gray.600">
+          <Heading size="lg" mb={1} color="white">Planning Scenarios</Heading>
+          <Text fontSize="sm" color="gray.400">
             {sessions.length} {sessions.length === 1 ? 'scenario' : 'scenarios'}
           </Text>
         </Box>
         <Button
-          colorScheme="black"
+          colorScheme="cyan"
           size="md"
           onClick={onOpen}
         >
@@ -437,23 +456,29 @@ function SessionsListPage() {
                 }
               }}
               variant="outline" 
-              _hover={{ boxShadow: 'md' }}
-              transition="all 0.2s"
               bg={
                 highlightedCardId === session?.id 
-                  ? 'blue.50' 
+                  ? 'rgba(0, 217, 255, 0.1)' 
                   : session?.status === 'committed' 
-                    ? 'green.50' 
-                    : 'white'
+                    ? 'rgba(16, 185, 129, 0.1)' 
+                    : '#141419'
               }
               borderColor={
                 highlightedCardId === session?.id 
-                  ? 'blue.300' 
+                  ? 'rgba(0, 217, 255, 0.5)' 
                   : session?.status === 'committed' 
-                    ? 'green.200' 
-                    : 'gray.200'
+                    ? 'rgba(16, 185, 129, 0.3)' 
+                    : 'rgba(255, 255, 255, 0.1)'
               }
               borderWidth={highlightedCardId === session?.id ? '2px' : '1px'}
+              _hover={{
+                borderColor: 'rgba(0, 217, 255, 0.5)',
+                boxShadow: '0 10px 15px -3px rgba(0, 217, 255, 0.2), 0 4px 6px -2px rgba(0, 217, 255, 0.2)',
+                transform: 'translateY(-2px)',
+              }}
+              transition="all 0.3s ease"
+              cursor="pointer"
+              onClick={() => session?.id && navigate(`/sessions/${session.id}`)}
             >
               <CardBody p={6}>
                 <Stack spacing={4}>
@@ -484,9 +509,10 @@ function SessionsListPage() {
                             w={2}
                             h={2}
                             borderRadius="full"
-                            bg={metrics.status === 'Within capacity' ? 'green.500' : 'orange.500'}
+                            bg={metrics.status === 'Within capacity' ? '#10b981' : '#f59e0b'}
+                            boxShadow={metrics.status === 'Within capacity' ? '0 0 8px rgba(16, 185, 129, 0.5)' : '0 0 8px rgba(245, 158, 11, 0.5)'}
                           />
-                          <Text fontSize="sm" color="gray.600" fontWeight="medium">
+                          <Text fontSize="sm" color={metrics.status === 'Within capacity' ? '#10b981' : '#f59e0b'} fontWeight="medium">
                             {metrics.status === 'Within capacity' ? 'Within' : 'Over'}
                           </Text>
                         </HStack>
@@ -513,7 +539,7 @@ function SessionsListPage() {
                                 onDeleteOpen()
                               }
                             }}
-                            _hover={{ bg: 'red.50', color: 'red.600' }}
+                            _hover={{ bg: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}
                           />
                         </Tooltip>
                       )}
@@ -540,7 +566,7 @@ function SessionsListPage() {
                               alignItems="center"
                               justifyContent="center"
                             />
-                            <Text fontSize="sm" color="gray.500" fontWeight="medium">
+                            <Text fontSize="sm" color="gray.400" fontWeight="medium">
                               Commit as plan
                             </Text>
                           </HStack>
@@ -582,22 +608,23 @@ function SessionsListPage() {
                             h={4}
                             borderRadius="full"
                             border="2px solid"
-                            borderColor={session?.status === 'committed' ? 'blue.500' : 'gray.300'}
-                            bg={session?.status === 'committed' ? 'blue.500' : 'transparent'}
+                            borderColor={session?.status === 'committed' ? '#00d9ff' : 'rgba(255, 255, 255, 0.2)'}
+                            bg={session?.status === 'committed' ? '#00d9ff' : 'transparent'}
                             display="flex"
                             alignItems="center"
                             justifyContent="center"
+                            boxShadow={session?.status === 'committed' ? '0 0 8px rgba(0, 217, 255, 0.5)' : 'none'}
                           >
                             {session?.status === 'committed' && (
                               <Box
                                 w={2}
                                 h={2}
                                 borderRadius="full"
-                                bg="white"
+                                bg="#0a0a0f"
                               />
                             )}
                           </Box>
-                          <Text fontSize="sm" color="gray.700" fontWeight="medium">
+                          <Text fontSize="sm" color="gray.300" fontWeight="medium">
                             {session?.status === 'committed' ? 'Committed plan' : 'Commit as plan'}
                           </Text>
                         </HStack>
@@ -610,7 +637,7 @@ function SessionsListPage() {
                     cursor="pointer"
                     onClick={() => session?.id && navigate(`/sessions/${session.id}`)}
                   >
-                    <HStack spacing={4} color="gray.600" fontSize="sm">
+                    <HStack spacing={4} color="gray.400" fontSize="sm">
                       <HStack spacing={1}>
                         <Icon as={CalendarIcon} w={4} h={4} />
                         <Text>{planningPeriod}</Text>
@@ -694,16 +721,21 @@ function SessionsListPage() {
       </VStack>
 
       <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent>
+        <ModalOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)" />
+        <ModalContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
           <form onSubmit={handleSubmit}>
-            <ModalHeader>Create New Scenario</ModalHeader>
-            <ModalCloseButton />
+            <ModalHeader color="white" borderBottom="1px solid" borderColor="rgba(255, 255, 255, 0.1)">Create New Scenario</ModalHeader>
+            <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
             <ModalBody>
               <Stack spacing={4}>
                 <FormControl isRequired>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel color="gray.300">Name</FormLabel>
                   <Input
+                    bg="#1a1a20"
+                    borderColor="rgba(255, 255, 255, 0.1)"
+                    color="white"
+                    _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                    _placeholder={{ color: 'gray.500' }}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="e.g., Payments Q2 2026"
@@ -711,29 +743,33 @@ function SessionsListPage() {
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel>Planning Period</FormLabel>
+                  <FormLabel color="gray.300">Planning Period</FormLabel>
                   <Select
+                    bg="#1a1a20"
+                    borderColor="rgba(255, 255, 255, 0.1)"
+                    color="white"
+                    _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
                     value={formData.planningPeriod}
                     onChange={(e) =>
                       setFormData({ ...formData, planningPeriod: e.target.value as PlanningPeriod })
                     }
                   >
                     {QUARTER_OPTIONS.map((period) => (
-                      <option key={period} value={period}>
+                      <option key={period} value={period} style={{ background: '#1a1a20', color: 'white' }}>
                         {period}
                       </option>
                     ))}
                   </Select>
-                  <Text fontSize="sm" color="gray.500" mt={1}>
+                  <Text fontSize="sm" color="gray.400" mt={1}>
                     {getWeeksForPeriod(formData.planningPeriod)} weeks per period
                   </Text>
-                  <Text fontSize="sm" color="gray.500" mt={1}>
+                  <Text fontSize="sm" color="gray.400" mt={1}>
                     Assumes {SPRINT_LENGTH_WEEKS}-week sprints (about {Math.floor(getWeeksForPeriod(formData.planningPeriod) / SPRINT_LENGTH_WEEKS)} sprints per quarter).
                   </Text>
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel>UX Designers</FormLabel>
+                  <FormLabel color="gray.300">UX Designers</FormLabel>
                   <NumberInput
                     value={formData.ux_designers}
                     onChange={(_, valueAsNumber) =>
@@ -741,16 +777,21 @@ function SessionsListPage() {
                     }
                     min={0}
                   >
-                    <NumberInputField />
+                    <NumberInputField
+                      bg="#1a1a20"
+                      borderColor="rgba(255, 255, 255, 0.1)"
+                      color="white"
+                      _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                    />
                     <NumberInputStepper>
-                      <NumberIncrementStepper />
-                      <NumberDecrementStepper />
+                      <NumberIncrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
+                      <NumberDecrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
                     </NumberInputStepper>
                   </NumberInput>
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel>Content Designers</FormLabel>
+                  <FormLabel color="gray.300">Content Designers</FormLabel>
                   <NumberInput
                     value={formData.content_designers}
                     onChange={(_, valueAsNumber) =>
@@ -758,21 +799,26 @@ function SessionsListPage() {
                     }
                     min={0}
                   >
-                    <NumberInputField />
+                    <NumberInputField
+                      bg="#1a1a20"
+                      borderColor="rgba(255, 255, 255, 0.1)"
+                      color="white"
+                      _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                    />
                     <NumberInputStepper>
-                      <NumberIncrementStepper />
-                      <NumberDecrementStepper />
+                      <NumberIncrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
+                      <NumberDecrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
                     </NumberInputStepper>
                   </NumberInput>
                 </FormControl>
               </Stack>
             </ModalBody>
 
-            <ModalFooter>
+            <ModalFooter borderTop="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
               <Button variant="ghost" mr={3} onClick={onClose}>
                 Cancel
               </Button>
-              <Button colorScheme="blue" type="submit">
+              <Button colorScheme="cyan" type="submit">
                 Create Scenario
               </Button>
             </ModalFooter>
@@ -786,20 +832,27 @@ function SessionsListPage() {
         leastDestructiveRef={cancelDeleteRef}
         onClose={onDeleteClose}
       >
-        <AlertDialogOverlay>
-          <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+        <AlertDialogOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)">
+          <AlertDialogContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white" borderBottom="1px solid" borderColor="rgba(255, 255, 255, 0.1)" px={6} py={4}>
               Delete this scenario?
             </AlertDialogHeader>
-            <AlertDialogBody>
+            <AlertDialogBody color="gray.300" px={6} py={4}>
               This scenario has no roadmap items and will be permanently removed.
             </AlertDialogBody>
-            <AlertDialogFooter>
-              <Button ref={cancelDeleteRef} onClick={onDeleteClose}>
+            <AlertDialogFooter borderTop="1px solid" borderColor="rgba(255, 255, 255, 0.1)" px={6} py={4}>
+              <Button ref={cancelDeleteRef} onClick={onDeleteClose} variant="outline">
                 Cancel
               </Button>
               <Button
-                colorScheme="red"
+                bg="rgba(239, 68, 68, 0.1)"
+                border="1px solid"
+                borderColor="rgba(239, 68, 68, 0.5)"
+                color="#ef4444"
+                _hover={{
+                  bg: 'rgba(239, 68, 68, 0.2)',
+                  borderColor: '#ef4444',
+                }}
                 onClick={() => {
                   if (sessionToDelete) {
                     deleteSession(sessionToDelete.id)

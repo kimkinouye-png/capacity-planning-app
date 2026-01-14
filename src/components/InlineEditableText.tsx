@@ -74,10 +74,12 @@ export default function InlineEditableText({
         variant="flushed"
         px={2}
         py={1}
-        borderColor="blue.300"
+        bg="#1a1a20"
+        borderColor="rgba(0, 217, 255, 0.5)"
+        color="white"
         _focus={{
-          borderColor: 'blue.500',
-          boxShadow: '0 0 0 1px var(--chakra-colors-blue-500)',
+          borderColor: '#00d9ff',
+          boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
         }}
       />
     )
@@ -97,7 +99,7 @@ export default function InlineEditableText({
       }}
       aria-label={ariaLabel ? `${ariaLabel} - Click to edit` : 'Click to edit'}
     >
-      <Text fontSize={fontSize} fontWeight={fontWeight}>
+      <Text fontSize={fontSize} fontWeight={fontWeight} color="white">
         {value || 'Untitled'}
       </Text>
       {!isDisabled && (
@@ -107,7 +109,8 @@ export default function InlineEditableText({
           size="xs"
           variant="ghost"
           opacity={0}
-          _groupHover={{ opacity: 0.6 }}
+          color="gray.400"
+          _groupHover={{ opacity: 0.6, color: '#00d9ff' }}
           onClick={(e) => {
             e.stopPropagation()
             setIsEditing(true)
