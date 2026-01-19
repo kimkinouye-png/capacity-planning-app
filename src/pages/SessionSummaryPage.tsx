@@ -118,7 +118,14 @@ function SessionSummaryPage() {
   const capacityMetrics = useMemo(() => {
     if (!session) return null
 
-    const weeksInQuarter = getWeeksForPeriod(session.planning_period)
+    // Handle both planning_period (legacy) and planningPeriod fields
+    const period = session.planning_period || session.planningPeriod
+    if (!period) {
+      console.error('Session missing planning period:', session)
+      return null
+    }
+
+    const weeksInQuarter = getWeeksForPeriod(period)
     
     // Calculate capacity (team size × weeks in quarter)
     const uxCapacity = session.ux_designers * weeksInQuarter
@@ -295,6 +302,9 @@ function SessionSummaryPage() {
     return period.replace('-', ' ')
   }
 
+  // Get planning period (handles both legacy and new field names)
+  const planningPeriod = session?.planning_period || session?.planningPeriod
+
   return (
     <Box bg="#0a0a0f" minH="100vh" pb={8}>
       <Box maxW="1400px" mx="auto" px={6} pt={6}>
@@ -346,7 +356,7 @@ function SessionSummaryPage() {
               />
             </Box>
             <Text fontSize="14px" color="gray.400">
-              {formatQuarter(session.planning_period)} • {session.ux_designers} UX Designers • {session.content_designers} Content Designers
+              {formatQuarter(planningPeriod)} • {session.ux_designers} UX Designers • {session.content_designers} Content Designers
             </Text>
           </Box>
           <HStack spacing={3}>
@@ -386,7 +396,7 @@ function SessionSummaryPage() {
                     await commitSession(session.id, items.length)
                     toast({
                       title: 'Scenario committed',
-                      description: `${session.name} is now the committed plan for ${formatQuarter(session.planning_period)}.`,
+                      description: `${session.name} is now the committed plan for ${formatQuarter(planningPeriod)}.`,
                       status: 'success',
                       duration: 3000,
                       isClosable: true,
