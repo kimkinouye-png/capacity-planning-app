@@ -128,40 +128,46 @@ function SessionSummaryPage() {
     const weeksInQuarter = getWeeksForPeriod(period)
     
     // Calculate capacity (team size × weeks in quarter)
-    const uxCapacity = session.ux_designers * weeksInQuarter
-    const contentCapacity = session.content_designers * weeksInQuarter
+    // Ensure these are numbers, default to 0 if undefined
+    const uxDesigners = typeof session.ux_designers === 'number' ? session.ux_designers : 0
+    const contentDesigners = typeof session.content_designers === 'number' ? session.content_designers : 0
+    const uxCapacity = uxDesigners * weeksInQuarter
+    const contentCapacity = contentDesigners * weeksInQuarter
 
     // Calculate demand (sum of focus weeks from all items)
+    // Ensure we always return a number, handle undefined/null values
     const uxDemand = items.reduce((sum, item) => {
-      return sum + (item.uxFocusWeeks || 0)
+      const weeks = typeof item.uxFocusWeeks === 'number' ? item.uxFocusWeeks : 0
+      return sum + weeks
     }, 0)
 
     const contentDemand = items.reduce((sum, item) => {
-      return sum + (item.contentFocusWeeks || 0)
+      const weeks = typeof item.contentFocusWeeks === 'number' ? item.contentFocusWeeks : 0
+      return sum + weeks
     }, 0)
 
-    // Calculate surplus/deficit
+    // Calculate surplus/deficit - ensure these are numbers
     const uxSurplus = uxCapacity - uxDemand
     const contentSurplus = contentCapacity - contentDemand
 
-    // Calculate utilization %
+    // Calculate utilization % - ensure these are numbers
     const uxUtilization = uxCapacity > 0 ? (uxDemand / uxCapacity) * 100 : 0
     const contentUtilization = contentCapacity > 0 ? (contentDemand / contentCapacity) * 100 : 0
 
     return {
       ux: {
-        teamSize: session.ux_designers,
-        capacity: uxCapacity,
-        demand: uxDemand,
-        surplus: uxSurplus,
-        utilization: uxUtilization,
+        teamSize: uxDesigners,
+        capacity: Number(uxCapacity) || 0,
+        demand: Number(uxDemand) || 0,
+        surplus: Number(uxSurplus) || 0,
+        utilization: Number(uxUtilization) || 0,
       },
       content: {
-        teamSize: session.content_designers,
-        capacity: contentCapacity,
-        demand: contentDemand,
-        surplus: contentSurplus,
-        utilization: contentUtilization,
+        teamSize: contentDesigners,
+        capacity: Number(contentCapacity) || 0,
+        demand: Number(contentDemand) || 0,
+        surplus: Number(contentSurplus) || 0,
+        utilization: Number(contentUtilization) || 0,
       },
     }
   }, [session, items])
@@ -446,7 +452,7 @@ function SessionSummaryPage() {
                     Total Capacity
                   </Text>
                   <Text fontSize="24px" fontWeight="bold" color="white">
-                    {capacityMetrics.ux.capacity.toFixed(1)} focus weeks
+                    {typeof capacityMetrics.ux.capacity === 'number' ? capacityMetrics.ux.capacity.toFixed(1) : '0.0'} focus weeks
                   </Text>
                 </Box>
                 <Box>
@@ -454,7 +460,7 @@ function SessionSummaryPage() {
                     Total Demand
                   </Text>
                   <Text fontSize="24px" fontWeight="bold" color="white">
-                    {capacityMetrics.ux.demand.toFixed(1)} focus weeks
+                    {typeof capacityMetrics.ux.demand === 'number' ? capacityMetrics.ux.demand.toFixed(1) : '0.0'} focus weeks
                   </Text>
                 </Box>
                 <Box
@@ -473,11 +479,11 @@ function SessionSummaryPage() {
                       color={capacityMetrics.ux.surplus >= 0 ? '#10b981' : '#ef4444'}
                     >
                       {capacityMetrics.ux.surplus >= 0 ? '+' : ''}
-                      {capacityMetrics.ux.surplus.toFixed(1)} focus weeks
+                      {typeof capacityMetrics.ux.surplus === 'number' ? capacityMetrics.ux.surplus.toFixed(1) : '0.0'} focus weeks
                     </Text>
                   </HStack>
                   <Text fontSize="12px" color="gray.400">
-                    {capacityMetrics.ux.surplus >= 0 ? 'Surplus' : 'Deficit'} • {capacityMetrics.ux.utilization.toFixed(0)}% utilized
+                    {capacityMetrics.ux.surplus >= 0 ? 'Surplus' : 'Deficit'} • {typeof capacityMetrics.ux.utilization === 'number' ? capacityMetrics.ux.utilization.toFixed(0) : '0'}% utilized
                   </Text>
                 </Box>
               </VStack>
@@ -508,7 +514,7 @@ function SessionSummaryPage() {
                     Total Capacity
                   </Text>
                   <Text fontSize="24px" fontWeight="bold" color="white">
-                    {capacityMetrics.content.capacity.toFixed(1)} focus weeks
+                    {typeof capacityMetrics.content.capacity === 'number' ? capacityMetrics.content.capacity.toFixed(1) : '0.0'} focus weeks
                   </Text>
                 </Box>
                 <Box>
@@ -516,7 +522,7 @@ function SessionSummaryPage() {
                     Total Demand
                   </Text>
                   <Text fontSize="24px" fontWeight="bold" color="white">
-                    {capacityMetrics.content.demand.toFixed(1)} focus weeks
+                    {typeof capacityMetrics.content.demand === 'number' ? capacityMetrics.content.demand.toFixed(1) : '0.0'} focus weeks
                   </Text>
                 </Box>
                 <Box
@@ -535,11 +541,11 @@ function SessionSummaryPage() {
                       color={capacityMetrics.content.surplus >= 0 ? '#10b981' : '#ef4444'}
                     >
                       {capacityMetrics.content.surplus >= 0 ? '+' : ''}
-                      {capacityMetrics.content.surplus.toFixed(1)} focus weeks
+                      {typeof capacityMetrics.content.surplus === 'number' ? capacityMetrics.content.surplus.toFixed(1) : '0.0'} focus weeks
                     </Text>
                   </HStack>
                   <Text fontSize="12px" color="gray.400">
-                    {capacityMetrics.content.surplus >= 0 ? 'Surplus' : 'Deficit'} • {capacityMetrics.content.utilization.toFixed(0)}% utilized
+                    {capacityMetrics.content.surplus >= 0 ? 'Surplus' : 'Deficit'} • {typeof capacityMetrics.content.utilization === 'number' ? capacityMetrics.content.utilization.toFixed(0) : '0'}% utilized
                   </Text>
                 </Box>
               </VStack>
