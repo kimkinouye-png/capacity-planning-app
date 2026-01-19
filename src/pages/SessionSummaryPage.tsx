@@ -653,7 +653,7 @@ function SessionSummaryPage() {
                             )}
                           </Td>
                           <Td color="gray.300">
-                            {item.uxFocusWeeks ? item.uxFocusWeeks.toFixed(1) : '—'}
+                            {typeof item.uxFocusWeeks === 'number' ? item.uxFocusWeeks.toFixed(1) : '—'}
                           </Td>
                           <Td color="gray.300">
                             {item.uxFocusWeeks
@@ -674,7 +674,7 @@ function SessionSummaryPage() {
                             )}
                           </Td>
                           <Td color="gray.300">
-                            {item.contentFocusWeeks
+                            {typeof item.contentFocusWeeks === 'number'
                               ? item.contentFocusWeeks.toFixed(1)
                               : '—'}
                           </Td>
