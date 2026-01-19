@@ -53,7 +53,7 @@ function SessionSummaryPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const toast = useToast()
-  const { getSessionById, commitSession, uncommitSession, updateSession, isLoading: sessionsLoading, error: sessionsError, loadSessions } = usePlanningSessions()
+  const { sessions, getSessionById, commitSession, uncommitSession, updateSession, isLoading: sessionsLoading, error: sessionsError, loadSessions } = usePlanningSessions()
   const { getItemsForSession, removeItem, createItem, loadItemsForSession } = useRoadmapItems()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isCreateModalOpen, onOpen: onCreateModalOpen, onClose: onCreateModalClose } = useDisclosure()
@@ -68,17 +68,34 @@ function SessionSummaryPage() {
     priority: 1,
   })
 
-  // Reload sessions if we don't find the session (in case it was just created)
+  // Ensure sessions are loaded when navigating to this page
+  // This handles the case where you navigate directly to a session URL
   useEffect(() => {
-    if (id && !sessionsLoading) {
-      const session = getSessionById(id)
-      if (!session) {
-        // Session not found, try reloading
-        console.log('Session not found, reloading sessions...')
-        loadSessions()
+    if (id && !sessionsLoading && sessions.length === 0) {
+      // No sessions loaded, fetch them
+      loadSessions()
+    }
+  }, [id, sessionsLoading, sessions.length, loadSessions])
+
+  // Reload sessions if we don't find the session (in case it was just created)
+  // Use a ref to prevent infinite loops
+  const hasTriedReload = useRef(false)
+  useEffect(() => {
+    if (id && !sessionsLoading && sessions.length > 0 && !hasTriedReload.current) {
+      const foundSession = getSessionById(id)
+      if (!foundSession) {
+        // Session not found in loaded sessions, try reloading once
+        console.log('Session not found in loaded sessions, reloading...')
+        hasTriedReload.current = true
+        loadSessions().finally(() => {
+          // Reset after reload completes (with a delay to allow state update)
+          setTimeout(() => {
+            hasTriedReload.current = false
+          }, 3000)
+        })
       }
     }
-  }, [id, sessionsLoading, getSessionById, loadSessions])
+  }, [id, sessionsLoading, sessions.length, getSessionById, loadSessions])
 
   // Get session
   const session = useMemo(() => {
