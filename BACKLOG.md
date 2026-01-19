@@ -1,9 +1,43 @@
 # Capacity Planning App - Development Backlog
 
-Last Updated: 2026-01-13
+Last Updated: 2026-01-19
 
 ## In Progress
 (Items currently being worked on)
+
+## Phase 4: Database Integration & Global Settings ✅ PARTIALLY COMPLETE (2026-01-19)
+
+### Database Setup ✅
+- [x] Neon Postgres database setup via Netlify DB
+- [x] Database schema creation (`settings`, `scenarios`, `roadmap_items`, `activity_log`)
+- [x] Environment variable configuration (`NETLIFY_DATABASE_URL`)
+- [x] Database connection via `@netlify/neon` package
+
+### Global Settings Implementation ✅
+- [x] Settings page (`/settings`) for editing effort model parameters
+- [x] UX Factor Weights configuration (3 factors)
+- [x] Content Factor Weights configuration (4 factors)
+- [x] PM Intake Overall Multiplier configuration
+- [x] Focus-time Ratio configuration (0.0-1.0)
+- [x] Size-band Thresholds configuration (XS, S, M, L, XL)
+- [x] "Reset to Defaults" functionality
+- [x] SettingsContext for React state management
+- [x] Settings persistence to database
+- [x] Settings loading from database on app start
+- [x] Effort calculations use settings from database
+
+### Netlify Functions ✅
+- [x] `get-settings.ts` - Fetch global settings
+- [x] `update-settings.ts` - Update global settings
+- [x] `get-scenarios.ts` - Fetch scenarios (prepared, not integrated)
+- [x] `create-scenario.ts` - Create scenario (prepared, not integrated)
+
+### Remaining Work (Phase 5)
+- [ ] Integrate scenarios with database (update `PlanningSessionsContext`)
+- [ ] Create and integrate roadmap items functions
+- [ ] Create and integrate activity log functions
+- [ ] Data migration from localStorage to database
+- [ ] Update scenarios Netlify Functions (update, delete)
 
 ## Phase 2: Post-Figma Implementation ✅ COMPLETE (2026-01-13)
 

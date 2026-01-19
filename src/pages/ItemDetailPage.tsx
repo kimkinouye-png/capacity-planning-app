@@ -319,30 +319,36 @@ function ItemDetailPage() {
   useEffect(() => {
     if (!itemId || sessionId === 'demo') return
 
-    // Use factor scores from pdInputs, defaulting to 3 if not set
-    const uxScores: FactorScores = {
-      productRisk: pdInputs.productRisk ?? 3,
-      problemAmbiguity: pdInputs.problemAmbiguity ?? 3,
-      discoveryDepth: pdInputs.discoveryDepth ?? 3,
+    const updateUXEffort = async () => {
+      // Use factor scores from pdInputs, defaulting to 3 if not set
+      const uxScores: FactorScores = {
+        productRisk: pdInputs.productRisk ?? 3,
+        problemAmbiguity: pdInputs.problemAmbiguity ?? 3,
+        discoveryDepth: pdInputs.discoveryDepth ?? 3,
+      }
+
+      const uxEffort = calculateEffort('ux', uxScores)
+      const session = sessionId ? getSessionById(sessionId) : undefined
+      const sessionName = session?.name || 'Unknown scenario'
+      const itemName = item?.name || 'Unknown item'
+      
+      await updateItem(itemId, {
+        uxSizeBand: uxEffort.sizeBand,
+        uxFocusWeeks: uxEffort.focusWeeks,
+        uxWorkWeeks: uxEffort.workWeeks,
+      })
+      
+      // Log effort update
+      logActivity({
+        type: 'effort_updated',
+        scenarioId: sessionId,
+        scenarioName: sessionName,
+        description: `Updated UX effort for '${itemName}' in scenario '${sessionName}' (${uxEffort.sizeBand}, ${uxEffort.focusWeeks} focus weeks).`,
+      })
     }
 
-    const uxEffort = calculateEffort('ux', uxScores)
-    const session = sessionId ? getSessionById(sessionId) : undefined
-    const sessionName = session?.name || 'Unknown scenario'
-    const itemName = item?.name || 'Unknown item'
-    
-    updateItem(itemId, {
-      uxSizeBand: uxEffort.sizeBand,
-      uxFocusWeeks: uxEffort.focusWeeks,
-      uxWorkWeeks: uxEffort.workWeeks,
-    })
-    
-    // Log effort update
-    logActivity({
-      type: 'effort_updated',
-      scenarioId: sessionId,
-      scenarioName: sessionName,
-      description: `Updated UX effort for '${itemName}' in scenario '${sessionName}' (${uxEffort.sizeBand}, ${uxEffort.focusWeeks} focus weeks).`,
+    updateUXEffort().catch((error) => {
+      console.error('Error updating UX effort:', error)
     })
   }, [itemId, sessionId, pdInputs.productRisk, pdInputs.problemAmbiguity, pdInputs.discoveryDepth, updateItem, logActivity, getSessionById, item?.name])
 
@@ -351,31 +357,37 @@ function ItemDetailPage() {
   useEffect(() => {
     if (!itemId || sessionId === 'demo') return
 
-    // Use factor scores from cdInputs, defaulting to 3 if not set
-    const contentScores: FactorScores = {
-      contentSurfaceArea: cdInputs.contentSurfaceArea ?? 3,
-      localizationScope: cdInputs.localizationScope ?? 3,
-      regulatoryBrandRisk: cdInputs.regulatoryBrandRisk ?? 3,
-      legalComplianceDependency: cdInputs.legalComplianceDependency ?? 3,
+    const updateContentEffort = async () => {
+      // Use factor scores from cdInputs, defaulting to 3 if not set
+      const contentScores: FactorScores = {
+        contentSurfaceArea: cdInputs.contentSurfaceArea ?? 3,
+        localizationScope: cdInputs.localizationScope ?? 3,
+        regulatoryBrandRisk: cdInputs.regulatoryBrandRisk ?? 3,
+        legalComplianceDependency: cdInputs.legalComplianceDependency ?? 3,
+      }
+
+      const contentEffort = calculateEffort('content', contentScores)
+      const session = sessionId ? getSessionById(sessionId) : undefined
+      const sessionName = session?.name || 'Unknown scenario'
+      const itemName = item?.name || 'Unknown item'
+      
+      await updateItem(itemId, {
+        contentSizeBand: contentEffort.sizeBand,
+        contentFocusWeeks: contentEffort.focusWeeks,
+        contentWorkWeeks: contentEffort.workWeeks,
+      })
+    
+      // Log effort update
+      logActivity({
+        type: 'effort_updated',
+        scenarioId: sessionId,
+        scenarioName: sessionName,
+        description: `Updated Content effort for '${itemName}' in scenario '${sessionName}' (${contentEffort.sizeBand}, ${contentEffort.focusWeeks} focus weeks).`,
+      })
     }
 
-    const contentEffort = calculateEffort('content', contentScores)
-    const session = sessionId ? getSessionById(sessionId) : undefined
-    const sessionName = session?.name || 'Unknown scenario'
-    const itemName = item?.name || 'Unknown item'
-    
-    updateItem(itemId, {
-      contentSizeBand: contentEffort.sizeBand,
-      contentFocusWeeks: contentEffort.focusWeeks,
-      contentWorkWeeks: contentEffort.workWeeks,
-    })
-    
-    // Log effort update
-    logActivity({
-      type: 'effort_updated',
-      scenarioId: sessionId,
-      scenarioName: sessionName,
-      description: `Updated Content effort for '${itemName}' in scenario '${sessionName}' (${contentEffort.sizeBand}, ${contentEffort.focusWeeks} focus weeks).`,
+    updateContentEffort().catch((error) => {
+      console.error('Error updating Content effort:', error)
     })
   }, [itemId, sessionId, cdInputs.contentSurfaceArea, cdInputs.localizationScope, cdInputs.regulatoryBrandRisk, cdInputs.legalComplianceDependency, updateItem, logActivity, getSessionById, item?.name])
 

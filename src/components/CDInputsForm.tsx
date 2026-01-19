@@ -15,6 +15,7 @@ import {
 import type { ContentDesignInputs } from '../domain/types'
 import { calculateEffort, type FactorScores } from '../config/effortModel'
 import { estimateSprints, formatSprintEstimate } from '../config/sprints'
+import { useSettings } from '../context/SettingsContext'
 
 interface CDInputsFormProps {
   value: ContentDesignInputs
@@ -23,6 +24,7 @@ interface CDInputsFormProps {
 }
 
 export default function CDInputsForm({ value, onChange }: CDInputsFormProps) {
+  const { settings } = useSettings()
   // Define the 4 Content factors to display
   const factorsToShow = [
     {
@@ -74,7 +76,12 @@ export default function CDInputsForm({ value, onChange }: CDInputsFormProps) {
       regulatoryBrandRisk: value.regulatoryBrandRisk ?? 3,
       legalComplianceDependency: value.legalComplianceDependency ?? 3,
     }
-    return calculateEffort('content', scores)
+    // TODO: Use settings from SettingsContext for weights, size bands, and focus-time ratio
+    return calculateEffort('content', scores, {
+      weights: settings?.effort_model.content,
+      sizeBands: settings?.size_bands,
+      focusTimeRatio: settings?.time_model.focusTimeRatio,
+    })
   }
 
   const contentEffort = calculateContentEffort()

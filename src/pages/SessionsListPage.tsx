@@ -165,27 +165,32 @@ function SessionsListPage() {
     content_designers: 2,
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     // Calculate weeks_per_period from the selected planning period
     const weeksPerPeriod = getWeeksForPeriod(formData.planningPeriod)
     
-    const newSession = createSession({
+    try {
+      const newSession = await createSession({
       name: formData.name,
       planningPeriod: formData.planningPeriod,
       weeks_per_period: weeksPerPeriod,
       sprint_length_weeks: SPRINT_LENGTH_WEEKS, // Fixed constant
       ux_designers: formData.ux_designers,
       content_designers: formData.content_designers,
-    })
-    onClose()
-    setFormData({
-      name: '',
-      planningPeriod: '2026-Q4',
-      ux_designers: 3,
-      content_designers: 2,
-    })
-    navigate(`/sessions/${newSession.id}`)
+      })
+      onClose()
+      setFormData({
+        name: '',
+        planningPeriod: '2026-Q4',
+        ux_designers: 3,
+        content_designers: 2,
+      })
+      navigate(`/sessions/${newSession.id}`)
+    } catch (error) {
+      console.error('Error creating scenario:', error)
+      // Error is handled by context fallback
+    }
   }
 
   // Calculate metrics for each scenario - safely handle undefined/null
@@ -576,12 +581,12 @@ function SessionsListPage() {
                           spacing={2}
                           align="center"
                           cursor="pointer"
-                          onClick={(e) => {
+                          onClick={async (e) => {
                             e.stopPropagation()
                             if (session?.id && itemCount > 0) {
                               if (session.status === 'committed') {
                                 // Uncommit if already committed
-                                uncommitSession(session.id)
+                                await uncommitSession(session.id)
                                 toast({
                                   title: 'Scenario uncommitted',
                                   description: `${session.name} has been uncommitted.`,
@@ -591,7 +596,7 @@ function SessionsListPage() {
                                 })
                               } else {
                                 // Commit if not committed
-                                commitSession(session.id, itemCount)
+                                await commitSession(session.id, itemCount)
                                 toast({
                                   title: 'Scenario committed',
                                   description: `${session.name} has been set as the committed plan.`,
@@ -864,9 +869,9 @@ function SessionsListPage() {
                   bg: 'rgba(239, 68, 68, 0.2)',
                   borderColor: '#ef4444',
                 }}
-                onClick={() => {
+                onClick={async () => {
                   if (sessionToDelete) {
-                    deleteSession(sessionToDelete.id)
+                    await deleteSession(sessionToDelete.id)
                     toast({
                       title: 'Scenario deleted',
                       description: `${sessionToDelete.name} has been deleted.`,

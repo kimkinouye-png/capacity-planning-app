@@ -2,6 +2,87 @@
 
 A web application for managing team capacity and planning quarterly design work across UX and Content Design teams.
 
+## Features
+
+- **Planning Scenarios**: Create and manage quarterly planning scenarios
+- **Effort Estimation**: Factor-based effort estimation for UX and Content Design
+- **Capacity Tracking**: Real-time capacity calculations and status indicators
+- **Committed Plans**: Mark scenarios as committed and view aggregate capacity
+- **Global Settings**: Configurable effort model weights, focus-time ratio, and size-band thresholds
+- **Activity Logging**: Track scenario and item changes over time
+
+## Tech Stack
+
+- **Frontend**: React + TypeScript + Vite
+- **UI**: Chakra UI with custom dark mode theme
+- **Backend**: Netlify Functions (TypeScript)
+- **Database**: Neon Postgres (via Netlify DB)
+- **Deployment**: Netlify
+
+## Setup
+
+### Prerequisites
+
+- Node.js 18+
+- npm or yarn
+- Neon Postgres database (for production)
+- Netlify account (for deployment)
+
+### Installation
+
+```bash
+npm install
+```
+
+### Development
+
+```bash
+npm run dev
+```
+
+The app will be available at `http://localhost:5173`
+
+### Database Setup
+
+See [database/README.md](./database/README.md) for database setup instructions.
+
+### Environment Variables
+
+For local development, create a `.env` file:
+
+```env
+NETLIFY_DATABASE_URL=postgresql://user:password@host/database?sslmode=require
+```
+
+For production, set `NETLIFY_DATABASE_URL` in your Netlify dashboard.
+
+## Project Structure
+
+```
+├── database/           # Database schema and migrations
+├── netlify/
+│   └── functions/      # Netlify Functions (API endpoints)
+├── src/
+│   ├── components/     # React components
+│   ├── config/        # Configuration files (effort model, etc.)
+│   ├── context/       # React Context providers
+│   ├── domain/        # TypeScript types and domain models
+│   ├── pages/         # Page components
+│   └── utils/         # Utility functions
+└── public/            # Static assets
+```
+
+## API Endpoints
+
+- `GET /.netlify/functions/get-settings` - Get global settings
+- `PUT /.netlify/functions/update-settings` - Update global settings
+- `GET /.netlify/functions/get-scenarios` - Get all scenarios
+- `POST /.netlify/functions/create-scenario` - Create a new scenario
+
+## License
+
+Private project - All rights reserved
+
 **Live Demo:** https://capacity-planning-2.netlify.app/
 
 ## Features

@@ -361,9 +361,9 @@ function HomePage() {
                           <HStack spacing={3} align="center" flex={1}>
                             <InlineEditableText
                               value={session.name || 'Unnamed Scenario'}
-                              onChange={(newName) => {
+                              onChange={async (newName) => {
                                 if (session.id && newName.trim()) {
-                                  updateSession(session.id, { name: newName.trim() })
+                                  await updateSession(session.id, { name: newName.trim() })
                                   toast({
                                     title: 'Scenario renamed',
                                     description: `Scenario name updated to "${newName.trim()}".`,
@@ -461,12 +461,12 @@ function HomePage() {
                                 spacing={2}
                                 align="center"
                                 cursor="pointer"
-                                onClick={(e) => {
+                                onClick={async (e) => {
                                   e.stopPropagation()
                                   if (session.id && itemCount > 0) {
                                     if (session.status === 'committed') {
                                       // Uncommit if already committed
-                                      uncommitSession(session.id)
+                                      await uncommitSession(session.id)
                                       toast({
                                         title: 'Scenario uncommitted',
                                         description: `${session.name} has been uncommitted.`,
@@ -476,7 +476,7 @@ function HomePage() {
                                       })
                                     } else {
                                       // Commit if not committed
-                                      commitSession(session.id, itemCount)
+                                      await commitSession(session.id, itemCount)
                                       toast({
                                         title: 'Scenario committed',
                                         description: `${session.name} has been set as the committed plan.`,
@@ -620,9 +620,9 @@ function HomePage() {
                   bg: 'rgba(239, 68, 68, 0.2)',
                   borderColor: '#ef4444',
                 }}
-                onClick={() => {
+                onClick={async () => {
                   if (sessionToDelete) {
-                    deleteSession(sessionToDelete.id)
+                    await deleteSession(sessionToDelete.id)
                     toast({
                       title: 'Scenario deleted',
                       description: `${sessionToDelete.name} has been deleted.`,

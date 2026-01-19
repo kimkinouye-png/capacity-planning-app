@@ -9,21 +9,24 @@ import { PlanningSessionsProvider } from './context/PlanningSessionsContext'
 import { RoadmapItemsProvider } from './context/RoadmapItemsContext'
 import { ItemInputsProvider } from './context/ItemInputsContext'
 import { ActivityProvider } from './context/ActivityContext'
+import { SettingsProvider } from './context/SettingsContext'
 import theme from './theme'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <ChakraProvider theme={theme}>
         <BrowserRouter>
-          <ActivityProvider>
-            <PlanningSessionsProvider>
-              <RoadmapItemsProvider>
-                <ItemInputsProvider>
-                  <App />
-                </ItemInputsProvider>
-              </RoadmapItemsProvider>
-            </PlanningSessionsProvider>
-          </ActivityProvider>
+          <SettingsProvider>
+            <ActivityProvider>
+              <PlanningSessionsProvider>
+                <RoadmapItemsProvider>
+                  <ItemInputsProvider>
+                    <App />
+                  </ItemInputsProvider>
+                </RoadmapItemsProvider>
+              </PlanningSessionsProvider>
+            </ActivityProvider>
+          </SettingsProvider>
         </BrowserRouter>
       </ChakraProvider>
     </React.StrictMode>,

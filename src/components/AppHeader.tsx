@@ -8,6 +8,7 @@ export default function AppHeader() {
     { path: '/scenarios', label: 'Scenarios' },
     { path: '/committed-plan', label: 'Committed Plan' },
     { path: '/guide', label: 'Guide' },
+    { path: '/settings', label: 'Settings' },
   ]
 
   return (

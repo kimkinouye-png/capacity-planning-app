@@ -4,6 +4,173 @@ All notable changes to the Capacity Planning App will be documented in this file
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-01-19
+
+### Phase 4: Database Integration & Global Settings
+
+**Completion Date:** January 19, 2026
+
+#### Overview
+
+Phase 4 introduced a persistent data layer using **Neon Postgres** (via **Netlify DB**) and a global settings framework wired through **Netlify Functions** and a React **SettingsContext**. This replaces ad‑hoc browser state for configuration with a single source of truth backed by Postgres.
+
+#### Added
+
+##### 1. Neon Postgres Database Setup
+- **Database Provisioning**: Neon Postgres database via Netlify DB (built‑in, managed Postgres powered by Neon)
+- **Environment Configuration**: Automatic `NETLIFY_DATABASE_URL` environment variable via Netlify DB integration
+- **Database Connection**: Connected via `@netlify/neon` package (Neon serverless driver optimized for serverless/edge environments)
+- **Database Schema**: Four primary tables:
+  - `settings` - Global configuration store
+  - `scenarios` - Scenario definitions and metadata
+  - `roadmap_items` - Items linked to scenarios via foreign key
+  - `activity_log` - Event and audit data for user actions
+- **Schema Characteristics**:
+  - UUID primary keys
+  - JSONB columns for flexible configuration (`effort_model`, `time_model`, `size_bands`, `pm_intake`, `ux_factors`, `content_factors`)
+  - Automatic `updated_at` timestamp triggers
+  - Indexes for query performance
+  - Foreign key relationships (`roadmap_items.scenario_id → scenarios.id`)
+
+##### 2. Global Settings Page
+- **New Route**: `/settings` with comprehensive settings form
+- **Configurable Parameters**:
+  - **UX Factor Weights**: Product Risk, Problem Ambiguity, Discovery Depth
+  - **Content Factor Weights**: Content Surface Area, Localization Scope, Regulatory & Brand Risk, Legal Compliance Dependency
+  - **PM Intake Overall Multiplier**: Global multiplier for PM intake quality
+  - **Focus-time Ratio**: Configurable ratio (0.0–1.0, default 0.75) for converting focus weeks to work weeks
+  - **Size-band Thresholds**: Custom numeric cutoffs for XS, S, M, L, XL size bands
+- **Features**: "Reset to Defaults" action to restore baked‑in model values
+- **Persistence**: Settings loaded on app start and persisted to `settings` table
+
+##### 3. SettingsContext (React)
+- **New React Context**: `SettingsContext` with `useSettings()` hook
+- **Initialization**: Fetches settings from `/.netlify/functions/get-settings` on app start
+- **Default Creation**: Creates default settings on first run if none exist
+- **Updates**: Saves settings through `/.netlify/functions/update-settings`
+- **Error Handling**: Loading and error states with graceful fallback to default settings if API unavailable
+- **Global Access**: Makes settings available across app without prop drilling
+
+##### 4. Netlify Functions (Serverless API)
+- **Backend API**: Implemented with Netlify Functions in TypeScript
+- **Implemented Functions**:
+  - `get-settings.ts`: Reads global settings from Postgres, inserts defaults if missing
+  - `update-settings.ts`: Validates payload and updates persisted settings record
+  - `get-scenarios.ts`: Prepared for future frontend integration (returns scenario data)
+  - `create-scenario.ts`: Prepared for future frontend integration (inserts new scenario rows)
+- **Common Features**:
+  - All functions use `@netlify/neon` with `NETLIFY_DATABASE_URL` for automatic DB connection
+  - CORS headers configured for local development
+  - Deployed in `netlify/functions` with standard Netlify functions conventions
+
+##### 5. Effort Calculation Integration
+- **Updated Pipeline**: Calculation functions now consume global settings
+  - `calculateEffort()` accepts optional `settings` parameter
+  - `calculateWeightedScore()` uses configured UX/Content factor weights when provided
+  - `mapScoreToSizeBand()` uses size‑band thresholds from settings when available
+  - `calculateWorkWeeks()` uses configured focus‑time ratio when available
+- **Form Integration**: `PDInputsForm` and `CDInputsForm` read from `SettingsContext`
+  - Inputs reflect current weights and thresholds
+  - All effort outputs stay in sync with global configuration
+
+##### 6. Documentation
+- Database setup guide for provisioning Netlify DB / Neon Postgres
+- QA testing guide for settings lifecycle (load, edit, reset, failure modes)
+- Manual environment setup instructions (Netlify, env vars, local dev)
+- Quick reference checklists for running functions locally and verifying connectivity
+
+#### Changed
+- **Settings Storage**: Moved from hard-coded values to database-backed settings
+  - Settings persist across deployments
+  - Settings can be updated via UI
+  - Settings affect all effort calculations globally
+- **Form Components**: Updated to use settings from `SettingsContext`
+  - `PDInputsForm` uses database settings for effort calculations
+  - `CDInputsForm` uses database settings for effort calculations
+- **Navigation**: Added "Settings" link to global header navigation
+- **Build Configuration**: Updated `netlify.toml` for Functions directory
+- **Package Dependencies**: Added `@netlify/neon`, `pg` for database connectivity
+
+#### Technical Architecture
+
+**High-Level Stack:**
+- **Frontend**: Vite + React + TypeScript with global configuration via `SettingsContext`
+- **Backend**: Netlify Functions (TypeScript) providing serverless API layer
+- **Database**: Netlify DB (Neon‑backed Postgres) as primary data store with managed connection string
+
+**Data Flow (Settings):**
+1. App boots and `SettingsContext` requests settings from `get-settings`
+2. `get-settings` reads from `settings` table (or creates defaults) and returns JSON
+3. `SettingsContext` hydrates app with returned configuration
+4. User updates settings on `/settings`, `update-settings` persists changes
+5. Subsequent calculations receive up‑to‑date settings via context
+
+#### Current Status
+
+**Completed:**
+- ✅ Global settings integrated with Neon Postgres
+- ✅ Settings read/write via Netlify Functions
+- ✅ Settings wired to effort calculation and UI forms
+- ✅ Database schema created and deployed
+- ✅ Netlify Functions implemented and tested
+
+**Pending (Phase 5):**
+- ⏳ Scenarios still persisted in `localStorage` (UI not yet wired to DB)
+- ⏳ Roadmap items still in `localStorage`
+- ⏳ Activity log still in `localStorage`
+- ⏳ Data migration path from `localStorage` → Postgres
+
+## [3.0.0] - 2026-01-XX
+
+### Phase 3: Dark Mode Design System & Enhanced Features
+
+#### Added
+- **Dark Mode Design System**: Complete transformation to modern dark mode with electric cyan accents (#00d9ff), blue gradients, and glowing effects
+- **Guide Page**: Comprehensive documentation page (`/guide`) covering capacity planning concepts, scoring guides, workflows, best practices, and FAQs
+- **Committed Plan Page**: New dedicated page (`/committed-plan`) showing aggregate capacity metrics across all committed scenarios, quarterly breakdown visualization placeholder, and complete roadmap items table
+- **Global AppHeader Component**: Unified header navigation with "Capacity Planner" branding, Home/Scenarios/Committed Plan/Guide links, and active state indicators
+- **Uncommit Functionality**: Ability to easily deselect commitment from scenarios via toggle controls in list views and dedicated "Uncommit" button in summary view
+- **Activity Logging**: Enhanced activity tracking for scenario renaming and deletion events
+
+#### Changed
+- **Application Name**: Changed from "Capacity Planning" to "Capacity Planner" throughout the application
+- **Color Palette**: 
+  - Primary background: `#0a0a0f`
+  - Secondary background (cards): `#141419`
+  - Tertiary background (inputs): `#1a1a20`
+  - Primary accent: Electric Cyan `#00d9ff`
+  - Status colors: Emerald (success), Amber (warning), Red (danger)
+- **Component Styling**: All components updated with dark mode colors, borders, shadows, and hover effects
+  - Buttons: Gradient primary buttons with cyan/blue, outline secondary buttons
+  - Cards: Dark backgrounds with subtle borders and hover lift effects
+  - Inputs: Dark backgrounds with cyan focus states
+  - Tables: Dark headers and rows with hover states
+  - Modals: Dark overlays with blur, dark content panels
+- **Navigation**: 
+  - Removed "Home" button from header navigation (title serves as home link)
+  - Active navigation items use cyan gradient buttons
+  - Inactive items use styled link boxes
+- **CreateScenarioModal**: Updated to full dark mode design system with dark form inputs, selects, and number inputs
+- **Scenario Cards**: 
+  - Capacity indicators use small colored dots with "Within"/"Over" text
+  - Commit controls are radio-style buttons that toggle commit/uncommit
+  - Delete buttons for empty scenarios with confirmation dialogs
+- **HomePage**: 
+  - First-time user experience with hero section, feature cards, and key features
+  - Returning user experience with "Welcome back", recent scenarios, and recent activity
+  - "Recent activity" section hidden for first-time users
+- **SessionSummaryPage**: 
+  - "Committed" badge replaced with "Uncommit" button for committed scenarios
+  - Dark mode styling throughout
+- **ItemDetailPage**: Complete dark mode transformation for all tabs (PM Intake, Product Design, Content Design)
+- **Form Components**: All form components (PMIntakeForm, PDInputsForm, CDInputsForm) updated with dark mode styling
+
+#### Fixed
+- Fixed gradient contrast on primary buttons for better text readability
+- Fixed commit control to properly toggle between committed and uncommitted states
+- Fixed scenario list view to allow easy deselection of commitment
+- Fixed CreateScenarioModal to match dark mode design system
+
 ## [2.0.0] - 2026-01-13
 
 ### Phase 2: Enhanced User Experience and Workflow

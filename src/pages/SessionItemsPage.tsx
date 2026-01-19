@@ -56,19 +56,23 @@ function SessionItemsPage() {
     priority: 1,
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!id) return
 
-    createItem(id, formData)
-
-    onClose()
-    setFormData({
-      short_key: '',
-      name: '',
-      initiative: '',
-      priority: 1,
-    })
+    try {
+      await createItem(id, formData)
+      onClose()
+      setFormData({
+        short_key: '',
+        name: '',
+        initiative: '',
+        priority: 1,
+      })
+    } catch (error) {
+      console.error('Error creating item:', error)
+      // Error is handled by context fallback
+    }
   }
 
   if (!id) {

@@ -43,27 +43,32 @@ export default function CreateScenarioModal({ isOpen, onClose }: CreateScenarioM
     content_designers: 2,
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const weeksPerPeriod = getWeeksForPeriod(formData.planningPeriod)
     
-    const newSession = createSession({
-      name: formData.name,
-      planningPeriod: formData.planningPeriod,
-      weeks_per_period: weeksPerPeriod,
-      sprint_length_weeks: SPRINT_LENGTH_WEEKS,
-      ux_designers: formData.ux_designers,
-      content_designers: formData.content_designers,
-    })
-    
-    onClose()
-    setFormData({
-      name: '',
-      planningPeriod: '2026-Q4',
-      ux_designers: 3,
-      content_designers: 2,
-    })
-    navigate(`/sessions/${newSession.id}`)
+    try {
+      const newSession = await createSession({
+        name: formData.name,
+        planningPeriod: formData.planningPeriod,
+        weeks_per_period: weeksPerPeriod,
+        sprint_length_weeks: SPRINT_LENGTH_WEEKS,
+        ux_designers: formData.ux_designers,
+        content_designers: formData.content_designers,
+      })
+      
+      onClose()
+      setFormData({
+        name: '',
+        planningPeriod: '2026-Q4',
+        ux_designers: 3,
+        content_designers: 2,
+      })
+      navigate(`/sessions/${newSession.id}`)
+    } catch (error) {
+      console.error('Error creating scenario:', error)
+      // Error is handled by context fallback, but we can show a toast if needed
+    }
   }
 
   return (

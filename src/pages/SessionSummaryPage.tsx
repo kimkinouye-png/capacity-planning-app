@@ -54,7 +54,7 @@ function SessionSummaryPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const { getSessionById, commitSession, uncommitSession, updateSession } = usePlanningSessions()
-  const { getItemsForSession, removeItem, createItem } = useRoadmapItems()
+  const { getItemsForSession, removeItem, createItem, loadItemsForSession } = useRoadmapItems()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isCreateModalOpen, onOpen: onCreateModalOpen, onClose: onCreateModalClose } = useDisclosure()
   const cancelRef = useRef<HTMLButtonElement>(null)
@@ -78,18 +78,12 @@ function SessionSummaryPage() {
     return id ? getItemsForSession(id) : []
   }, [id, getItemsForSession])
 
-  // Refresh calculations when returning to page
-  // This ensures totals are recalculated with fresh data after effort changes
-  // The capacityMetrics useMemo will automatically recalculate when items change,
-  // but this effect ensures we refresh when navigating back to the page
+  // Load items for this session when the page loads
   useEffect(() => {
-    if (!id) return
-
-    // When the page is visited or sessionId changes, ensure we have fresh data
-    // The items array reference will change when items are updated via updateItem,
-    // which will trigger the capacityMetrics useMemo to recalculate
-    // This effect serves as a safety mechanism to ensure updates propagate
-  }, [id])
+    if (id) {
+      loadItemsForSession(id)
+    }
+  }, [id, loadItemsForSession])
 
   // Calculate capacity and demand
   const capacityMetrics = useMemo(() => {
@@ -167,9 +161,9 @@ function SessionSummaryPage() {
   }
 
   // Confirm remove
-  const handleConfirmRemove = () => {
+  const handleConfirmRemove = async () => {
     if (itemToDeleteRef.current && id) {
-      removeItem(id, itemToDeleteRef.current.id)
+      await removeItem(id, itemToDeleteRef.current.id)
       toast({
         title: 'Item deleted',
         description: `${itemToDeleteRef.current.name} has been removed.`,
@@ -183,28 +177,33 @@ function SessionSummaryPage() {
   }
 
   // Handle create item
-  const handleCreateItem = (e: React.FormEvent) => {
+  const handleCreateItem = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!id) return
 
-    const newItem = createItem(id, formData)
-    
-    toast({
-      title: 'Item created',
-      description: `${newItem.name} has been added.`,
-      status: 'success',
-      duration: 2000,
-      isClosable: true,
-    })
+    try {
+      const newItem = await createItem(id, formData)
+      
+      toast({
+        title: 'Item created',
+        description: `${newItem.name} has been added.`,
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      })
 
-    // Reset form and close modal
-    setFormData({
-      short_key: '',
-      name: '',
-      initiative: '',
-      priority: 1,
-    })
-    onCreateModalClose()
+      // Reset form and close modal
+      setFormData({
+        short_key: '',
+        name: '',
+        initiative: '',
+        priority: 1,
+      })
+      onCreateModalClose()
+    } catch (error) {
+      console.error('Error creating item:', error)
+      // Error is handled by context fallback
+    }
   }
 
   // Handle missing session
@@ -263,9 +262,9 @@ function SessionSummaryPage() {
             <Box mb={2}>
               <InlineEditableText
                 value={session.name}
-                onChange={(newName) => {
+                onChange={async (newName) => {
                   if (session.id && newName.trim()) {
-                    updateSession(session.id, { name: newName.trim() })
+                    await updateSession(session.id, { name: newName.trim() })
                     toast({
                       title: 'Scenario renamed',
                       description: `Scenario name updated to "${newName.trim()}".`,
@@ -289,9 +288,9 @@ function SessionSummaryPage() {
               <Button
                 variant="outline"
                 size="md"
-                onClick={() => {
+                onClick={async () => {
                   if (session.id) {
-                    uncommitSession(session.id)
+                    await uncommitSession(session.id)
                     toast({
                       title: 'Scenario uncommitted',
                       description: `${session.name} has been uncommitted.`,
@@ -316,9 +315,9 @@ function SessionSummaryPage() {
                 colorScheme="cyan"
                 size="md"
                 isDisabled={items.length === 0}
-                onClick={() => {
+                onClick={async () => {
                   if (session.id && items.length > 0) {
-                    commitSession(session.id, items.length)
+                    await commitSession(session.id, items.length)
                     toast({
                       title: 'Scenario committed',
                       description: `${session.name} is now the committed plan for ${formatQuarter(session.planning_period)}.`,

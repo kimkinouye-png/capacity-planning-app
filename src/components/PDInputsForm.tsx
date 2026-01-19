@@ -15,6 +15,7 @@ import {
 import type { ProductDesignInputs } from '../domain/types'
 import { calculateEffort, type FactorScores } from '../config/effortModel'
 import { estimateSprints, formatSprintEstimate } from '../config/sprints'
+import { useSettings } from '../context/SettingsContext'
 
 interface PDInputsFormProps {
   value: ProductDesignInputs
@@ -23,6 +24,7 @@ interface PDInputsFormProps {
 }
 
 export default function PDInputsForm({ value, onChange }: PDInputsFormProps) {
+  const { settings } = useSettings()
   // Define the 3 factors to display (excluding Platform Complexity)
   const factorsToShow = [
     {
@@ -65,7 +67,12 @@ export default function PDInputsForm({ value, onChange }: PDInputsFormProps) {
       problemAmbiguity: value.problemAmbiguity ?? 3,
       discoveryDepth: value.discoveryDepth ?? 3,
     }
-    return calculateEffort('ux', scores)
+    // TODO: Use settings from SettingsContext for weights, size bands, and focus-time ratio
+    return calculateEffort('ux', scores, {
+      weights: settings?.effort_model.ux,
+      sizeBands: settings?.size_bands,
+      focusTimeRatio: settings?.time_model.focusTimeRatio,
+    })
   }
 
   const uxEffort = calculateUXEffort()

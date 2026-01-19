@@ -370,10 +370,10 @@ function QuarterlyCapacityPage() {
                                     spacing={2}
                                     align="center"
                                     cursor="pointer"
-                                    onClick={(e) => {
+                                    onClick={async (e) => {
                                       e.stopPropagation()
                                       if (metrics.session.id && metrics.itemCount > 0) {
-                                        commitSession(metrics.session.id, metrics.itemCount)
+                                        await commitSession(metrics.session.id, metrics.itemCount)
                                         
                                         // Show toast notification
                                         toast({

@@ -4,17 +4,24 @@ import { useActivity } from './ActivityContext'
 
 interface PlanningSessionsContextType {
   sessions: PlanningSession[]
-  createSession: (session: Omit<PlanningSession, 'id' | 'created_at' | 'updated_at' | 'status' | 'isCommitted'>) => PlanningSession
-  updateSession: (id: string, updates: Partial<PlanningSession>) => void
-  commitSession: (id: string, itemCount?: number) => void
-  uncommitSession: (id: string) => void
-  deleteSession: (id: string) => void
+  isLoading: boolean
+  error: string | null
+  createSession: (session: Omit<PlanningSession, 'id' | 'created_at' | 'updated_at' | 'status' | 'isCommitted'>) => Promise<PlanningSession>
+  updateSession: (id: string, updates: Partial<PlanningSession>) => Promise<void>
+  commitSession: (id: string, itemCount?: number) => Promise<void>
+  uncommitSession: (id: string) => Promise<void>
+  deleteSession: (id: string) => Promise<void>
   getSessionById: (id: string) => PlanningSession | undefined
+  loadSessions: () => Promise<void>
 }
 
 const PlanningSessionsContext = createContext<PlanningSessionsContextType | undefined>(undefined)
 
 const STORAGE_KEY = 'designCapacity.sessions'
+
+const API_BASE_URL = import.meta.env.DEV
+  ? 'http://localhost:8888/.netlify/functions'
+  : '/.netlify/functions'
 
 function loadSessionsFromStorage(): PlanningSession[] {
   if (typeof window === 'undefined') {
@@ -65,82 +72,205 @@ function saveSessionsToStorage(sessions: PlanningSession[]): void {
 }
 
 export function PlanningSessionsProvider({ children }: { children: ReactNode }) {
-  const [sessions, setSessions] = useState<PlanningSession[]>(() => loadSessionsFromStorage())
+  const [sessions, setSessions] = useState<PlanningSession[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const { logActivity } = useActivity()
 
-  // Save to localStorage whenever sessions change
+  // Load sessions from API on mount, fallback to localStorage on error
+  const loadSessions = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await fetch(`${API_BASE_URL}/get-scenarios`)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch scenarios: ${response.statusText}`)
+      }
+      const data: PlanningSession[] = await response.json()
+      setSessions(data)
+      // Also save to localStorage as backup
+      saveSessionsToStorage(data)
+    } catch (err) {
+      console.error('Error loading scenarios from API, falling back to localStorage:', err)
+      setError('Failed to load scenarios from database. Using local data.')
+      // Fallback to localStorage
+      const localSessions = loadSessionsFromStorage()
+      setSessions(localSessions)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  // Load on mount
   useEffect(() => {
-    saveSessionsToStorage(sessions)
-  }, [sessions])
+    loadSessions()
+  }, [loadSessions])
+
+  // Save to localStorage as backup whenever sessions change (for offline support)
+  useEffect(() => {
+    if (!isLoading && sessions.length > 0) {
+      saveSessionsToStorage(sessions)
+    }
+  }, [sessions, isLoading])
 
   const createSession = useCallback(
-    (sessionData: Omit<PlanningSession, 'id' | 'created_at' | 'updated_at' | 'status' | 'isCommitted'>): PlanningSession => {
-      const newSession: PlanningSession = {
-        ...sessionData,
-        status: 'draft',
-        isCommitted: false,
-        id: crypto.randomUUID(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+    async (sessionData: Omit<PlanningSession, 'id' | 'created_at' | 'updated_at' | 'status' | 'isCommitted'>): Promise<PlanningSession> => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/create-scenario`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(sessionData),
+        })
+
+        if (!response.ok) {
+          throw new Error(`Failed to create scenario: ${response.statusText}`)
+        }
+
+        const newSession: PlanningSession = await response.json()
+        setSessions((prev) => [...prev, newSession])
+        
+        // Log activity
+        const quarter = newSession.planningPeriod || newSession.planning_period || 'Unknown'
+        logActivity({
+          type: 'scenario_created',
+          scenarioId: newSession.id,
+          scenarioName: newSession.name,
+          description: `Created scenario '${newSession.name}' for ${quarter}.`,
+        })
+        
+        return newSession
+      } catch (err) {
+        console.error('Error creating scenario via API, falling back to localStorage:', err)
+        // Fallback: create in localStorage
+        const newSession: PlanningSession = {
+          ...sessionData,
+          status: 'draft',
+          isCommitted: false,
+          id: crypto.randomUUID(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+        setSessions((prev) => [...prev, newSession])
+        
+        // Log activity
+        const quarter = newSession.planningPeriod || newSession.planning_period || 'Unknown'
+        logActivity({
+          type: 'scenario_created',
+          scenarioId: newSession.id,
+          scenarioName: newSession.name,
+          description: `Created scenario '${newSession.name}' for ${quarter}.`,
+        })
+        
+        return newSession
       }
-      setSessions((prev) => [...prev, newSession])
-      
-      // Log activity
-      const quarter = newSession.planningPeriod || newSession.planning_period || 'Unknown'
-      logActivity({
-        type: 'scenario_created',
-        scenarioId: newSession.id,
-        scenarioName: newSession.name,
-        description: `Created scenario '${newSession.name}' for ${quarter}.`,
-      })
-      
-      return newSession
     },
     [logActivity]
   )
 
-  const updateSession = useCallback((id: string, updates: Partial<PlanningSession>) => {
-    setSessions((prev) =>
-      prev.map((session) => {
-        if (session.id === id) {
-          // Log activity if name is being changed
-          if (updates.name !== undefined && updates.name !== session.name) {
-            logActivity({
-              type: 'scenario_renamed',
-              scenarioId: session.id,
-              scenarioName: session.name,
-              description: `Renamed scenario from '${session.name}' to '${updates.name}'.`,
-            })
-          }
-
-          const updated = { ...session, ...updates, updated_at: new Date().toISOString() }
-          // Keep status and isCommitted in sync
-          if (updates.status !== undefined) {
-            updated.isCommitted = updates.status === 'committed'
-          } else if (updates.isCommitted !== undefined) {
-            updated.status = updates.isCommitted ? 'committed' : 'draft'
-          }
-          return updated
-        }
-        return session
+  const updateSession = useCallback(async (id: string, updates: Partial<PlanningSession>): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/update-scenario`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, ...updates }),
       })
-    )
-  }, [logActivity])
 
-  const commitSession = useCallback((id: string, itemCount?: number) => {
-    setSessions((prev) => {
-      const sessionToCommit = prev.find((s) => s.id === id)
-      if (!sessionToCommit) return prev
-
-      // Prevent committing scenarios with no roadmap items
-      if (itemCount !== undefined && itemCount === 0) {
-        console.warn('Cannot commit scenario with no roadmap items')
-        return prev
+      if (!response.ok) {
+        throw new Error(`Failed to update scenario: ${response.statusText}`)
       }
 
-      const quarter = sessionToCommit.planningPeriod || sessionToCommit.planning_period
+      const updatedSession: PlanningSession = await response.json()
+      
+      // Log activity if name is being changed
+      const session = sessions.find((s) => s.id === id)
+      if (session && updates.name !== undefined && updates.name !== session.name) {
+        logActivity({
+          type: 'scenario_renamed',
+          scenarioId: session.id,
+          scenarioName: session.name,
+          description: `Renamed scenario from '${session.name}' to '${updates.name}'.`,
+        })
+      }
 
-      // Log activity before updating
+      setSessions((prev) =>
+        prev.map((session) => (session.id === id ? updatedSession : session))
+      )
+    } catch (err) {
+      console.error('Error updating scenario via API, falling back to localStorage:', err)
+      // Fallback: update in localStorage
+      setSessions((prev) =>
+        prev.map((session) => {
+          if (session.id === id) {
+            // Log activity if name is being changed
+            if (updates.name !== undefined && updates.name !== session.name) {
+              logActivity({
+                type: 'scenario_renamed',
+                scenarioId: session.id,
+                scenarioName: session.name,
+                description: `Renamed scenario from '${session.name}' to '${updates.name}'.`,
+              })
+            }
+
+            const updated = { ...session, ...updates, updated_at: new Date().toISOString() }
+            // Keep status and isCommitted in sync
+            if (updates.status !== undefined) {
+              updated.isCommitted = updates.status === 'committed'
+            } else if (updates.isCommitted !== undefined) {
+              updated.status = updates.isCommitted ? 'committed' : 'draft'
+            }
+            return updated
+          }
+          return session
+        })
+      )
+    }
+  }, [sessions, logActivity])
+
+  const commitSession = useCallback(async (id: string, itemCount?: number): Promise<void> => {
+    const sessionToCommit = sessions.find((s) => s.id === id)
+    if (!sessionToCommit) return
+
+    // Prevent committing scenarios with no roadmap items
+    if (itemCount !== undefined && itemCount === 0) {
+      console.warn('Cannot commit scenario with no roadmap items')
+      return
+    }
+
+    const quarter = sessionToCommit.planningPeriod || sessionToCommit.planning_period
+
+    try {
+      // First, uncommit other sessions in the same quarter
+      const otherCommittedSessions = sessions.filter(
+        (s) => (s.planningPeriod || s.planning_period) === quarter && s.status === 'committed' && s.id !== id
+      )
+
+      // Uncommit other sessions
+      for (const otherSession of otherCommittedSessions) {
+        await fetch(`${API_BASE_URL}/update-scenario`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: otherSession.id, status: 'draft' }),
+        }).catch((err) => console.error('Error uncommitting other session:', err))
+      }
+
+      // Commit this session
+      const response = await fetch(`${API_BASE_URL}/update-scenario`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: 'committed' }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to commit scenario: ${response.statusText}`)
+      }
+
+      const updatedSession: PlanningSession = await response.json()
+
+      // Log activity
       logActivity({
         type: 'scenario_committed',
         scenarioId: sessionToCommit.id,
@@ -148,37 +278,70 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
         description: `Committed scenario '${sessionToCommit.name}' as the quarterly plan.`,
       })
 
-      return prev.map((session) => {
-        const sessionQuarter = session.planningPeriod || session.planning_period
-        
-        if (session.id === id) {
-          // Commit this session
-          return {
-            ...session,
-            status: 'committed',
-            isCommitted: true,
-            updated_at: new Date().toISOString(),
+      // Update state
+      setSessions((prev) =>
+        prev.map((session) => {
+          if (session.id === id) {
+            return updatedSession
+          } else if ((session.planningPeriod || session.planning_period) === quarter && session.status === 'committed') {
+            return { ...session, status: 'draft' as const, isCommitted: false, updated_at: new Date().toISOString() }
           }
-        } else if (sessionQuarter === quarter && session.status === 'committed') {
-          // Uncommit other sessions in the same quarter
-          return {
-            ...session,
-            status: 'draft',
-            isCommitted: false,
-            updated_at: new Date().toISOString(),
-          }
-        }
-        return session
+          return session
+        })
+      )
+    } catch (err) {
+      console.error('Error committing scenario via API, falling back to localStorage:', err)
+      // Fallback: commit in localStorage
+      logActivity({
+        type: 'scenario_committed',
+        scenarioId: sessionToCommit.id,
+        scenarioName: sessionToCommit.name,
+        description: `Committed scenario '${sessionToCommit.name}' as the quarterly plan.`,
       })
-    })
-  }, [logActivity])
 
-  const uncommitSession = useCallback((id: string) => {
-    setSessions((prev) => {
-      const sessionToUncommit = prev.find((s) => s.id === id)
-      if (!sessionToUncommit) return prev
+      setSessions((prev) =>
+        prev.map((session) => {
+          const sessionQuarter = session.planningPeriod || session.planning_period
+          
+          if (session.id === id) {
+            return {
+              ...session,
+              status: 'committed',
+              isCommitted: true,
+              updated_at: new Date().toISOString(),
+            }
+          } else if (sessionQuarter === quarter && session.status === 'committed') {
+            return {
+              ...session,
+              status: 'draft',
+              isCommitted: false,
+              updated_at: new Date().toISOString(),
+            }
+          }
+          return session
+        })
+      )
+    }
+  }, [sessions, logActivity])
 
-      // Log activity before updating
+  const uncommitSession = useCallback(async (id: string): Promise<void> => {
+    const sessionToUncommit = sessions.find((s) => s.id === id)
+    if (!sessionToUncommit) return
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/update-scenario`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: 'draft' }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to uncommit scenario: ${response.statusText}`)
+      }
+
+      const updatedSession: PlanningSession = await response.json()
+
+      // Log activity
       logActivity({
         type: 'scenario_committed', // Reusing the same type for now
         scenarioId: sessionToUncommit.id,
@@ -186,20 +349,34 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
         description: `Uncommitted scenario '${sessionToUncommit.name}'.`,
       })
 
-      return prev.map((session) => {
-        if (session.id === id) {
-          // Uncommit this session
-          return {
-            ...session,
-            status: 'draft',
-            isCommitted: false,
-            updated_at: new Date().toISOString(),
-          }
-        }
-        return session
+      setSessions((prev) =>
+        prev.map((session) => (session.id === id ? updatedSession : session))
+      )
+    } catch (err) {
+      console.error('Error uncommitting scenario via API, falling back to localStorage:', err)
+      // Fallback: uncommit in localStorage
+      logActivity({
+        type: 'scenario_committed',
+        scenarioId: sessionToUncommit.id,
+        scenarioName: sessionToUncommit.name,
+        description: `Uncommitted scenario '${sessionToUncommit.name}'.`,
       })
-    })
-  }, [logActivity])
+
+      setSessions((prev) =>
+        prev.map((session) => {
+          if (session.id === id) {
+            return {
+              ...session,
+              status: 'draft',
+              isCommitted: false,
+              updated_at: new Date().toISOString(),
+            }
+          }
+          return session
+        })
+      )
+    }
+  }, [sessions, logActivity])
 
   const getSessionById = useCallback(
     (id: string): PlanningSession | undefined => {
@@ -208,24 +385,45 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
     [sessions]
   )
 
-  const deleteSession = useCallback((id: string) => {
+  const deleteSession = useCallback(async (id: string): Promise<void> => {
     const sessionToDelete = sessions.find((s) => s.id === id)
     if (!sessionToDelete) return
 
-    // Log activity before deleting
-    logActivity({
-      type: 'scenario_deleted',
-      scenarioId: sessionToDelete.id,
-      scenarioName: sessionToDelete.name,
-      description: `Deleted scenario '${sessionToDelete.name}' (no roadmap items).`,
-    })
+    try {
+      const response = await fetch(`${API_BASE_URL}/delete-scenario?id=${id}`, {
+        method: 'DELETE',
+      })
 
-    // Remove the session from state
-    setSessions((prev) => prev.filter((session) => session.id !== id))
+      if (!response.ok) {
+        throw new Error(`Failed to delete scenario: ${response.statusText}`)
+      }
+
+      // Log activity
+      logActivity({
+        type: 'scenario_deleted',
+        scenarioId: sessionToDelete.id,
+        scenarioName: sessionToDelete.name,
+        description: `Deleted scenario '${sessionToDelete.name}' (no roadmap items).`,
+      })
+
+      // Remove from state
+      setSessions((prev) => prev.filter((session) => session.id !== id))
+    } catch (err) {
+      console.error('Error deleting scenario via API, falling back to localStorage:', err)
+      // Fallback: delete in localStorage
+      logActivity({
+        type: 'scenario_deleted',
+        scenarioId: sessionToDelete.id,
+        scenarioName: sessionToDelete.name,
+        description: `Deleted scenario '${sessionToDelete.name}' (no roadmap items).`,
+      })
+
+      setSessions((prev) => prev.filter((session) => session.id !== id))
+    }
   }, [sessions, logActivity])
 
   return (
-    <PlanningSessionsContext.Provider value={{ sessions, createSession, updateSession, commitSession, uncommitSession, deleteSession, getSessionById }}>
+    <PlanningSessionsContext.Provider value={{ sessions, isLoading, error, createSession, updateSession, commitSession, uncommitSession, deleteSession, getSessionById, loadSessions }}>
       {children}
     </PlanningSessionsContext.Provider>
   )
