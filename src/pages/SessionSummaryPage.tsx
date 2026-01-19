@@ -53,7 +53,7 @@ function SessionSummaryPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const toast = useToast()
-  const { getSessionById, commitSession, uncommitSession, updateSession } = usePlanningSessions()
+  const { getSessionById, commitSession, uncommitSession, updateSession, isLoading: sessionsLoading, error: sessionsError, loadSessions } = usePlanningSessions()
   const { getItemsForSession, removeItem, createItem, loadItemsForSession } = useRoadmapItems()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isCreateModalOpen, onOpen: onCreateModalOpen, onClose: onCreateModalClose } = useDisclosure()
@@ -67,6 +67,18 @@ function SessionSummaryPage() {
     initiative: '',
     priority: 1,
   })
+
+  // Reload sessions if we don't find the session (in case it was just created)
+  useEffect(() => {
+    if (id && !sessionsLoading) {
+      const session = getSessionById(id)
+      if (!session) {
+        // Session not found, try reloading
+        console.log('Session not found, reloading sessions...')
+        loadSessions()
+      }
+    }
+  }, [id, sessionsLoading, getSessionById, loadSessions])
 
   // Get session
   const session = useMemo(() => {
@@ -206,19 +218,56 @@ function SessionSummaryPage() {
     }
   }
 
-  // Handle missing session
+  // Handle missing session ID
   if (!id) {
     return (
-      <Box p={8}>
-        <Text>Invalid session ID</Text>
+      <Box minH="100vh" bg="#0a0a0f" p={8}>
+        <Text color="gray.300">Invalid session ID</Text>
+        <Button mt={4} onClick={() => navigate('/')} colorScheme="cyan">
+          Go Home
+        </Button>
       </Box>
     )
   }
 
+  // Show loading state while sessions are loading
+  if (sessionsLoading) {
+    return (
+      <Box minH="100vh" bg="#0a0a0f" p={8}>
+        <Text color="gray.300">Loading session...</Text>
+      </Box>
+    )
+  }
+
+  // Show error state if sessions failed to load
+  if (sessionsError) {
+    return (
+      <Box minH="100vh" bg="#0a0a0f" p={8}>
+        <Text color="red.400" mb={4}>Error loading session: {sessionsError}</Text>
+        <Button onClick={() => loadSessions()} colorScheme="cyan" mr={4}>
+          Retry
+        </Button>
+        <Button onClick={() => navigate('/')} variant="outline">
+          Go Home
+        </Button>
+      </Box>
+    )
+  }
+
+  // Handle missing session
   if (!session) {
     return (
-      <Box p={8}>
-        <Text>Session not found</Text>
+      <Box minH="100vh" bg="#0a0a0f" p={8}>
+        <Text color="gray.300" mb={4}>Session not found</Text>
+        <Text color="gray.500" fontSize="sm" mb={4}>
+          The session with ID "{id}" could not be loaded. It may have been deleted or you may not have access to it.
+        </Text>
+        <Button onClick={() => loadSessions()} colorScheme="cyan" mr={4}>
+          Reload Sessions
+        </Button>
+        <Button onClick={() => navigate('/')} variant="outline">
+          Go Home
+        </Button>
       </Box>
     )
   }
