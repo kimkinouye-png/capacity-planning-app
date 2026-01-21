@@ -296,26 +296,45 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
       }
 
       const updatedItem: RoadmapItem = await response.json()
-      // Merge updates with the response to ensure our updates are preserved
-      // (API response might not include all updated fields)
-      const mergedItem = { ...updatedItem, ...updates }
-      // Normalize the merged item to ensure it has valid focus/work weeks
-      // Normalization preserves valid numbers, so our pasted values will be kept
-      const normalizedItem = normalizeRoadmapItem(mergedItem)
       
-      // Log activity
-      const sessionId = normalizedItem.planning_session_id
-      const session = getSessionById(sessionId)
-      const sessionName = session?.name || 'Unknown scenario'
-      await logActivity({
-        type: 'roadmap_item_updated',
-        scenarioId: sessionId,
-        scenarioName: sessionName,
-        description: `Updated roadmap item '${normalizedItem.name}' in scenario '${sessionName}'.`,
-      })
-
-      // Update state
+      // Update state using functional update to read current item and preserve all fields
       setItemsBySession((prev) => {
+        // Find the current item from state to preserve all existing fields
+        let currentItem: RoadmapItem | undefined
+        for (const items of Object.values(prev)) {
+          const item = items.find((i) => i.id === itemId)
+          if (item) {
+            currentItem = item
+            break
+          }
+        }
+
+        if (!currentItem) {
+          console.error('Cannot update item: item not found in state', itemId)
+          return prev // No change if item not found
+        }
+
+        // Merge: currentItem (preserves all existing fields) + API response + updates (latest values)
+        // This ensures fields not in the API response (like startDate/endDate) are preserved
+        // Order matters: currentItem (base) -> updatedItem (API) -> updates (our changes, highest priority)
+        const mergedItem = { ...currentItem, ...updatedItem, ...updates }
+        // Normalize the merged item to ensure it has valid focus/work weeks
+        // Normalization preserves valid numbers, so our pasted values will be kept
+        // However, normalization recalculates work weeks from focus weeks, which is correct
+        const normalizedItem = normalizeRoadmapItem(mergedItem)
+        
+        // Log activity (async, but we don't await in setState callback)
+        const sessionId = normalizedItem.planning_session_id
+        const session = getSessionById(sessionId)
+        const sessionName = session?.name || 'Unknown scenario'
+        logActivity({
+          type: 'roadmap_item_updated',
+          scenarioId: sessionId,
+          scenarioName: sessionName,
+          description: `Updated roadmap item '${normalizedItem.name}' in scenario '${sessionName}'.`,
+        }).catch((err) => console.error('Failed to log activity:', err))
+
+        // Update state with normalized item
         const updated: Record<string, RoadmapItem[]> = {}
         for (const [sid, items] of Object.entries(prev)) {
           updated[sid] = items.map((item) => (item.id === itemId ? normalizedItem : item))
