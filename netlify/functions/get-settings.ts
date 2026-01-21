@@ -1,5 +1,6 @@
 import { Handler } from '@netlify/functions'
 import { neon } from '@netlify/neon'
+import { errorResponse } from './types'
 
 interface SettingsResponse {
   id: string
@@ -39,11 +40,7 @@ export const handler: Handler = async (event, context) => {
   }
 
   if (event.httpMethod !== 'GET') {
-    return {
-      statusCode: 405,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    }
+    return errorResponse(405, 'Method not allowed')
   }
 
   try {
@@ -57,7 +54,7 @@ export const handler: Handler = async (event, context) => {
       LIMIT 1
     `
 
-    let settings: SettingsResponse
+    let dbRow: any
 
     if (result.length === 0) {
       // Create default settings if they don't exist
@@ -90,9 +87,25 @@ export const handler: Handler = async (event, context) => {
         )
         RETURNING *
       `
-      settings = defaultSettings[0] as SettingsResponse
+      dbRow = defaultSettings[0]
     } else {
-      settings = result[0] as SettingsResponse
+      dbRow = result[0]
+    }
+
+    // Ensure JSONB fields are properly parsed (Neon should handle this, but be explicit)
+    const settings: SettingsResponse = {
+      id: dbRow.id,
+      effort_model: typeof dbRow.effort_model === 'string' 
+        ? JSON.parse(dbRow.effort_model) 
+        : dbRow.effort_model,
+      time_model: typeof dbRow.time_model === 'string'
+        ? JSON.parse(dbRow.time_model)
+        : dbRow.time_model,
+      size_bands: typeof dbRow.size_bands === 'string'
+        ? JSON.parse(dbRow.size_bands)
+        : dbRow.size_bands,
+      created_at: dbRow.created_at,
+      updated_at: dbRow.updated_at,
     }
 
     return {
@@ -105,13 +118,6 @@ export const handler: Handler = async (event, context) => {
     }
   } catch (error) {
     console.error('Error fetching settings:', error)
-    return {
-      statusCode: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ error: 'Failed to fetch settings', details: error instanceof Error ? error.message : 'Unknown error' }),
-    }
+    return errorResponse(500, 'Failed to fetch settings', error instanceof Error ? error.message : 'Unknown error')
   }
 }

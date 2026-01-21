@@ -13,14 +13,19 @@ import {
   HStack,
   VStack,
   Badge,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from '@chakra-ui/react'
-import { useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useMemo, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
 import { getWeeksForPeriod } from '../config/quarterConfig'
 import type { PlanningPeriod } from '../domain/types'
 import { CalendarIcon, ViewIcon } from '@chakra-ui/icons'
+import { safeFormatMetric, safeFormatUtilization, safeFormatItemValue } from '../utils/safeFormat'
 
 // const QUARTERS: PlanningPeriod[] = ['2026-Q1', '2026-Q2', '2026-Q3', '2026-Q4']
 
@@ -39,13 +44,28 @@ import { CalendarIcon, ViewIcon } from '@chakra-ui/icons'
 
 export default function CommittedPlanPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { sessions } = usePlanningSessions()
-  const { getItemsForSession } = useRoadmapItems()
+  const { getItemsForSession, loadItemsForSession, error: roadmapError } = useRoadmapItems()
 
   // Get only committed scenarios
   const committedSessions = useMemo(() => {
     return sessions.filter((s) => s.status === 'committed' || s.isCommitted)
   }, [sessions])
+
+  // Load items for all committed sessions when page loads, sessions change, or navigating back
+  useEffect(() => {
+    if (committedSessions.length > 0) {
+      // Load items for all committed sessions in parallel
+      Promise.all(
+        committedSessions.map((session) =>
+          loadItemsForSession(session.id).catch((err) => {
+            console.error(`Error loading items for session ${session.id}:`, err)
+          })
+        )
+      )
+    }
+  }, [committedSessions, loadItemsForSession, location.key]) // location.key changes on navigation
 
   // Calculate aggregate metrics across all committed scenarios
   const aggregateMetrics = useMemo(() => {
@@ -59,8 +79,8 @@ export default function CommittedPlanPage() {
     committedSessions.forEach((session) => {
       const items = getItemsForSession(session.id)
       const weeks = getWeeksForPeriod(session.planningPeriod || session.planning_period)
-      const uxDesigners = session.ux_designers || 0
-      const contentDesigners = session.content_designers || 0
+      const uxDesigners = typeof session.ux_designers === 'number' ? session.ux_designers : 0
+      const contentDesigners = typeof session.content_designers === 'number' ? session.content_designers : 0
 
       totalUxDesigners += uxDesigners
       totalContentDesigners += contentDesigners
@@ -68,8 +88,14 @@ export default function CommittedPlanPage() {
       const uxCapacity = uxDesigners * weeks
       const contentCapacity = contentDesigners * weeks
 
-      const uxDemand = items.reduce((sum, item) => sum + (item.uxFocusWeeks || 0), 0)
-      const contentDemand = items.reduce((sum, item) => sum + (item.contentFocusWeeks || 0), 0)
+      const uxDemand = items.reduce((sum, item) => {
+        const weeks = typeof item.uxFocusWeeks === 'number' ? item.uxFocusWeeks : 0
+        return sum + weeks
+      }, 0)
+      const contentDemand = items.reduce((sum, item) => {
+        const weeks = typeof item.contentFocusWeeks === 'number' ? item.contentFocusWeeks : 0
+        return sum + weeks
+      }, 0)
 
       totalUxCapacity += uxCapacity
       totalUxDemand += uxDemand
@@ -81,13 +107,13 @@ export default function CommittedPlanPage() {
     const contentUtilization = totalContentCapacity > 0 ? (totalContentDemand / totalContentCapacity) * 100 : 0
 
     return {
-      uxCapacity: totalUxCapacity,
-      uxDemand: totalUxDemand,
-      uxUtilization,
+      uxCapacity: Number(totalUxCapacity) || 0,
+      uxDemand: Number(totalUxDemand) || 0,
+      uxUtilization: Number(uxUtilization) || 0,
       uxDesigners: totalUxDesigners,
-      contentCapacity: totalContentCapacity,
-      contentDemand: totalContentDemand,
-      contentUtilization,
+      contentCapacity: Number(totalContentCapacity) || 0,
+      contentDemand: Number(totalContentDemand) || 0,
+      contentUtilization: Number(contentUtilization) || 0,
       contentDesigners: totalContentDesigners,
     }
   }, [committedSessions, getItemsForSession])
@@ -137,6 +163,7 @@ export default function CommittedPlanPage() {
   // }, [committedSessions, getItemsForSession])
 
   // Get all items from committed scenarios for the table
+  // Note: This will update when items are loaded because getItemsForSession depends on itemsBySession
   const allItems = useMemo(() => {
     const items: Array<{
       item: any
@@ -149,7 +176,11 @@ export default function CommittedPlanPage() {
       const period = (session.planningPeriod || session.planning_period) as PlanningPeriod
       sessionItems.forEach((item) => {
         items.push({
-          item,
+          item: {
+            ...item,
+            // Ensure planning_session_id is set for navigation
+            planning_session_id: item.planning_session_id || session.id,
+          },
           sessionName: session.name,
           quarter: period || 'Unknown',
         })
@@ -198,8 +229,10 @@ export default function CommittedPlanPage() {
   }
 
   // Get capacity status badge
-  const getCapacityBadge = (utilization: number) => {
-    if (utilization < 80) {
+  const getCapacityBadge = (utilization: number | unknown) => {
+    // Ensure utilization is a number
+    const util = typeof utilization === 'number' ? utilization : 0
+    if (util < 80) {
       return (
         <Badge
           bg="rgba(16, 185, 129, 0.1)"
@@ -215,7 +248,7 @@ export default function CommittedPlanPage() {
           Surplus
         </Badge>
       )
-    } else if (utilization <= 100) {
+    } else if (util <= 100) {
       return (
         <Badge
           bg="rgba(245, 158, 11, 0.1)"
@@ -336,7 +369,7 @@ export default function CommittedPlanPage() {
               </Text>
               <HStack spacing={1} align="baseline" mb={2}>
                 <Text fontSize="3xl" fontWeight="bold" color="white">
-                  {aggregateMetrics.uxCapacity.toFixed(0)}
+                  {safeFormatMetric(aggregateMetrics.uxCapacity, 0)}
                 </Text>
                 <Text fontSize="sm" color="gray.400" fontWeight="normal">
                   weeks
@@ -360,7 +393,7 @@ export default function CommittedPlanPage() {
               </Text>
               <HStack spacing={1} align="baseline" mb={2}>
                 <Text fontSize="3xl" fontWeight="bold" color="white">
-                  {aggregateMetrics.uxDemand.toFixed(0)}
+                  {safeFormatMetric(aggregateMetrics.uxDemand, 0)}
                 </Text>
                 <Text fontSize="sm" color="gray.400" fontWeight="normal">
                   weeks
@@ -369,7 +402,7 @@ export default function CommittedPlanPage() {
               <HStack spacing={2} justify="space-between" mt={2}>
                 {getCapacityBadge(aggregateMetrics.uxUtilization)}
                 <Text fontSize="xs" color="gray.500">
-                  {aggregateMetrics.uxUtilization.toFixed(0)}%
+                  {safeFormatUtilization(aggregateMetrics.uxUtilization)}%
                 </Text>
               </HStack>
             </Box>
@@ -387,7 +420,7 @@ export default function CommittedPlanPage() {
               </Text>
               <HStack spacing={1} align="baseline" mb={2}>
                 <Text fontSize="3xl" fontWeight="bold" color="white">
-                  {aggregateMetrics.contentCapacity.toFixed(0)}
+                  {safeFormatMetric(aggregateMetrics.contentCapacity, 0)}
                 </Text>
                 <Text fontSize="sm" color="gray.400" fontWeight="normal">
                   weeks
@@ -411,7 +444,7 @@ export default function CommittedPlanPage() {
               </Text>
               <HStack spacing={1} align="baseline" mb={2}>
                 <Text fontSize="3xl" fontWeight="bold" color="white">
-                  {aggregateMetrics.contentDemand.toFixed(0)}
+                  {safeFormatMetric(aggregateMetrics.contentDemand, 0)}
                 </Text>
                 <Text fontSize="sm" color="gray.400" fontWeight="normal">
                   weeks
@@ -420,7 +453,7 @@ export default function CommittedPlanPage() {
               <HStack spacing={2} justify="space-between" mt={2}>
                 {getCapacityBadge(aggregateMetrics.contentUtilization)}
                 <Text fontSize="xs" color="gray.500">
-                  {aggregateMetrics.contentUtilization.toFixed(0)}%
+                  {safeFormatUtilization(aggregateMetrics.contentUtilization)}%
                 </Text>
               </HStack>
             </Box>
@@ -481,6 +514,17 @@ export default function CommittedPlanPage() {
           <Heading size="md" color="white" mb={4}>
             All Roadmap Items
           </Heading>
+
+          {/* Error message for RoadmapItemsContext */}
+          {roadmapError && (
+            <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
+              <AlertIcon color="#f59e0b" />
+              <AlertTitle color="white" mr={2}>Sync Error:</AlertTitle>
+              <AlertDescription color="gray.300">
+                {roadmapError} Changes were saved locally. You may need to retry syncing to the database.
+              </AlertDescription>
+            </Alert>
+          )}
           {allItems.length === 0 ? (
             <Box
               bg="#141419"
@@ -534,8 +578,8 @@ export default function CommittedPlanPage() {
                   </Thead>
                   <Tbody>
                     {allItems.map(({ item, sessionName, quarter }) => {
-                      const uxEffort = item.uxFocusWeeks || 0
-                      const contentEffort = item.contentFocusWeeks || 0
+                      const uxEffort = typeof item.uxFocusWeeks === 'number' ? item.uxFocusWeeks : 0
+                      const contentEffort = typeof item.contentFocusWeeks === 'number' ? item.contentFocusWeeks : 0
                       const totalEffort = uxEffort + contentEffort
 
                       return (
@@ -545,7 +589,11 @@ export default function CommittedPlanPage() {
                           borderColor="rgba(255, 255, 255, 0.05)"
                           _hover={{ bg: 'rgba(255, 255, 255, 0.05)', cursor: 'pointer' }}
                           onClick={() => {
-                            const session = committedSessions.find((s) => s.id === item.planning_session_id)
+                            // Find the session that owns this item
+                            const session = committedSessions.find((s) => {
+                              const sessionItems = getItemsForSession(s.id)
+                              return sessionItems.some((i) => i.id === item.id)
+                            })
                             if (session) {
                               navigate(`/sessions/${session.id}/items/${item.id}`)
                             }
@@ -559,13 +607,13 @@ export default function CommittedPlanPage() {
                           <Td color="gray.400">{item.initiative || '—'}</Td>
                           <Td>{getPriorityBadge(item.priority)}</Td>
                           <Td textAlign="right" color="gray.400">
-                            {uxEffort > 0 ? `${uxEffort.toFixed(1)}w` : '—'}
+                            {uxEffort > 0 ? `${safeFormatItemValue(uxEffort, 1)}w` : '—'}
                           </Td>
                           <Td textAlign="right" color="gray.400">
-                            {contentEffort > 0 ? `${contentEffort.toFixed(1)}w` : '—'}
+                            {contentEffort > 0 ? `${safeFormatItemValue(contentEffort, 1)}w` : '—'}
                           </Td>
                           <Td textAlign="right" fontWeight="600" color="white">
-                            {totalEffort > 0 ? `${totalEffort.toFixed(1)}w` : '—'}
+                            {totalEffort > 0 ? `${safeFormatItemValue(totalEffort, 1)}w` : '—'}
                           </Td>
                         </Tr>
                       )

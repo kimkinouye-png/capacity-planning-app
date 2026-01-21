@@ -10,6 +10,10 @@ import {
   IconButton,
   Divider,
   Tooltip,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from '@chakra-ui/react'
 import { ChevronLeftIcon } from '@chakra-ui/icons'
 import { useMemo, useRef, useState } from 'react'
@@ -35,7 +39,7 @@ interface ScenarioMetrics {
 
 function QuarterlyCapacityPage() {
   const navigate = useNavigate()
-  const { sessions, commitSession } = usePlanningSessions()
+  const { sessions, commitSession, error: sessionsError } = usePlanningSessions()
   const { getItemsForSession } = useRoadmapItems()
   const toast = useToast()
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
@@ -142,6 +146,15 @@ function QuarterlyCapacityPage() {
   return (
     <Box bg="#F9FAFB" minH="100vh" pb={8}>
       <Box maxW="1400px" mx="auto" px={6} pt={6}>
+        {/* Error message for PlanningSessionsContext */}
+        {sessionsError && (
+          <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
+            <AlertIcon color="#f59e0b" />
+            <AlertTitle color="white" mr={2}>Session Error:</AlertTitle>
+            <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
+          </Alert>
+        )}
+
         {/* Header */}
         <HStack spacing={4} mb={6} align="center">
           <IconButton

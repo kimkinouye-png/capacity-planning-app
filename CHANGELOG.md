@@ -4,6 +4,30 @@ All notable changes to the Capacity Planning App will be documented in this file
 
 ## [Unreleased]
 
+### Fixed
+- **Blank Page on Session Summary**: Fixed issue where navigating to session summary pages resulted in blank screens
+  - Added `ErrorBoundary` component to catch and display React rendering errors gracefully
+  - Implemented automatic session loading when navigating directly to session URLs
+  - Added auto-reload logic if session not found (handles just-created scenarios)
+  - Improved loading states and error messages with retry options
+- **TypeError: toFixed is not a function**: Fixed multiple instances where `.toFixed()` was called on non-numeric values
+  - Added type checks before calling `.toFixed()` on capacity metrics (demand, capacity, surplus, utilization)
+  - Added type checks for item properties (`uxFocusWeeks`, `contentFocusWeeks`) in table rows
+  - Ensured all numeric calculations return proper numbers with `Number()` coercion
+  - Added null/undefined checks for `capacityMetrics` before rendering
+  - Graceful fallbacks: displays "—" or "0.0" instead of crashing when data is invalid
+
+### Added
+- **ErrorBoundary Component**: New React error boundary that catches JavaScript errors and displays helpful error UI
+  - Shows error message with "Reload Page" and "Go to Home" buttons
+  - Displays error details in development mode
+  - Prevents blank pages when unexpected errors occur
+- **Enhanced Error Handling**: Improved error states throughout `SessionSummaryPage`
+  - Loading state while sessions are being fetched
+  - Error state with retry functionality
+  - "Session not found" state with reload options
+  - Better user feedback for all error scenarios
+
 ## [4.0.0] - 2026-01-19
 
 ### Phase 4: Database Integration & Global Settings

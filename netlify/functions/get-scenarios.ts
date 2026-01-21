@@ -1,6 +1,6 @@
 import { Handler } from '@netlify/functions'
 import { neon } from '@netlify/neon'
-import { dbScenarioToPlanningSession, type DatabaseScenario, type ScenarioResponse } from './types'
+import { dbScenarioToPlanningSession, type DatabaseScenario, type ScenarioResponse, errorResponse } from './types'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,11 +19,7 @@ export const handler: Handler = async (event, context) => {
   }
 
   if (event.httpMethod !== 'GET') {
-    return {
-      statusCode: 405,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    }
+    return errorResponse(405, 'Method not allowed')
   }
 
   try {
@@ -61,13 +57,6 @@ export const handler: Handler = async (event, context) => {
     }
   } catch (error) {
     console.error('Error fetching scenarios:', error)
-    return {
-      statusCode: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ error: 'Failed to fetch scenarios', details: error instanceof Error ? error.message : 'Unknown error' }),
-    }
+    return errorResponse(500, 'Failed to fetch scenarios', error instanceof Error ? error.message : 'Unknown error')
   }
 }

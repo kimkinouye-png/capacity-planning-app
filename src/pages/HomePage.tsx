@@ -21,6 +21,10 @@ import {
   useDisclosure,
   useToast,
   SimpleGrid,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from '@chakra-ui/react'
 import { CalendarIcon, DeleteIcon, ViewIcon, CheckCircleIcon, SettingsIcon } from '@chakra-ui/icons'
 import { useNavigate } from 'react-router-dom'
@@ -34,9 +38,9 @@ import InlineEditableText from '../components/InlineEditableText'
 
 function HomePage() {
   const navigate = useNavigate()
-  const { sessions, commitSession, uncommitSession, deleteSession, updateSession } = usePlanningSessions()
+  const { sessions, commitSession, uncommitSession, deleteSession, updateSession, error: sessionsError } = usePlanningSessions()
   const { getItemsForSession } = useRoadmapItems()
-  const { activity } = useActivity()
+  const { activity, isLoading: activityLoading } = useActivity()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure()
   const [sessionToDelete, setSessionToDelete] = useState<{ id: string; name: string } | null>(null)
@@ -102,6 +106,15 @@ function HomePage() {
 
   return (
     <Box maxW="1400px" mx="auto" px={6} py={8}>
+      {/* Error message for PlanningSessionsContext */}
+      {sessionsError && (
+        <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
+          <AlertIcon color="#f59e0b" />
+          <AlertTitle color="white" mr={2}>Session Error:</AlertTitle>
+          <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
+        </Alert>
+      )}
+
       <Stack spacing={8}>
         {/* Welcome Back Section */}
         <Box>
@@ -555,11 +568,19 @@ function HomePage() {
         {sessions.length > 0 && (
           <Box>
             <Heading size="md" mb={4} color="white">Recent activity</Heading>
-            {recentActivity.length > 0 ? (
+            {activityLoading ? (
+              <Card variant="outline" bg="#141419" borderColor="rgba(255, 255, 255, 0.1)">
+                <CardBody p={6}>
+                  <Text fontSize="sm" color="gray.400" textAlign="center">
+                    Loading activity...
+                  </Text>
+                </CardBody>
+              </Card>
+            ) : recentActivity.length > 0 ? (
               <Card variant="outline" bg="#141419" borderColor="rgba(255, 255, 255, 0.1)">
                 <CardBody p={6}>
                   <VStack spacing={3} align="stretch">
-                    {recentActivity.map((event) => (
+                    {recentActivity.map((event, index) => (
                       <Box key={event.id}>
                         <HStack justify="space-between" align="start" spacing={4}>
                           <Text fontSize="sm" color="gray.300" flex={1}>
@@ -569,7 +590,7 @@ function HomePage() {
                             {formatRelativeTime(event.timestamp)}
                           </Text>
                         </HStack>
-                        {event.id !== recentActivity[recentActivity.length - 1].id && (
+                        {index < recentActivity.length - 1 && (
                           <Divider mt={3} borderColor="rgba(255, 255, 255, 0.1)" />
                         )}
                       </Box>

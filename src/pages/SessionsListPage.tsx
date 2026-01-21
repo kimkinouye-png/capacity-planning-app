@@ -36,6 +36,10 @@ import {
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from '@chakra-ui/react'
 import { CalendarIcon, DeleteIcon } from '@chakra-ui/icons'
 import { useNavigate } from 'react-router-dom'
@@ -147,7 +151,7 @@ function calculateScenarioMetrics(
 }
 
 function SessionsListPage() {
-  const { sessions, createSession, commitSession, uncommitSession, deleteSession, updateSession } = usePlanningSessions()
+  const { sessions, createSession, commitSession, uncommitSession, deleteSession, updateSession, error: sessionsError } = usePlanningSessions()
   const { getItemsForSession } = useRoadmapItems()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure()
@@ -267,6 +271,14 @@ function SessionsListPage() {
   if (sessions.length === 0) {
     return (
       <Box maxW="1200px" mx="auto" px={6} py={20}>
+        {/* Error message for PlanningSessionsContext */}
+        {sessionsError && (
+          <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
+            <AlertIcon color="#f59e0b" />
+            <AlertTitle color="white" mr={2}>Session Error:</AlertTitle>
+            <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
+          </Alert>
+        )}
         <VStack spacing={8} align="center" textAlign="center">
           {/* Calendar Icon with light blue circular background */}
           <Box
@@ -419,6 +431,15 @@ function SessionsListPage() {
   // Show populated state with cards when scenarios exist
   return (
     <Box maxW="1400px" mx="auto" px={6} py={8}>
+      {/* Error message for PlanningSessionsContext */}
+      {sessionsError && (
+        <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
+          <AlertIcon color="#f59e0b" />
+          <AlertTitle color="white" mr={2}>Session Error:</AlertTitle>
+          <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
+        </Alert>
+      )}
+
       <Stack direction="row" justify="space-between" align="center" mb={6}>
         <Box>
           <Heading size="lg" mb={1} color="white">Planning Scenarios</Heading>

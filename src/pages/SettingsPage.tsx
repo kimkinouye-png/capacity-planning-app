@@ -16,13 +16,16 @@ import {
   useToast,
   Alert,
   AlertIcon,
+  AlertTitle,
+  AlertDescription,
   Spinner,
 } from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
 import { useSettings } from '../context/SettingsContext'
+import DbHealthIndicator from '../components/DbHealthIndicator'
 
 export default function SettingsPage() {
-  const { settings, loading, error, saveSettings, resetToDefaults } = useSettings()
+  const { settings, loading, error: settingsError, saveSettings, resetToDefaults } = useSettings()
   const toast = useToast()
 
   // Local form state
@@ -105,13 +108,20 @@ export default function SettingsPage() {
         },
       })
 
-      toast({
-        title: 'Settings saved',
-        description: 'Your settings have been saved successfully.',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      })
+      // Wait a brief moment for error state to update, then check
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      // Only show success toast if no error was set (API succeeded)
+      // If there's an error, the error banner will display it
+      if (!settingsError) {
+        toast({
+          title: 'Settings saved',
+          description: 'Your settings have been saved successfully.',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        })
+      }
     } catch (err) {
       toast({
         title: 'Failed to save settings',
@@ -165,17 +175,24 @@ export default function SettingsPage() {
   return (
     <Box minH="100vh" bg="#0a0a0f">
       <Box maxW="1200px" mx="auto" px={6} py={8}>
-        <Heading size="lg" color="white" mb={2}>
-          Settings
-        </Heading>
+        <HStack justify="space-between" align="center" mb={2}>
+          <Heading size="lg" color="white">
+            Settings
+          </Heading>
+          <DbHealthIndicator pollInterval={30000} compact />
+        </HStack>
         <Text fontSize="sm" color="gray.400" mb={6}>
           Configure global effort model weights, focus-time ratio, and size-band thresholds
         </Text>
 
-        {error && (
-          <Alert status="error" mb={6} bg="rgba(239, 68, 68, 0.1)" borderColor="rgba(239, 68, 68, 0.5)">
-            <AlertIcon color="#ef4444" />
-            {error}
+        {/* Error message for SettingsContext */}
+        {settingsError && (
+          <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={6}>
+            <AlertIcon color="#f59e0b" />
+            <AlertTitle color="white" mr={2}>Settings Sync Error:</AlertTitle>
+            <AlertDescription color="gray.300">
+              {settingsError}
+            </AlertDescription>
           </Alert>
         )}
 

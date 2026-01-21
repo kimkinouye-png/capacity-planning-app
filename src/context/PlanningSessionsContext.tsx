@@ -133,7 +133,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
         
         // Log activity
         const quarter = newSession.planningPeriod || newSession.planning_period || 'Unknown'
-        logActivity({
+        await logActivity({
           type: 'scenario_created',
           scenarioId: newSession.id,
           scenarioName: newSession.name,
@@ -156,7 +156,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
         
         // Log activity
         const quarter = newSession.planningPeriod || newSession.planning_period || 'Unknown'
-        logActivity({
+        await logActivity({
           type: 'scenario_created',
           scenarioId: newSession.id,
           scenarioName: newSession.name,
@@ -185,34 +185,38 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
 
       const updatedSession: PlanningSession = await response.json()
       
-      // Log activity if name is being changed
-      const session = sessions.find((s) => s.id === id)
-      if (session && updates.name !== undefined && updates.name !== session.name) {
-        logActivity({
-          type: 'scenario_renamed',
-          scenarioId: session.id,
-          scenarioName: session.name,
-          description: `Renamed scenario from '${session.name}' to '${updates.name}'.`,
-        })
-      }
-
-      setSessions((prev) =>
-        prev.map((session) => (session.id === id ? updatedSession : session))
-      )
+      // Log activity if name is being changed - use functional setState to get current session
+      // instead of relying on stale closure value
+      setSessions((prev) => {
+        const oldSession = prev.find((s) => s.id === id)
+        // Log activity if name changed, using fresh state value
+        if (oldSession && updates.name !== undefined && updatedSession.name !== oldSession.name) {
+          // Note: logActivity is async but we don't await in setState callback
+          logActivity({
+            type: 'scenario_renamed',
+            scenarioId: oldSession.id,
+            scenarioName: oldSession.name,
+            description: `Renamed scenario from '${oldSession.name}' to '${updatedSession.name}'.`,
+          }).catch((err) => console.error('Failed to log activity:', err))
+        }
+        return prev.map((session) => (session.id === id ? updatedSession : session))
+      })
     } catch (err) {
       console.error('Error updating scenario via API, falling back to localStorage:', err)
       // Fallback: update in localStorage
+      // Use functional setState to avoid stale closure
       setSessions((prev) =>
         prev.map((session) => {
           if (session.id === id) {
-            // Log activity if name is being changed
+            // Log activity if name is being changed, using fresh state value
             if (updates.name !== undefined && updates.name !== session.name) {
+              // Note: logActivity is async but we don't await in setState callback
               logActivity({
                 type: 'scenario_renamed',
                 scenarioId: session.id,
                 scenarioName: session.name,
                 description: `Renamed scenario from '${session.name}' to '${updates.name}'.`,
-              })
+              }).catch((err) => console.error('Failed to log activity:', err))
             }
 
             const updated = { ...session, ...updates, updated_at: new Date().toISOString() }
@@ -228,7 +232,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
         })
       )
     }
-  }, [sessions, logActivity])
+  }, [logActivity])
 
   const commitSession = useCallback(async (id: string, itemCount?: number): Promise<void> => {
     const sessionToCommit = sessions.find((s) => s.id === id)
@@ -242,19 +246,46 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
 
     const quarter = sessionToCommit.planningPeriod || sessionToCommit.planning_period
 
+    // Update state optimistically before API calls to ensure UI consistency
+    // This prevents showing multiple committed sessions if API calls fail
+    setSessions((prev) =>
+      prev.map((session) => {
+        if (session.id === id) {
+          return { ...session, status: 'committed' as const, isCommitted: true, updated_at: new Date().toISOString() }
+        } else if ((session.planningPeriod || session.planning_period) === quarter && session.status === 'committed') {
+          return { ...session, status: 'draft' as const, isCommitted: false, updated_at: new Date().toISOString() }
+        }
+        return session
+      })
+    )
+
     try {
       // First, uncommit other sessions in the same quarter
       const otherCommittedSessions = sessions.filter(
         (s) => (s.planningPeriod || s.planning_period) === quarter && s.status === 'committed' && s.id !== id
       )
 
-      // Uncommit other sessions
+      // Uncommit other sessions with proper error handling
+      const uncommitErrors: Array<{ sessionId: string; error: Error }> = []
       for (const otherSession of otherCommittedSessions) {
-        await fetch(`${API_BASE_URL}/update-scenario`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: otherSession.id, status: 'draft' }),
-        }).catch((err) => console.error('Error uncommitting other session:', err))
+        try {
+          const response = await fetch(`${API_BASE_URL}/update-scenario`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: otherSession.id, status: 'draft' }),
+          })
+          if (!response.ok) {
+            throw new Error(`Failed to uncommit session: ${response.statusText}`)
+          }
+        } catch (err) {
+          console.error('Error uncommitting other session:', err)
+          uncommitErrors.push({ sessionId: otherSession.id, error: err instanceof Error ? err : new Error(String(err)) })
+        }
+      }
+
+      // If any uncommit operations failed, set error state
+      if (uncommitErrors.length > 0) {
+        setError(`Failed to uncommit ${uncommitErrors.length} session(s). Local state updated, but database may be inconsistent.`)
       }
 
       // Commit this session
@@ -271,14 +302,14 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
       const updatedSession: PlanningSession = await response.json()
 
       // Log activity
-      logActivity({
+      await logActivity({
         type: 'scenario_committed',
         scenarioId: sessionToCommit.id,
         scenarioName: sessionToCommit.name,
         description: `Committed scenario '${sessionToCommit.name}' as the quarterly plan.`,
       })
 
-      // Update state
+      // Update state with server response (may differ from optimistic update)
       setSessions((prev) =>
         prev.map((session) => {
           if (session.id === id) {
@@ -292,7 +323,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
     } catch (err) {
       console.error('Error committing scenario via API, falling back to localStorage:', err)
       // Fallback: commit in localStorage
-      logActivity({
+      await logActivity({
         type: 'scenario_committed',
         scenarioId: sessionToCommit.id,
         scenarioName: sessionToCommit.name,
@@ -342,7 +373,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
       const updatedSession: PlanningSession = await response.json()
 
       // Log activity
-      logActivity({
+      await logActivity({
         type: 'scenario_committed', // Reusing the same type for now
         scenarioId: sessionToUncommit.id,
         scenarioName: sessionToUncommit.name,
@@ -355,7 +386,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
     } catch (err) {
       console.error('Error uncommitting scenario via API, falling back to localStorage:', err)
       // Fallback: uncommit in localStorage
-      logActivity({
+      await logActivity({
         type: 'scenario_committed',
         scenarioId: sessionToUncommit.id,
         scenarioName: sessionToUncommit.name,
@@ -399,7 +430,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
       }
 
       // Log activity
-      logActivity({
+      await logActivity({
         type: 'scenario_deleted',
         scenarioId: sessionToDelete.id,
         scenarioName: sessionToDelete.name,
@@ -411,7 +442,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
     } catch (err) {
       console.error('Error deleting scenario via API, falling back to localStorage:', err)
       // Fallback: delete in localStorage
-      logActivity({
+      await logActivity({
         type: 'scenario_deleted',
         scenarioId: sessionToDelete.id,
         scenarioName: sessionToDelete.name,

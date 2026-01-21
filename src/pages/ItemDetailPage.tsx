@@ -41,7 +41,7 @@ function ItemDetailPage() {
   const { id: sessionId, itemId } = useParams<{ id: string; itemId: string }>()
   const navigate = useNavigate()
   const { getItemsForSession, updateItem } = useRoadmapItems()
-  const { getInputsForItem, setInputsForItem } = useItemInputs()
+  const { getInputsForItem, setInputsForItem, error: itemInputsError } = useItemInputs()
   const { getSessionById } = usePlanningSessions()
   const { logActivity } = useActivity()
 
@@ -517,6 +517,15 @@ function ItemDetailPage() {
             {formatStatus(item.status)}
           </Badge>
         </HStack>
+
+        {/* Error message for ItemInputsContext */}
+        {itemInputsError && (
+          <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
+            <AlertIcon color="#f59e0b" />
+            <AlertTitle color="white" mr={2}>Storage Error:</AlertTitle>
+            <AlertDescription color="gray.300">{itemInputsError}</AlertDescription>
+          </Alert>
+        )}
 
         <Box bg="#141419" borderRadius="md" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" p={6}>
           <Stack spacing={8}>

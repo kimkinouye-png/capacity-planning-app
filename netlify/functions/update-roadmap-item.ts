@@ -5,7 +5,9 @@ import {
   type DatabaseRoadmapItem, 
   type RoadmapItemResponse,
   roadmapItemToDbFormat,
-  dbRoadmapItemToRoadmapItemResponse 
+  dbRoadmapItemToRoadmapItemResponse,
+  errorResponse,
+  isValidUUID
 } from './types'
 
 const corsHeaders = {
@@ -25,11 +27,7 @@ export const handler: Handler = async (event, context) => {
   }
 
   if (event.httpMethod !== 'PUT') {
-    return {
-      statusCode: 405,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    }
+    return errorResponse(405, 'Method not allowed')
   }
 
   try {
@@ -40,38 +38,43 @@ export const handler: Handler = async (event, context) => {
     try {
       body = JSON.parse(event.body || '{}')
     } catch (parseError) {
-      return {
-        statusCode: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Invalid JSON in request body' }),
-      }
+      return errorResponse(400, 'Invalid JSON in request body')
     }
 
     if (!body.id) {
-      return {
-        statusCode: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Missing required field: id' }),
-      }
+      return errorResponse(400, 'Missing required field: id')
     }
 
     // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(body.id)) {
-      return {
-        statusCode: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Invalid id format' }),
-      }
+    if (!isValidUUID(body.id)) {
+      return errorResponse(400, 'Invalid id format')
+    }
+
+    // Validate numeric fields if provided
+    if (body.ux_score !== undefined && (typeof body.ux_score !== 'number' || isNaN(body.ux_score))) {
+      return errorResponse(400, 'Invalid ux_score: must be a number')
+    }
+
+    if (body.content_score !== undefined && (typeof body.content_score !== 'number' || isNaN(body.content_score))) {
+      return errorResponse(400, 'Invalid content_score: must be a number')
+    }
+
+    if (body.ux_focus_weeks !== undefined && (typeof body.ux_focus_weeks !== 'number' || body.ux_focus_weeks < 0)) {
+      return errorResponse(400, 'Invalid ux_focus_weeks: must be a non-negative number')
+    }
+
+    if (body.content_focus_weeks !== undefined && (typeof body.content_focus_weeks !== 'number' || body.content_focus_weeks < 0)) {
+      return errorResponse(400, 'Invalid content_focus_weeks: must be a non-negative number')
+    }
+
+    // Validate size bands are valid enum values
+    const validSizes = ['XS', 'S', 'M', 'L', 'XL'] as const
+    if (body.ux_size !== undefined && !validSizes.includes(body.ux_size)) {
+      return errorResponse(400, `Invalid ux_size: must be one of ${validSizes.join(', ')}`)
+    }
+
+    if (body.content_size !== undefined && !validSizes.includes(body.content_size)) {
+      return errorResponse(400, `Invalid content_size: must be one of ${validSizes.join(', ')}`)
     }
 
     // Get current roadmap item (parameterized query)
@@ -80,14 +83,7 @@ export const handler: Handler = async (event, context) => {
     `
     
     if (current.length === 0) {
-      return {
-        statusCode: 404,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Roadmap item not found' }),
-      }
+      return errorResponse(404, 'Roadmap item not found')
     }
 
     const currentItem = current[0]
@@ -98,14 +94,7 @@ export const handler: Handler = async (event, context) => {
     // Check if there are any updates
     const hasUpdates = Object.keys(updates).length > 0
     if (!hasUpdates) {
-      return {
-        statusCode: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'No fields to update' }),
-      }
+      return errorResponse(400, 'No fields to update')
     }
 
     // Handle JSONB fields from request body - use current values if not provided
@@ -152,14 +141,7 @@ export const handler: Handler = async (event, context) => {
     `
 
     if (result.length === 0) {
-      return {
-        statusCode: 404,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Roadmap item not found after update' }),
-      }
+      return errorResponse(404, 'Roadmap item not found after update')
     }
 
     // Transform database format to RoadmapItem format
@@ -175,13 +157,6 @@ export const handler: Handler = async (event, context) => {
     }
   } catch (error) {
     console.error('Error updating roadmap item:', error)
-    return {
-      statusCode: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ error: 'Failed to update roadmap item', details: error instanceof Error ? error.message : 'Unknown error' }),
-    }
+    return errorResponse(500, 'Failed to update roadmap item', error instanceof Error ? error.message : 'Unknown error')
   }
 }

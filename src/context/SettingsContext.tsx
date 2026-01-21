@@ -145,12 +145,28 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           setSettings(data)
           // Also store in localStorage as fallback
           localStorage.setItem('designCapacity.settings', JSON.stringify(data))
+          // Clear error on successful save
+          setError(null)
           return
         } else {
-          throw new Error(`API returned ${response.status}`)
+          // Try to extract error message from response body
+          let errorMessage = `API returned ${response.status}`
+          try {
+            const errorData = await response.json()
+            if (errorData.error) {
+              errorMessage = errorData.error
+            }
+          } catch (parseError) {
+            // If response isn't JSON, use status text or default message
+            errorMessage = response.statusText || errorMessage
+          }
+          throw new Error(errorMessage)
         }
       } catch (apiError) {
         console.warn('Failed to save settings to API, falling back to localStorage:', apiError)
+        // Set error state so users know API save failed
+        const errorMessage = apiError instanceof Error ? apiError.message : 'Unknown error'
+        setError(`Settings saved locally but not synced to database: ${errorMessage}. Check your connection.`)
       }
 
       // Fallback to localStorage

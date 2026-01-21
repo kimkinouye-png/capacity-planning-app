@@ -30,6 +30,8 @@ export interface RoadmapItem {
   contentSizeBand: 'XS' | 'S' | 'M' | 'L' | 'XL'
   contentFocusWeeks: number
   contentWorkWeeks: number
+  startDate?: string | null
+  endDate?: string | null
 }
 
 export type ActivityEventType = 

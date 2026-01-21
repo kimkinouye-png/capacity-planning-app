@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import type { RoadmapItem, PMIntake, ProductDesignInputs, ContentDesignInputs } from '../domain/types'
 import { useActivity } from './ActivityContext'
 import { usePlanningSessions } from './PlanningSessionsContext'
+import { mapSizeBandToFocusWeeks, mapSizeBandToContentFocusWeeks, calculateWorkWeeks } from '../config/effortModel'
 
 interface ItemInputs {
   intake: PMIntake
@@ -89,12 +90,73 @@ function saveInputsToStorage(inputs: Record<string, ItemInputs>): void {
   }
 }
 
+/**
+ * Normalize a roadmap item to ensure it has valid focus and work weeks
+ * If focus weeks are missing or invalid, calculate them from size bands
+ * If work weeks are missing or invalid, calculate them from focus weeks
+ */
+function normalizeRoadmapItem(item: RoadmapItem): RoadmapItem {
+  const focusTimeRatio = 0.75 // Default ratio, matches transformation function
+  
+  // Normalize UX focus weeks
+  let uxFocusWeeks = item.uxFocusWeeks
+  if (typeof uxFocusWeeks !== 'number' || isNaN(uxFocusWeeks) || uxFocusWeeks < 0) {
+    // Calculate from size band
+    uxFocusWeeks = mapSizeBandToFocusWeeks(item.uxSizeBand || 'M')
+  }
+  
+  // Normalize UX work weeks
+  let uxWorkWeeks = item.uxWorkWeeks
+  if (typeof uxWorkWeeks !== 'number' || isNaN(uxWorkWeeks) || uxWorkWeeks < 0) {
+    // Calculate from focus weeks
+    uxWorkWeeks = calculateWorkWeeks(uxFocusWeeks, focusTimeRatio)
+  }
+  
+  // Normalize Content focus weeks
+  let contentFocusWeeks = item.contentFocusWeeks
+  if (typeof contentFocusWeeks !== 'number' || isNaN(contentFocusWeeks) || contentFocusWeeks < 0) {
+    // Calculate from size band
+    contentFocusWeeks = mapSizeBandToContentFocusWeeks(item.contentSizeBand || 'M')
+  }
+  
+  // Normalize Content work weeks
+  let contentWorkWeeks = item.contentWorkWeeks
+  if (typeof contentWorkWeeks !== 'number' || isNaN(contentWorkWeeks) || contentWorkWeeks < 0) {
+    // Calculate from focus weeks
+    contentWorkWeeks = calculateWorkWeeks(contentFocusWeeks, focusTimeRatio)
+  }
+  
+  return {
+    ...item,
+    uxFocusWeeks,
+    uxWorkWeeks,
+    contentFocusWeeks,
+    contentWorkWeeks,
+  }
+}
+
+/**
+ * Normalize an array of roadmap items
+ */
+function normalizeRoadmapItems(items: RoadmapItem[]): RoadmapItem[] {
+  return items.map(normalizeRoadmapItem)
+}
+
 export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
   const { logActivity } = useActivity()
   const { getSessionById } = usePlanningSessions()
   
   // Store items as a map: planning_session_id -> RoadmapItem[]
-  const [itemsBySession, setItemsBySession] = useState<Record<string, RoadmapItem[]>>({})
+  // Initialize from localStorage for immediate availability
+  // Normalize items on initial load to ensure they have valid focus/work weeks
+  const [itemsBySession, setItemsBySession] = useState<Record<string, RoadmapItem[]>>(() => {
+    const loaded = loadItemsFromStorage()
+    const normalized: Record<string, RoadmapItem[]> = {}
+    for (const [sessionId, items] of Object.entries(loaded)) {
+      normalized[sessionId] = normalizeRoadmapItems(items)
+    }
+    return normalized
+  })
   // Store inputs as a map: itemId -> { intake, pd, cd }
   const [inputsByItemId, setInputsByItemId] = useState<Record<string, ItemInputs>>(() =>
     loadInputsFromStorage()
@@ -123,26 +185,33 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
         throw new Error(`Failed to fetch roadmap items: ${response.statusText}`)
       }
       const data: RoadmapItem[] = await response.json()
-      setItemsBySession((prev) => ({
-        ...prev,
-        [sessionId]: data,
-      }))
-      // Also save to localStorage as backup
-      const updated = { ...itemsBySession, [sessionId]: data }
-      saveItemsToStorage(updated)
+      // Normalize items to ensure they have valid focus/work weeks
+      const normalizedData = normalizeRoadmapItems(data)
+      // Use functional setState and save with fresh data to avoid stale closure
+      setItemsBySession((prev) => {
+        const updated = { ...prev, [sessionId]: normalizedData }
+        // Save immediately with fresh data to avoid race condition
+        saveItemsToStorage(updated)
+        return updated
+      })
     } catch (err) {
       console.error('Error loading roadmap items from API, falling back to localStorage:', err)
       setError('Failed to load roadmap items from database. Using local data.')
       // Fallback to localStorage
       const localItems = loadItemsFromStorage()
-      setItemsBySession((prev) => ({
-        ...prev,
-        [sessionId]: localItems[sessionId] || [],
-      }))
+      const sessionItems = localItems[sessionId] || []
+      // Normalize items to ensure they have valid focus/work weeks
+      const normalizedItems = normalizeRoadmapItems(sessionItems)
+      // Use functional setState and save with fresh data
+      setItemsBySession((prev) => {
+        const updated = { ...prev, [sessionId]: normalizedItems }
+        saveItemsToStorage(updated)
+        return updated
+      })
     } finally {
       setIsLoading(false)
     }
-  }, [itemsBySession])
+  }, [])
 
   const getItemsForSession = useCallback(
     (sessionId: string): RoadmapItem[] => {
@@ -177,25 +246,30 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
         }
 
         const newItem: RoadmapItem = await response.json()
+        // Normalize the new item to ensure it has valid focus/work weeks
+        const normalizedItem = normalizeRoadmapItem(newItem)
         setItemsBySession((prev) => ({
           ...prev,
-          [sessionId]: [...(prev[sessionId] || []), newItem],
+          [sessionId]: [...(prev[sessionId] || []), normalizedItem],
         }))
-        return newItem
+        return normalizedItem
       } catch (err) {
         console.error('Error creating roadmap item via API, falling back to localStorage:', err)
         // Fallback: create in localStorage
+        // Default to 'M' size band with corresponding focus weeks (3.0) and work weeks (4.0)
+        const defaultFocusWeeks = 3.0 // 'M' size band
+        const defaultWorkWeeks = Number((defaultFocusWeeks / 0.75).toFixed(1)) // 4.0
         const newItem: RoadmapItem = {
           ...input,
           id: crypto.randomUUID(),
           planning_session_id: sessionId,
           status: 'draft',
           uxSizeBand: 'M',
-          uxFocusWeeks: 0,
-          uxWorkWeeks: 0,
+          uxFocusWeeks: defaultFocusWeeks,
+          uxWorkWeeks: defaultWorkWeeks,
           contentSizeBand: 'M',
-          contentFocusWeeks: 0,
-          contentWorkWeeks: 0,
+          contentFocusWeeks: defaultFocusWeeks,
+          contentWorkWeeks: defaultWorkWeeks,
         }
         setItemsBySession((prev) => ({
           ...prev,
@@ -222,29 +296,37 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
       }
 
       const updatedItem: RoadmapItem = await response.json()
+      // Merge updates with the response to ensure our updates are preserved
+      // (API response might not include all updated fields)
+      const mergedItem = { ...updatedItem, ...updates }
+      // Normalize the merged item to ensure it has valid focus/work weeks
+      // Normalization preserves valid numbers, so our pasted values will be kept
+      const normalizedItem = normalizeRoadmapItem(mergedItem)
       
       // Log activity
-      const sessionId = updatedItem.planning_session_id
+      const sessionId = normalizedItem.planning_session_id
       const session = getSessionById(sessionId)
       const sessionName = session?.name || 'Unknown scenario'
-      logActivity({
+      await logActivity({
         type: 'roadmap_item_updated',
         scenarioId: sessionId,
         scenarioName: sessionName,
-        description: `Updated roadmap item '${updatedItem.name}' in scenario '${sessionName}'.`,
+        description: `Updated roadmap item '${normalizedItem.name}' in scenario '${sessionName}'.`,
       })
 
       // Update state
       setItemsBySession((prev) => {
         const updated: Record<string, RoadmapItem[]> = {}
         for (const [sid, items] of Object.entries(prev)) {
-          updated[sid] = items.map((item) => (item.id === itemId ? updatedItem : item))
+          updated[sid] = items.map((item) => (item.id === itemId ? normalizedItem : item))
         }
         return updated
       })
     } catch (err) {
       console.error('Error updating roadmap item via API, falling back to localStorage:', err)
+      setError('Failed to update roadmap item in database. Changes saved locally.')
       // Fallback: update in localStorage
+      // Normalize the updated item to ensure it has valid focus/work weeks
       setItemsBySession((prev) => {
         const updated: Record<string, RoadmapItem[]> = {}
         let updatedItem: RoadmapItem | undefined
@@ -253,7 +335,8 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
         for (const [sid, items] of Object.entries(prev)) {
           updated[sid] = items.map((item) => {
             if (item.id === itemId) {
-              updatedItem = { ...item, ...updates }
+              // Normalize the updated item to ensure consistency with online updates
+              updatedItem = normalizeRoadmapItem({ ...item, ...updates })
               sessionId = sid
               return updatedItem
             }
@@ -265,12 +348,13 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
         if (updatedItem && sessionId) {
           const session = getSessionById(sessionId)
           const sessionName = session?.name || 'Unknown scenario'
+          // Note: logActivity is async but we don't await in setState callback
           logActivity({
             type: 'roadmap_item_updated',
             scenarioId: sessionId,
             scenarioName: sessionName,
             description: `Updated roadmap item '${updatedItem.name}' in scenario '${sessionName}'.`,
-          })
+          }).catch((err) => console.error('Failed to log activity:', err))
         }
         
         return updated

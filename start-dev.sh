@@ -28,4 +28,11 @@ echo "   - Functions: http://localhost:8888/.netlify/functions/get-settings"
 echo ""
 
 # Start Netlify dev - the error about addons won't prevent functions from working
-exec npx netlify dev
+# The --offline flag tells Netlify to skip addon fetching and use local env vars
+echo ""
+echo "Starting Netlify dev in offline mode (skips addon fetch)..."
+echo ""
+
+# Start Netlify dev with --offline to skip addon fetching
+# This uses environment variables from .env file instead
+exec npx netlify dev --offline

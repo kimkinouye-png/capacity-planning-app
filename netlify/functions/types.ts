@@ -183,9 +183,47 @@ export interface UpdateRoadmapItemRequest {
 export type RoadmapItemResponse = RoadmapItem
 
 /**
+ * Map size band to focus weeks (used when focus weeks are missing from DB)
+ * This matches the calculation in src/config/effortModel.ts
+ */
+function mapSizeBandToFocusWeeks(sizeBand: string | null): number {
+  switch (sizeBand) {
+    case 'XS': return 0.5
+    case 'S': return 1.5
+    case 'M': return 3.0
+    case 'L': return 5.0
+    case 'XL': return 8.0
+    default: return 3.0
+  }
+}
+
+/**
  * Helper to transform database format to RoadmapItem format
+ * If focus weeks are null in the database but size bands exist, calculate them from size bands
  */
 export function dbRoadmapItemToRoadmapItemResponse(db: DatabaseRoadmapItem): RoadmapItemResponse {
+  const uxSizeBand = (db.ux_size as RoadmapItem['uxSizeBand']) || 'M'
+  const contentSizeBand = (db.content_size as RoadmapItem['contentSizeBand']) || 'M'
+  
+  // Calculate focus weeks from size band if they're null in the database
+  const uxFocusWeeks = db.ux_focus_weeks !== null && db.ux_focus_weeks !== undefined
+    ? db.ux_focus_weeks
+    : mapSizeBandToFocusWeeks(uxSizeBand)
+  
+  const contentFocusWeeks = db.content_focus_weeks !== null && db.content_focus_weeks !== undefined
+    ? db.content_focus_weeks
+    : mapSizeBandToFocusWeeks(contentSizeBand)
+  
+  // Calculate work weeks if they're missing (work weeks = focus weeks / 0.75)
+  const focusTimeRatio = 0.75
+  const uxWorkWeeks = db.ux_work_weeks !== null && db.ux_work_weeks !== undefined
+    ? db.ux_work_weeks
+    : Number((uxFocusWeeks / focusTimeRatio).toFixed(1))
+  
+  const contentWorkWeeks = db.content_work_weeks !== null && db.content_work_weeks !== undefined
+    ? db.content_work_weeks
+    : Number((contentFocusWeeks / focusTimeRatio).toFixed(1))
+  
   return {
     id: db.id,
     planning_session_id: db.scenario_id,
@@ -194,12 +232,12 @@ export function dbRoadmapItemToRoadmapItemResponse(db: DatabaseRoadmapItem): Roa
     initiative: db.initiative || '',
     priority: db.priority || 0,
     status: (db.status as RoadmapItem['status']) || 'draft',
-    uxSizeBand: (db.ux_size as RoadmapItem['uxSizeBand']) || 'M',
-    uxFocusWeeks: db.ux_focus_weeks || 0,
-    uxWorkWeeks: db.ux_work_weeks || 0,
-    contentSizeBand: (db.content_size as RoadmapItem['contentSizeBand']) || 'M',
-    contentFocusWeeks: db.content_focus_weeks || 0,
-    contentWorkWeeks: db.content_work_weeks || 0,
+    uxSizeBand,
+    uxFocusWeeks,
+    uxWorkWeeks,
+    contentSizeBand,
+    contentFocusWeeks,
+    contentWorkWeeks,
   }
 }
 
@@ -242,4 +280,50 @@ export function createRoadmapItemRequestToDbFormat(req: CreateRoadmapItemRequest
   }
   
   return db
+}
+
+/**
+ * Standardized error response helper
+ * Ensures consistent error response shape across all functions
+ */
+export function errorResponse(
+  statusCode: number,
+  message: string,
+  details?: string
+): {
+  statusCode: number
+  headers: Record<string, string>
+  body: string
+} {
+  return {
+    statusCode,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      error: message,
+      ...(details && { details }),
+    }),
+  }
+}
+
+/**
+ * UUID validation helper
+ * Validates that a string is a valid UUID format
+ */
+export function isValidUUID(id: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(id)
+}
+
+/**
+ * Planning period format validation helper
+ * Validates that a string matches the expected format: YYYY-QN (e.g., "2026-Q1")
+ */
+export function isValidPlanningPeriod(period: string): boolean {
+  const quarterPattern = /^(\d{4})-Q([1-4])$/
+  return quarterPattern.test(period)
 }

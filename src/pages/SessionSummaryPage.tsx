@@ -39,24 +39,37 @@ import {
   NumberIncrementStepper,
   NumberDecrementStepper,
   SimpleGrid,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from '@chakra-ui/react'
 import { ChevronLeftIcon, DeleteIcon, CheckIcon } from '@chakra-ui/icons'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useMemo, useRef, useEffect, useState } from 'react'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
+import { useSettings } from '../context/SettingsContext'
 import { getWeeksForPeriod } from '../config/quarterConfig'
 import { estimateSprints, formatSprintEstimate } from '../config/sprints'
+import { calculateWorkWeeks } from '../config/effortModel'
 import InlineEditableText from '../components/InlineEditableText'
+import EditableNumberCell from '../components/EditableNumberCell'
+import EditableTextCell from '../components/EditableTextCell'
+import EditableDateCell from '../components/EditableDateCell'
+import PasteTableImportModal from '../features/scenarios/pasteTableImport/PasteTableImportModal'
 
 function SessionSummaryPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const toast = useToast()
   const { sessions, getSessionById, commitSession, uncommitSession, updateSession, isLoading: sessionsLoading, error: sessionsError, loadSessions } = usePlanningSessions()
-  const { getItemsForSession, removeItem, createItem, loadItemsForSession } = useRoadmapItems()
+  const { getItemsForSession, removeItem, createItem, updateItem, loadItemsForSession, error: roadmapError } = useRoadmapItems()
+  const { settings } = useSettings()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isCreateModalOpen, onOpen: onCreateModalOpen, onClose: onCreateModalClose } = useDisclosure()
+  const { isOpen: isPasteModalOpen, onOpen: onPasteModalOpen, onClose: onPasteModalClose } = useDisclosure()
   const cancelRef = useRef<HTMLButtonElement>(null)
   const itemToDeleteRef = useRef<{ id: string; name: string } | null>(null)
 
@@ -107,12 +120,12 @@ function SessionSummaryPage() {
     return id ? getItemsForSession(id) : []
   }, [id, getItemsForSession])
 
-  // Load items for this session when the page loads
+  // Load items for this session when the page loads or when navigating back
   useEffect(() => {
     if (id) {
       loadItemsForSession(id)
     }
-  }, [id, loadItemsForSession])
+  }, [id, loadItemsForSession, location.key]) // location.key changes on navigation
 
   // Calculate capacity and demand
   const capacityMetrics = useMemo(() => {
@@ -195,6 +208,155 @@ function SessionSummaryPage() {
     navigate(`/sessions/${id}/items/${itemId}`)
   }
 
+  // Handle updating UX focus weeks from inline edit
+  const handleUpdateUXFocusWeeks = async (itemId: string, newValue: number | undefined) => {
+    if (!id) return
+
+    const focusTimeRatio = settings?.time_model.focusTimeRatio ?? 0.75
+    const updates: {
+      uxFocusWeeks?: number
+      uxWorkWeeks?: number
+    } = {}
+
+    if (newValue !== undefined) {
+      updates.uxFocusWeeks = newValue
+      updates.uxWorkWeeks = calculateWorkWeeks(newValue, focusTimeRatio)
+    } else {
+      // If undefined, let normalization handle defaults
+      // But we still need to update work weeks based on current focus weeks
+      const item = items.find((i) => i.id === itemId)
+      if (item && typeof item.uxFocusWeeks === 'number') {
+        updates.uxWorkWeeks = calculateWorkWeeks(item.uxFocusWeeks, focusTimeRatio)
+      }
+    }
+
+    try {
+      await updateItem(itemId, updates)
+    } catch (error) {
+      console.error('Error updating UX focus weeks:', error)
+      toast({
+        title: 'Update failed',
+        description: 'Failed to update UX focus weeks. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+    }
+  }
+
+  // Handle updating Content focus weeks from inline edit
+  const handleUpdateContentFocusWeeks = async (itemId: string, newValue: number | undefined) => {
+    if (!id) return
+
+    const focusTimeRatio = settings?.time_model.focusTimeRatio ?? 0.75
+    const updates: {
+      contentFocusWeeks?: number
+      contentWorkWeeks?: number
+    } = {}
+
+    if (newValue !== undefined) {
+      updates.contentFocusWeeks = newValue
+      updates.contentWorkWeeks = calculateWorkWeeks(newValue, focusTimeRatio)
+    } else {
+      // If undefined, let normalization handle defaults
+      // But we still need to update work weeks based on current focus weeks
+      const item = items.find((i) => i.id === itemId)
+      if (item && typeof item.contentFocusWeeks === 'number') {
+        updates.contentWorkWeeks = calculateWorkWeeks(item.contentFocusWeeks, focusTimeRatio)
+      }
+    }
+
+    try {
+      await updateItem(itemId, updates)
+    } catch (error) {
+      console.error('Error updating Content focus weeks:', error)
+      toast({
+        title: 'Update failed',
+        description: 'Failed to update Content focus weeks. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+    }
+  }
+
+  // Handle updating item name from inline edit
+  const handleUpdateName = async (itemId: string, newValue: string) => {
+    if (!id) return
+
+    try {
+      await updateItem(itemId, { name: newValue })
+    } catch (error) {
+      console.error('Error updating item name:', error)
+      toast({
+        title: 'Update failed',
+        description: 'Failed to update item name. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+    }
+  }
+
+  // Handle updating item short_key from inline edit
+  const handleUpdateShortKey = async (itemId: string, newValue: string) => {
+    if (!id) return
+
+    try {
+      await updateItem(itemId, { short_key: newValue })
+    } catch (error) {
+      console.error('Error updating item key:', error)
+      toast({
+        title: 'Update failed',
+        description: 'Failed to update item key. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+    }
+  }
+
+  // Validate short_key: non-empty and no spaces
+  const validateShortKey = (value: string): boolean => {
+    return value.length > 0 && !value.includes(' ')
+  }
+
+  // Handle updating item startDate from inline edit
+  const handleUpdateStartDate = async (itemId: string, newValue: string | null) => {
+    if (!id) return
+
+    try {
+      await updateItem(itemId, { startDate: newValue })
+    } catch (error) {
+      console.error('Error updating start date:', error)
+      toast({
+        title: 'Update failed',
+        description: 'Failed to update start date. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+    }
+  }
+
+  // Handle updating item endDate from inline edit
+  const handleUpdateEndDate = async (itemId: string, newValue: string | null) => {
+    if (!id) return
+
+    try {
+      await updateItem(itemId, { endDate: newValue })
+    } catch (error) {
+      console.error('Error updating end date:', error)
+      toast({
+        title: 'Update failed',
+        description: 'Failed to update end date. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+    }
+  }
+
   // Handle remove item
   const handleRemoveClick = (e: React.MouseEvent, itemId: string, itemName: string) => {
     e.stopPropagation()
@@ -245,6 +407,116 @@ function SessionSummaryPage() {
     } catch (error) {
       console.error('Error creating item:', error)
       // Error is handled by context fallback
+    }
+  }
+
+  // Handle paste import
+  const handlePasteImport = async (
+    items: Array<{ 
+      name: string
+      short_key: string
+      initiative: string
+      priority: number
+      effortWeeks?: number // Legacy 4-column format
+      uxEffortWeeks?: number // 5-column format
+      contentEffortWeeks?: number // 5-column format
+      startDate?: string
+      endDate?: string
+    }>
+  ) => {
+    if (!id) return
+
+    try {
+      const focusTimeRatio = 0.75 // Default ratio
+      
+      // Import items sequentially
+      for (const item of items) {
+        const newItem = await createItem(id, {
+          short_key: item.short_key,
+          name: item.name,
+          initiative: item.initiative,
+          priority: item.priority,
+        })
+
+        // Map start/end dates from paste into the item
+        const dateUpdates: {
+          startDate?: string | null
+          endDate?: string | null
+        } = {}
+        
+        if (item.startDate !== undefined) {
+          dateUpdates.startDate = item.startDate || null
+        }
+        if (item.endDate !== undefined) {
+          dateUpdates.endDate = item.endDate || null
+        }
+        
+        // Update dates if provided
+        if (Object.keys(dateUpdates).length > 0) {
+          await updateItem(newItem.id, dateUpdates)
+        }
+
+        // Check if this is 5-column format (has separate UX/Content effort)
+        const hasSeparateEffort = item.uxEffortWeeks !== undefined || item.contentEffortWeeks !== undefined
+
+        if (hasSeparateEffort) {
+          // 5-column format: use separate UX and Content effort values
+          // These values are mapped to uxFocusWeeks and contentFocusWeeks fields,
+          // which are displayed in the Roadmap Items grid and used by scenario
+          // summary and committed plan calculations.
+          // Only update fields that were explicitly provided (undefined means use default)
+          const updates: {
+            uxFocusWeeks?: number
+            uxWorkWeeks?: number
+            contentFocusWeeks?: number
+            contentWorkWeeks?: number
+          } = {}
+          
+          if (item.uxEffortWeeks !== undefined) {
+            updates.uxFocusWeeks = item.uxEffortWeeks
+            updates.uxWorkWeeks = calculateWorkWeeks(item.uxEffortWeeks, focusTimeRatio)
+          }
+          
+          if (item.contentEffortWeeks !== undefined) {
+            updates.contentFocusWeeks = item.contentEffortWeeks
+            updates.contentWorkWeeks = calculateWorkWeeks(item.contentEffortWeeks, focusTimeRatio)
+          }
+          
+          // Only update if we have values to set
+          if (Object.keys(updates).length > 0) {
+            await updateItem(newItem.id, updates)
+          }
+        } else if (item.effortWeeks !== undefined && item.effortWeeks > 0) {
+          // Legacy 4-column format: split effort weeks evenly between UX and Content
+          // Note: This preserves backward compatibility with existing paste behavior
+          const focusWeeks = item.effortWeeks / 2
+          const workWeeks = calculateWorkWeeks(focusWeeks, focusTimeRatio)
+
+          await updateItem(newItem.id, {
+            uxFocusWeeks: focusWeeks,
+            uxWorkWeeks: workWeeks,
+            contentFocusWeeks: focusWeeks,
+            contentWorkWeeks: workWeeks,
+          })
+        }
+      }
+
+      toast({
+        title: 'Items imported',
+        description: `${items.length} ${items.length === 1 ? 'item' : 'items'} have been added.`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      })
+    } catch (error) {
+      console.error('Error importing items:', error)
+      toast({
+        title: 'Import failed',
+        description: 'Some items may not have been imported. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
     }
   }
 
@@ -314,6 +586,15 @@ function SessionSummaryPage() {
   return (
     <Box bg="#0a0a0f" minH="100vh" pb={8}>
       <Box maxW="1400px" mx="auto" px={6} pt={6}>
+        {/* Error message for PlanningSessionsContext */}
+        {sessionsError && (
+          <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
+            <AlertIcon color="#f59e0b" />
+            <AlertTitle color="white" mr={2}>Session Error:</AlertTitle>
+            <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
+          </Alert>
+        )}
+
         {/* Header Section */}
         <HStack spacing={4} mb={6} align="center">
           <IconButton
@@ -559,18 +840,44 @@ function SessionSummaryPage() {
             Roadmap Items
           </Heading>
 
+          {/* Error message for RoadmapItemsContext */}
+          {roadmapError && (
+            <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
+              <AlertIcon color="#f59e0b" />
+              <AlertTitle color="white" mr={2}>Sync Error:</AlertTitle>
+              <AlertDescription color="gray.300">
+                {roadmapError} Changes were saved locally. You may need to retry syncing to the database.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {items.length === 0 ? (
             // Empty State
             <VStack spacing={4} py={12}>
               <Text color="gray.300" fontSize="16px">
                 No roadmap items yet. Add items to see capacity calculations.
               </Text>
-              <Button
-                onClick={onCreateModalOpen}
-                colorScheme="cyan"
-              >
-                + Add Your First Item
-              </Button>
+              <HStack spacing={3}>
+                <Button
+                  onClick={onCreateModalOpen}
+                  colorScheme="cyan"
+                >
+                  + Add Your First Item
+                </Button>
+                <Button
+                  onClick={onPasteModalOpen}
+                  variant="outline"
+                  borderColor="rgba(255, 255, 255, 0.1)"
+                  color="gray.300"
+                  _hover={{
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    color: 'white',
+                    bg: 'rgba(255, 255, 255, 0.05)',
+                  }}
+                >
+                  Paste from table
+                </Button>
+              </HStack>
             </VStack>
           ) : (
             <>
@@ -580,6 +887,8 @@ function SessionSummaryPage() {
                     <Tr>
                       <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Key</Th>
                       <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Name</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Start</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">End</Th>
                       <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Priority</Th>
                       <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Status</Th>
                       <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider" borderLeft="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
@@ -612,8 +921,51 @@ function SessionSummaryPage() {
                           borderBottom="1px solid"
                           borderColor="rgba(255, 255, 255, 0.05)"
                         >
-                          <Td fontWeight="medium" color="gray.300">{item.short_key}</Td>
-                          <Td color="gray.300">{item.name}</Td>
+                          <Td onClick={(e) => e.stopPropagation()}>
+                            <EditableTextCell
+                              value={item.short_key}
+                              onChange={() => {
+                                // Local state update happens immediately via context
+                              }}
+                              onUpdate={(newValue) => handleUpdateShortKey(item.id, newValue)}
+                              validate={validateShortKey}
+                              placeholder="Key"
+                              color="gray.300"
+                            />
+                          </Td>
+                          <Td onClick={(e) => e.stopPropagation()}>
+                            <EditableTextCell
+                              value={item.name}
+                              onChange={() => {
+                                // Local state update happens immediately via context
+                              }}
+                              onUpdate={(newValue) => handleUpdateName(item.id, newValue)}
+                              placeholder="Name"
+                              color="gray.300"
+                            />
+                          </Td>
+                          <Td onClick={(e) => e.stopPropagation()}>
+                            <EditableDateCell
+                              value={item.startDate}
+                              onChange={() => {
+                                // Local state update happens immediately via context
+                              }}
+                              onUpdate={(newValue) => handleUpdateStartDate(item.id, newValue)}
+                              placeholder="—"
+                              color="gray.300"
+                            />
+                          </Td>
+                          <Td onClick={(e) => e.stopPropagation()}>
+                            <EditableDateCell
+                              value={item.endDate}
+                              onChange={() => {
+                                // Local state update happens immediately via context
+                              }}
+                              onUpdate={(newValue) => handleUpdateEndDate(item.id, newValue)}
+                              placeholder="—"
+                              color="gray.300"
+                            />
+                          </Td>
                           <Td>
                             <Badge
                               bg="rgba(245, 158, 11, 0.1)"
@@ -652,8 +1004,18 @@ function SessionSummaryPage() {
                               <Text color="gray.500">—</Text>
                             )}
                           </Td>
-                          <Td color="gray.300">
-                            {typeof item.uxFocusWeeks === 'number' ? item.uxFocusWeeks.toFixed(1) : '—'}
+                          <Td onClick={(e) => e.stopPropagation()}>
+                            <EditableNumberCell
+                              value={item.uxFocusWeeks}
+                              onChange={() => {
+                                // Local state update happens immediately via context
+                              }}
+                              onUpdate={(newValue) => handleUpdateUXFocusWeeks(item.id, newValue)}
+                              min={0}
+                              step={0.1}
+                              precision={1}
+                              color="gray.300"
+                            />
                           </Td>
                           <Td color="gray.300">
                             {item.uxFocusWeeks
@@ -673,10 +1035,18 @@ function SessionSummaryPage() {
                               <Text color="gray.500">—</Text>
                             )}
                           </Td>
-                          <Td color="gray.300">
-                            {typeof item.contentFocusWeeks === 'number'
-                              ? item.contentFocusWeeks.toFixed(1)
-                              : '—'}
+                          <Td onClick={(e) => e.stopPropagation()}>
+                            <EditableNumberCell
+                              value={item.contentFocusWeeks}
+                              onChange={() => {
+                                // Local state update happens immediately via context
+                              }}
+                              onUpdate={(newValue) => handleUpdateContentFocusWeeks(item.id, newValue)}
+                              min={0}
+                              step={0.1}
+                              precision={1}
+                              color="gray.300"
+                            />
                           </Td>
                           <Td color="gray.300">
                             {item.contentFocusWeeks
@@ -722,15 +1092,27 @@ function SessionSummaryPage() {
 
               {/* Add another feature button */}
               <Box mt={6} textAlign="center">
-                <Button
-                  variant="link"
-                  color="#00d9ff"
-                  fontSize="14px"
-                  onClick={onCreateModalOpen}
-                  _hover={{ color: '#00b8d9', textDecoration: 'underline' }}
-                >
-                  + Add another feature
-                </Button>
+                <HStack spacing={3}>
+                  <Button
+                    variant="link"
+                    color="#00d9ff"
+                    fontSize="14px"
+                    onClick={onCreateModalOpen}
+                    _hover={{ color: '#00b8d9', textDecoration: 'underline' }}
+                  >
+                    + Add another feature
+                  </Button>
+                  <Text color="gray.500" fontSize="14px">•</Text>
+                  <Button
+                    variant="link"
+                    color="#00d9ff"
+                    fontSize="14px"
+                    onClick={onPasteModalOpen}
+                    _hover={{ color: '#00b8d9', textDecoration: 'underline' }}
+                  >
+                    Paste from table
+                  </Button>
+                </HStack>
               </Box>
             </>
           )}
@@ -860,6 +1242,13 @@ function SessionSummaryPage() {
           </form>
         </ModalContent>
       </Modal>
+
+      {/* Paste Table Import Modal */}
+      <PasteTableImportModal
+        isOpen={isPasteModalOpen}
+        onClose={onPasteModalClose}
+        onImport={handlePasteImport}
+      />
     </Box>
   )
 }

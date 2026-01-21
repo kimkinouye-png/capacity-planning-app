@@ -286,3 +286,71 @@
 ✅ Calculations use database settings
 ✅ Error handling works gracefully
 ✅ Production deployment successful
+
+---
+
+## Feature: Paste Roadmap Items from Table
+
+### Current QA Summary
+
+**Status:** ⚠️ Partially Passing
+
+**Paste Mechanics & Validation — ✅ Pass**
+- Modal opens from "Paste from table" in the Roadmap Items section
+- **5-column format is accepted:** Title | Start date | End date | UX effort weeks | Content effort weeks
+- **4-column format (legacy) is still supported:** Title | Start date | End date | Effort weeks (splits 50/50)
+- Header row is auto-detected and ignored
+- Parser correctly:
+  - Handles rows where only UX or only Content effort is filled
+  - Flags invalid numeric inputs with field-specific error messages:
+    - "UX effort is not a number"
+    - "Content effort is not a number"
+    - Combined messages when both are invalid
+- Preview modal shows:
+  - Separate UX effort and Content effort columns
+  - Correct numeric values for each row
+  - Accurate counts ("4 items ready to import", etc.)
+- Clicking "Add items to scenario" creates new roadmap items that appear in the Roadmap Items list with correct titles
+
+**Data After Import — ❌ Failing / Incomplete**
+- After clicking "Add items to scenario":
+  - New items appear in the Roadmap Items list with correct titles
+  - **However, the Roadmap Items grid still shows default values:**
+    - UX Focus Weeks = 3.0 (default) instead of pasted UX effort values
+    - Content Focus Weeks = 3.0 (default) instead of pasted Content effort values
+  - **Item detail pages show default model-based estimates:**
+    - UX Effort Estimate card shows 3.0 focus weeks, 7.5 work weeks (defaults)
+    - Content Effort Estimate card shows 3.0 focus weeks, 7.5 work weeks (defaults)
+    - Not reflecting pasted UX/Content effort overrides
+- **Net effect:** Pasted UX/Content effort values are not yet driving:
+  - The Roadmap Items grid (UX focus weeks / Content focus weeks columns)
+  - The per-item effort estimate sections (UX and Content Effort Estimate cards)
+  - The complexity calculators remain independent and do not read from pasted values
+
+**Known / Accepted Limitations (Deferred)**
+- Start/end dates are parsed and previewed but still land in fields that surface as "Initiative" in Committed Plan view
+- There is no dedicated date column in the Committed Plan table yet
+- The complexity calculators (UX and Content Effort Estimate cards) are still independent tools
+- Calculators do not yet read from pasted UX/Content effort values
+
+### Test Steps
+
+1. Navigate to a scenario's summary page
+2. Click "Paste from table" button in Roadmap Items section
+3. Paste spreadsheet data with 5-column format:
+   ```
+   Title	Start date	End date	UX effort weeks	Content effort weeks
+   Barbie-President	1/21/26	2/21/26	99	99
+   Barbie-Girl	1/23/26	3/1/26	0	50
+   Barbie-Aqua	1/25/26	3/3/26	50	0
+   Barbie-LuLu	1/27/26	3/5/26	20	20
+   ```
+4. Click "Preview items" - verify 4 valid rows shown with separate UX/Content effort columns
+5. Click "Add items to scenario"
+6. **Expected (currently failing):**
+   - Items appear in Roadmap Items grid
+   - Grid shows UX Focus Weeks = 99, 0, 50, 20 (pasted values)
+   - Grid shows Content Focus Weeks = 99, 50, 0, 20 (pasted values)
+7. **Current behavior (needs fix):**
+   - Items appear but show UX Focus Weeks = 3.0, Content Focus Weeks = 3.0 (defaults)
+8. Open an item detail page - verify UX/Content Effort Estimate cards show pasted values (currently shows defaults)

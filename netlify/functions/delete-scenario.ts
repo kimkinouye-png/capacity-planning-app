@@ -1,5 +1,6 @@
 import { Handler } from '@netlify/functions'
 import { neon } from '@netlify/neon'
+import { errorResponse, isValidUUID } from './types'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,11 +24,7 @@ export const handler: Handler = async (event, context) => {
   }
 
   if (event.httpMethod !== 'DELETE') {
-    return {
-      statusCode: 405,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    }
+    return errorResponse(405, 'Method not allowed')
   }
 
   try {
@@ -38,27 +35,12 @@ export const handler: Handler = async (event, context) => {
     const id = event.queryStringParameters?.id
 
     if (!id) {
-      return {
-        statusCode: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Missing required parameter: id' }),
-      }
+      return errorResponse(400, 'Missing required parameter: id')
     }
 
-    // Validate UUID format (basic check)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(id)) {
-      return {
-        statusCode: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Invalid id format' }),
-      }
+    // Validate UUID format
+    if (!isValidUUID(id)) {
+      return errorResponse(400, 'Invalid id format')
     }
 
     // Check if scenario exists and has no roadmap items (parameterized query)
@@ -71,25 +53,11 @@ export const handler: Handler = async (event, context) => {
     `
 
     if (scenarioCheck.length === 0) {
-      return {
-        statusCode: 404,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Scenario not found' }),
-      }
+      return errorResponse(404, 'Scenario not found')
     }
 
     if (scenarioCheck[0].item_count > 0) {
-      return {
-        statusCode: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Cannot delete scenario with roadmap items' }),
-      }
+      return errorResponse(400, 'Cannot delete scenario with roadmap items')
     }
 
     // Delete the scenario (parameterized query)
@@ -109,13 +77,6 @@ export const handler: Handler = async (event, context) => {
     }
   } catch (error) {
     console.error('Error deleting scenario:', error)
-    return {
-      statusCode: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ error: 'Failed to delete scenario', details: error instanceof Error ? error.message : 'Unknown error' }),
-    }
+    return errorResponse(500, 'Failed to delete scenario', error instanceof Error ? error.message : 'Unknown error')
   }
 }

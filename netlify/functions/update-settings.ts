@@ -1,5 +1,6 @@
 import { Handler } from '@netlify/functions'
 import { neon } from '@netlify/neon'
+import { errorResponse } from './types'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -36,30 +37,54 @@ export const handler: Handler = async (event, context) => {
   }
 
   if (event.httpMethod !== 'PUT') {
-    return {
-      statusCode: 405,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    }
+    return errorResponse(405, 'Method not allowed')
   }
 
   try {
     // @netlify/neon automatically uses NETLIFY_DATABASE_URL from environment
     const sql = neon()
     
-    const body: UpdateSettingsRequest = JSON.parse(event.body || '{}')
+    let body: UpdateSettingsRequest
+    try {
+      body = JSON.parse(event.body || '{}')
+    } catch (parseError) {
+      return errorResponse(400, 'Invalid JSON in request body')
+    }
 
     // Validate input
     if (body.time_model?.focusTimeRatio !== undefined) {
       const ratio = body.time_model.focusTimeRatio
-      if (ratio < 0.4 || ratio > 0.9) {
-        return {
-          statusCode: 400,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ error: 'Focus-time ratio must be between 0.4 and 0.9' }),
+      if (typeof ratio !== 'number' || ratio < 0.4 || ratio > 0.9) {
+        return errorResponse(400, 'Focus-time ratio must be between 0.4 and 0.9')
+      }
+    }
+
+    // Validate effort_model structure if provided
+    if (body.effort_model) {
+      if (body.effort_model.ux && typeof body.effort_model.ux !== 'object') {
+        return errorResponse(400, 'Invalid effort_model.ux: must be an object')
+      }
+      if (body.effort_model.content && typeof body.effort_model.content !== 'object') {
+        return errorResponse(400, 'Invalid effort_model.content: must be an object')
+      }
+      if (body.effort_model.pmIntakeMultiplier !== undefined && 
+          (typeof body.effort_model.pmIntakeMultiplier !== 'number' || 
+           body.effort_model.pmIntakeMultiplier < 0 || 
+           body.effort_model.pmIntakeMultiplier > 10)) {
+        return errorResponse(400, 'Invalid effort_model.pmIntakeMultiplier: must be a number between 0 and 10')
+      }
+    }
+
+    // Validate size_bands structure if provided
+    if (body.size_bands) {
+      const validKeys = ['xs', 's', 'm', 'l', 'xl']
+      for (const key of Object.keys(body.size_bands)) {
+        if (!validKeys.includes(key)) {
+          return errorResponse(400, `Invalid size_bands key: ${key}. Must be one of ${validKeys.join(', ')}`)
+        }
+        const value = (body.size_bands as any)[key]
+        if (typeof value !== 'number' || value < 0) {
+          return errorResponse(400, `Invalid size_bands.${key}: must be a non-negative number`)
         }
       }
     }
@@ -72,14 +97,7 @@ export const handler: Handler = async (event, context) => {
     `
 
     if (current.length === 0) {
-      return {
-        statusCode: 404,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Settings not found' }),
-      }
+      return errorResponse(404, 'Settings not found')
     }
 
     const currentSettings = current[0] as any
@@ -119,13 +137,6 @@ export const handler: Handler = async (event, context) => {
     }
   } catch (error) {
     console.error('Error updating settings:', error)
-    return {
-      statusCode: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ error: 'Failed to update settings', details: error instanceof Error ? error.message : 'Unknown error' }),
-    }
+    return errorResponse(500, 'Failed to update settings', error instanceof Error ? error.message : 'Unknown error')
   }
 }

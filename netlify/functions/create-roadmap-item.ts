@@ -5,7 +5,9 @@ import {
   type DatabaseRoadmapItem, 
   type RoadmapItemResponse,
   createRoadmapItemRequestToDbFormat,
-  dbRoadmapItemToRoadmapItemResponse 
+  dbRoadmapItemToRoadmapItemResponse,
+  errorResponse,
+  isValidUUID
 } from './types'
 
 const corsHeaders = {
@@ -40,43 +42,34 @@ export const handler: Handler = async (event, context) => {
     try {
       body = JSON.parse(event.body || '{}')
     } catch (parseError) {
-      return {
-        statusCode: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Invalid JSON in request body' }),
-      }
+      return errorResponse(400, 'Invalid JSON in request body')
     }
 
     // Validate required fields
     if (!body.scenario_id || !body.short_key || !body.name) {
-      return {
-        statusCode: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Missing required fields: scenario_id, short_key, name' }),
-      }
+      return errorResponse(400, 'Missing required fields: scenario_id, short_key, name')
     }
 
     // Validate UUID format for scenario_id
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(body.scenario_id)) {
-      return {
-        statusCode: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Invalid scenario_id format' }),
-      }
+    if (!isValidUUID(body.scenario_id)) {
+      return errorResponse(400, 'Invalid scenario_id format')
     }
 
     // Map request format to database format
     const dbFormat = createRoadmapItemRequestToDbFormat(body)
+
+    // Validate required fields after transformation
+    if (!dbFormat.scenario_id || !dbFormat.key || !dbFormat.name) {
+      return errorResponse(400, 'Missing required fields after transformation')
+    }
+
+    // Check if scenario exists before inserting
+    const scenarioCheck = await sql<{ id: string }>`
+      SELECT id FROM scenarios WHERE id = ${dbFormat.scenario_id}
+    `
+    if (scenarioCheck.length === 0) {
+      return errorResponse(404, 'Scenario not found')
+    }
 
     // Insert new roadmap item (parameterized query)
     const result = await sql<DatabaseRoadmapItem>`
@@ -92,9 +85,9 @@ export const handler: Handler = async (event, context) => {
         content_factors
       )
       VALUES (
-        ${dbFormat.scenario_id!},
-        ${dbFormat.key!},
-        ${dbFormat.name!},
+        ${dbFormat.scenario_id},
+        ${dbFormat.key},
+        ${dbFormat.name},
         ${dbFormat.initiative ?? null},
         ${dbFormat.priority ?? null},
         ${dbFormat.status || 'draft'},
@@ -118,13 +111,6 @@ export const handler: Handler = async (event, context) => {
     }
   } catch (error) {
     console.error('Error creating roadmap item:', error)
-    return {
-      statusCode: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ error: 'Failed to create roadmap item', details: error instanceof Error ? error.message : 'Unknown error' }),
-    }
+    return errorResponse(500, 'Failed to create roadmap item', error instanceof Error ? error.message : 'Unknown error')
   }
 }

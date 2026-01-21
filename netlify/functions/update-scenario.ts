@@ -5,7 +5,9 @@ import {
   type DatabaseScenario, 
   type ScenarioResponse,
   planningSessionToDbFormat,
-  dbScenarioToPlanningSession 
+  dbScenarioToPlanningSession,
+  errorResponse,
+  isValidUUID
 } from './types'
 
 const corsHeaders = {
@@ -25,11 +27,7 @@ export const handler: Handler = async (event, context) => {
   }
 
   if (event.httpMethod !== 'PUT') {
-    return {
-      statusCode: 405,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    }
+    return errorResponse(405, 'Method not allowed')
   }
 
   try {
@@ -40,37 +38,40 @@ export const handler: Handler = async (event, context) => {
     try {
       body = JSON.parse(event.body || '{}')
     } catch (parseError) {
-      return {
-        statusCode: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Invalid JSON in request body' }),
-      }
+      return errorResponse(400, 'Invalid JSON in request body')
     }
 
     if (!body.id) {
-      return {
-        statusCode: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Missing required field: id' }),
+      return errorResponse(400, 'Missing required field: id')
+    }
+
+    // Validate UUID format
+    if (!isValidUUID(body.id)) {
+      return errorResponse(400, 'Invalid id format')
+    }
+
+    // Validate numeric ranges if provided
+    if (body.weeks_per_period !== undefined) {
+      if (typeof body.weeks_per_period !== 'number' || body.weeks_per_period < 1 || body.weeks_per_period > 52) {
+        return errorResponse(400, 'Invalid weeks_per_period: must be between 1 and 52')
       }
     }
 
-    // Validate UUID format (basic check)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(body.id)) {
-      return {
-        statusCode: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Invalid id format' }),
+    if (body.sprint_length_weeks !== undefined) {
+      if (typeof body.sprint_length_weeks !== 'number' || body.sprint_length_weeks < 1 || body.sprint_length_weeks > 4) {
+        return errorResponse(400, 'Invalid sprint_length_weeks: must be between 1 and 4')
+      }
+    }
+
+    if (body.ux_designers !== undefined) {
+      if (typeof body.ux_designers !== 'number' || body.ux_designers < 0 || body.ux_designers > 100) {
+        return errorResponse(400, 'Invalid ux_designers: must be between 0 and 100')
+      }
+    }
+
+    if (body.content_designers !== undefined) {
+      if (typeof body.content_designers !== 'number' || body.content_designers < 0 || body.content_designers > 100) {
+        return errorResponse(400, 'Invalid content_designers: must be between 0 and 100')
       }
     }
 
@@ -80,14 +81,7 @@ export const handler: Handler = async (event, context) => {
     `
     
     if (current.length === 0) {
-      return {
-        statusCode: 404,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Scenario not found' }),
-      }
+      return errorResponse(404, 'Scenario not found')
     }
 
     const currentScenario = current[0]
@@ -98,14 +92,7 @@ export const handler: Handler = async (event, context) => {
     // Check if there are any updates
     const hasUpdates = Object.keys(updates).length > 0
     if (!hasUpdates) {
-      return {
-        statusCode: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'No fields to update' }),
-      }
+      return errorResponse(400, 'No fields to update')
     }
 
     // Merge updates with current values (only update provided fields)
@@ -132,14 +119,7 @@ export const handler: Handler = async (event, context) => {
     `
 
     if (result.length === 0) {
-      return {
-        statusCode: 404,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Scenario not found after update' }),
-      }
+      return errorResponse(404, 'Scenario not found after update')
     }
 
     // Transform database format to PlanningSession format
@@ -155,13 +135,6 @@ export const handler: Handler = async (event, context) => {
     }
   } catch (error) {
     console.error('Error updating scenario:', error)
-    return {
-      statusCode: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ error: 'Failed to update scenario', details: error instanceof Error ? error.message : 'Unknown error' }),
-    }
+    return errorResponse(500, 'Failed to update scenario', error instanceof Error ? error.message : 'Unknown error')
   }
 }

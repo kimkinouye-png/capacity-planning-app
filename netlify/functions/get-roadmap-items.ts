@@ -1,6 +1,6 @@
 import { Handler } from '@netlify/functions'
 import { neon } from '@netlify/neon'
-import { dbRoadmapItemToRoadmapItemResponse, type DatabaseRoadmapItem, type RoadmapItemResponse } from './types'
+import { dbRoadmapItemToRoadmapItemResponse, type DatabaseRoadmapItem, type RoadmapItemResponse, errorResponse, isValidUUID } from './types'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,11 +19,7 @@ export const handler: Handler = async (event, context) => {
   }
 
   if (event.httpMethod !== 'GET') {
-    return {
-      statusCode: 405,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    }
+    return errorResponse(405, 'Method not allowed')
   }
 
   try {
@@ -34,27 +30,12 @@ export const handler: Handler = async (event, context) => {
     const scenarioId = event.queryStringParameters?.scenarioId
 
     if (!scenarioId) {
-      return {
-        statusCode: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Missing required parameter: scenarioId' }),
-      }
+      return errorResponse(400, 'Missing required parameter: scenarioId')
     }
 
     // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(scenarioId)) {
-      return {
-        statusCode: 400,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ error: 'Invalid scenarioId format' }),
-      }
+    if (!isValidUUID(scenarioId)) {
+      return errorResponse(400, 'Invalid scenarioId format')
     }
 
     // Get all roadmap items for the scenario (parameterized query)
@@ -98,13 +79,6 @@ export const handler: Handler = async (event, context) => {
     }
   } catch (error) {
     console.error('Error fetching roadmap items:', error)
-    return {
-      statusCode: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ error: 'Failed to fetch roadmap items', details: error instanceof Error ? error.message : 'Unknown error' }),
-    }
+    return errorResponse(500, 'Failed to fetch roadmap items', error instanceof Error ? error.message : 'Unknown error')
   }
 }
