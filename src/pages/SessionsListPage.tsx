@@ -212,26 +212,26 @@ function SessionsListPage() {
     return (
       <Box maxW="1200px" mx="auto" px={6} py={20}>
         <VStack spacing={8} align="center" textAlign="center">
-          {/* Calendar Icon with light blue circular background */}
+          {/* Calendar Icon with cyan circular background */}
           <Box
             w={24}
             h={24}
             borderRadius="full"
-            bg="#EFF6FF"
+            bg="rgba(0, 217, 255, 0.1)"
             display="flex"
             alignItems="center"
             justifyContent="center"
           >
-            <Icon as={CalendarIcon} w={12} h={12} color="#3B82F6" />
+            <Icon as={CalendarIcon} w={12} h={12} color="#00d9ff" />
           </Box>
 
           {/* Welcome Heading */}
-          <Heading size="xl" fontWeight="bold" color="gray.900">
+          <Heading size="xl" fontWeight="bold" color="white">
             Welcome to Capacity Planning!
           </Heading>
 
           {/* Description */}
-          <Text fontSize="lg" color="gray.600" maxW="600px" lineHeight="tall">
+          <Text fontSize="lg" color="gray.300" maxW="600px" lineHeight="tall">
             Create your first planning scenario to get started. You can estimate effort and manage team capacity across quarterly cycles.
           </Text>
 
@@ -253,9 +253,9 @@ function SessionsListPage() {
         {/* Modal for creating new scenario */}
         <Modal isOpen={isOpen} onClose={onClose}>
           <ModalOverlay />
-          <ModalContent>
+          <ModalContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
             <form onSubmit={handleSubmit}>
-              <ModalHeader>Create New Scenario</ModalHeader>
+              <ModalHeader color="white">Create New Scenario</ModalHeader>
               <ModalCloseButton />
               <ModalBody>
                 <Stack spacing={4}>
@@ -346,7 +346,7 @@ function SessionsListPage() {
     <Box maxW="1200px" mx="auto" px={6} py={8}>
       <Stack direction="row" justify="space-between" align="center" mb={6}>
         <Box>
-          <Heading size="lg" mb={1}>Planning Scenarios</Heading>
+          <Heading size="lg" mb={1} color="white">Planning Scenarios</Heading>
           <Text fontSize="sm" color="gray.600">
             {sessions.length} {sessions.length === 1 ? 'scenario' : 'scenarios'}
           </Text>

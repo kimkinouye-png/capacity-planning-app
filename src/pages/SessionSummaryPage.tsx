@@ -230,7 +230,7 @@ function SessionSummaryPage() {
   }
 
   return (
-    <Box bg="#F9FAFB" minH="100vh" pb={8}>
+    <Box bg="#0a0a0f" minH="100vh" pb={8}>
       <Box maxW="1400px" mx="auto" px={6} pt={6}>
         {/* Header Section */}
         <HStack spacing={4} mb={6} align="center">
@@ -599,9 +599,9 @@ function SessionSummaryPage() {
       {/* Create Item Modal */}
       <Modal isOpen={isCreateModalOpen} onClose={onCreateModalClose}>
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
           <form onSubmit={handleCreateItem}>
-            <ModalHeader>Create New Roadmap Item</ModalHeader>
+            <ModalHeader color="white">Create New Roadmap Item</ModalHeader>
             <ModalCloseButton />
             <ModalBody>
               <Stack spacing={4}>

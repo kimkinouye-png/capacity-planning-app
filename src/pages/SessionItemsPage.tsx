@@ -82,26 +82,26 @@ function SessionItemsPage() {
   const sessionName = session?.name || 'Unknown Session'
 
   return (
-    <Box minH="100vh" bg="#F9FAFB">
+    <Box minH="100vh" bg="#0a0a0f">
       <Box maxW="1200px" mx="auto" px={6} py={8}>
         {/* Breadcrumb Navigation */}
         <HStack spacing={1} mb={6} align="center" fontSize="sm">
-          <ChakraLink as={Link} to="/" color="gray.600" _hover={{ textDecoration: 'underline' }}>
+          <ChakraLink as={Link} to="/" color="#00d9ff" _hover={{ textDecoration: 'underline' }}>
             Home
           </ChakraLink>
           <Text color="gray.400"> &gt; </Text>
-          <Text color="gray.600">{sessionName}</Text>
+          <Text color="gray.300">{sessionName}</Text>
           <Text color="gray.400"> &gt; </Text>
-          <Text color="gray.900" fontWeight="medium">Roadmap Items</Text>
+          <Text color="white" fontWeight="medium">Roadmap Items</Text>
         </HStack>
 
         {/* Header */}
         <Stack direction="row" justify="space-between" align="center" mb={6}>
           <Box>
-            <Heading size="lg" mb={1}>
+            <Heading size="lg" mb={1} color="white">
               Roadmap Items
             </Heading>
-            <Text fontSize="sm" color="gray.600">
+            <Text fontSize="sm" color="gray.400">
               {items.length} {items.length === 1 ? 'item' : 'items'} in {sessionName}
             </Text>
           </Box>
@@ -112,10 +112,10 @@ function SessionItemsPage() {
 
         {/* Empty State */}
         {items.length === 0 ? (
-          <Card bg="white" boxShadow="sm" borderRadius="md">
+          <Card bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="sm" borderRadius="md">
             <CardBody p={12}>
               <VStack spacing={4} align="center" textAlign="center">
-                <Text fontSize="md" color="gray.600">
+                <Text fontSize="md" color="gray.300">
                   No items yet. Create your first roadmap item.
                 </Text>
                 <Button colorScheme="black" onClick={onOpen}>
@@ -126,16 +126,16 @@ function SessionItemsPage() {
           </Card>
         ) : (
           /* Populated State - Table */
-          <Card bg="white" boxShadow="sm" borderRadius="md" overflow="hidden">
+          <Card bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="sm" borderRadius="md" overflow="hidden">
             <TableContainer>
               <Table variant="simple">
-                <Thead bg="gray.50">
+                <Thead bg="#1a1a20">
                   <Tr>
-                    <Th>Short Key</Th>
-                    <Th>Name</Th>
-                    <Th>Initiative</Th>
-                    <Th>Priority</Th>
-                    <Th>Status</Th>
+                    <Th color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Short Key</Th>
+                    <Th color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Name</Th>
+                    <Th color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Initiative</Th>
+                    <Th color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Priority</Th>
+                    <Th color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Status</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -143,13 +143,13 @@ function SessionItemsPage() {
                     <Tr
                       key={item.id}
                       cursor="pointer"
-                      _hover={{ bg: 'gray.50' }}
+                      _hover={{ bg: 'rgba(255, 255, 255, 0.05)' }}
                       onClick={() => navigate(`/sessions/${id}/items/${item.id}`)}
                     >
-                      <Td fontWeight="medium">{item.short_key}</Td>
-                      <Td>{item.name}</Td>
-                      <Td>{item.initiative}</Td>
-                      <Td>{item.priority}</Td>
+                      <Td fontWeight="medium" color="gray.300">{item.short_key}</Td>
+                      <Td color="gray.300">{item.name}</Td>
+                      <Td color="gray.300">{item.initiative}</Td>
+                      <Td color="gray.300">{item.priority}</Td>
                       <Td>
                         <Badge
                           colorScheme={item.status === 'draft' ? 'gray' : item.status === 'sized' ? 'green' : 'blue'}
@@ -172,9 +172,9 @@ function SessionItemsPage() {
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
           <form onSubmit={handleSubmit}>
-            <ModalHeader>Create New Roadmap Item</ModalHeader>
+            <ModalHeader color="white">Create New Roadmap Item</ModalHeader>
             <ModalCloseButton />
             <ModalBody>
               <Stack spacing={4}>
