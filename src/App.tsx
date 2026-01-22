@@ -1,11 +1,17 @@
-import { Box, Stack, Link as ChakraLink, Heading, Text, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, Button, useDisclosure, HStack, Flex } from '@chakra-ui/react'
-import { Routes, Route, Link } from 'react-router-dom'
+
+import { Box, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, Button, useDisclosure } from '@chakra-ui/react'
+import { Routes, Route } from 'react-router-dom'
 import { useEffect, useRef } from 'react'
+import HomePage from './pages/HomePage'
 import SessionsListPage from './pages/SessionsListPage'
 import SessionSummaryPage from './pages/SessionSummaryPage'
 import SessionItemsPage from './pages/SessionItemsPage'
 import ItemDetailPage from './pages/ItemDetailPage'
 import QuarterlyCapacityPage from './pages/QuarterlyCapacityPage'
+import CommittedPlanPage from './pages/CommittedPlanPage'
+import GuidePage from './pages/GuidePage'
+import SettingsPage from './pages/SettingsPage'
+import AppHeader from './components/AppHeader'
 
 function App() {
   const toast = useToast()
@@ -63,40 +69,18 @@ function App() {
   }
 
   return (
-    <Box minH="100vh" bg="white">
+    <Box minH="100vh" bg="#0a0a0f">
       {/* Global Header */}
-      <Box as="header" borderBottom="1px" borderColor="gray.200" bg="white">
-        <Box maxW="1200px" mx="auto" px={6} py={6}>
-          <Flex direction="row" justify="space-between" align="flex-start">
-            {/* Left side: Title and subtitle */}
-            <Stack spacing={2} flex="1">
-              <Heading size="lg" fontWeight="bold">
-                Capacity Planning
-              </Heading>
-              <Text fontSize="sm" color="gray.600">
-                Manage team capacity across quarterly planning cycles
-              </Text>
-            </Stack>
-            
-            {/* Right side: Navigation links */}
-            <HStack spacing={4} align="center" fontSize="sm">
-              <ChakraLink 
-                as={Link} 
-                to="/quarterly-capacity" 
-                color="#6B7280" 
-                _hover={{ color: '#3B82F6', textDecoration: 'underline' }}
-              >
-                Quarterly Capacity
-              </ChakraLink>
-            </HStack>
-          </Flex>
-        </Box>
-      </Box>
+      <AppHeader />
       
       {/* Main Content */}
       <Box as="main">
         <Routes>
-          <Route path="/" element={<SessionsListPage />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/scenarios" element={<SessionsListPage />} />
+          <Route path="/committed-plan" element={<CommittedPlanPage />} />
+          <Route path="/guide" element={<GuidePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/quarterly-capacity" element={<QuarterlyCapacityPage />} />
           <Route path="/sessions/:id" element={<SessionSummaryPage />} />
           <Route path="/sessions/:id/items" element={<SessionItemsPage />} />
@@ -110,19 +94,30 @@ function App() {
         leastDestructiveRef={cancelRef}
         onClose={onClose}
       >
-        <AlertDialogOverlay>
-          <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+        <AlertDialogOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)">
+          <AlertDialogContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white" borderBottom="1px solid" borderColor="rgba(255, 255, 255, 0.1)" px={6} py={4}>
               Clear all data?
             </AlertDialogHeader>
-            <AlertDialogBody>
+            <AlertDialogBody color="gray.300" px={6} py={4}>
               This will permanently delete all planning scenarios, roadmap items, and inputs. This cannot be undone.
             </AlertDialogBody>
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onClose}>
+            <AlertDialogFooter borderTop="1px solid" borderColor="rgba(255, 255, 255, 0.1)" px={6} py={4}>
+              <Button ref={cancelRef} onClick={onClose} variant="outline">
                 Cancel
               </Button>
-              <Button colorScheme="red" onClick={handleClearData} ml={3}>
+              <Button
+                bg="rgba(239, 68, 68, 0.1)"
+                border="1px solid"
+                borderColor="rgba(239, 68, 68, 0.5)"
+                color="#ef4444"
+                _hover={{
+                  bg: 'rgba(239, 68, 68, 0.2)',
+                  borderColor: '#ef4444',
+                }}
+                onClick={handleClearData}
+                ml={3}
+              >
                 Clear All Data
               </Button>
             </AlertDialogFooter>
