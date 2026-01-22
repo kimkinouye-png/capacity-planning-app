@@ -10,6 +10,7 @@ export interface ItemInputs {
 interface ItemInputsContextType {
   getInputsForItem: (itemId: string) => ItemInputs | undefined
   setInputsForItem: (itemId: string, inputs: ItemInputs) => void
+  error: string | null
 }
 
 const ItemInputsContext = createContext<ItemInputsContextType | undefined>(undefined)
@@ -48,10 +49,20 @@ export function ItemInputsProvider({ children }: { children: ReactNode }) {
   const [inputsByItemId, setInputsByItemId] = useState<Record<string, ItemInputs>>(() =>
     loadInputsFromStorage()
   )
+  const [error, setError] = useState<string | null>(null)
 
   // Save to localStorage whenever inputs change
   useEffect(() => {
-    saveInputsToStorage(inputsByItemId)
+    try {
+      saveInputsToStorage(inputsByItemId)
+      // Clear error on successful save
+      setError(null)
+    } catch (err) {
+      // Set error state if localStorage save fails
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save inputs to local storage'
+      setError(errorMessage)
+      console.error('Error saving inputs to localStorage:', err)
+    }
   }, [inputsByItemId])
 
   const getInputsForItem = useCallback(
@@ -62,14 +73,22 @@ export function ItemInputsProvider({ children }: { children: ReactNode }) {
   )
 
   const setInputsForItem = useCallback((itemId: string, inputs: ItemInputs) => {
-    setInputsByItemId((prev) => ({
-      ...prev,
-      [itemId]: inputs,
-    }))
+    try {
+      setInputsByItemId((prev) => ({
+        ...prev,
+        [itemId]: inputs,
+      }))
+      // Clear error on successful set
+      setError(null)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to set inputs'
+      setError(errorMessage)
+      console.error('Error setting inputs:', err)
+    }
   }, [])
 
   return (
-    <ItemInputsContext.Provider value={{ getInputsForItem, setInputsForItem }}>
+    <ItemInputsContext.Provider value={{ getInputsForItem, setInputsForItem, error }}>
       {children}
     </ItemInputsContext.Provider>
   )

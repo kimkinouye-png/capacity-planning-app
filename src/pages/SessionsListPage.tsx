@@ -25,19 +25,32 @@ import {
   Icon,
   Card,
   CardBody,
-  Badge,
   HStack,
   Divider,
   SimpleGrid,
+  Tooltip,
+  IconButton,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from '@chakra-ui/react'
-import { CalendarIcon } from '@chakra-ui/icons'
+import { CalendarIcon, DeleteIcon } from '@chakra-ui/icons'
 import { useNavigate } from 'react-router-dom'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
+import { useToast } from '@chakra-ui/react'
 import type { PlanningSession, PlanningPeriod } from '../domain/types'
 import { getWeeksForPeriod } from '../config/quarterConfig'
 import { SPRINT_LENGTH_WEEKS } from '../config/sprints'
+import InlineEditableText from '../components/InlineEditableText'
 
 const QUARTER_OPTIONS: PlanningPeriod[] = ['2026-Q1', '2026-Q2', '2026-Q3', '2026-Q4']
 
@@ -138,10 +151,16 @@ function calculateScenarioMetrics(
 }
 
 function SessionsListPage() {
-  const { sessions, createSession } = usePlanningSessions()
+  const { sessions, createSession, commitSession, uncommitSession, deleteSession, updateSession, error: sessionsError } = usePlanningSessions()
   const { getItemsForSession } = useRoadmapItems()
   const { isOpen, onOpen, onClose } = useDisclosure()
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure()
+  const [sessionToDelete, setSessionToDelete] = useState<{ id: string; name: string } | null>(null)
+  const cancelDeleteRef = useRef<HTMLButtonElement>(null)
   const navigate = useNavigate()
+  const toast = useToast()
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const [highlightedCardId, setHighlightedCardId] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -150,27 +169,32 @@ function SessionsListPage() {
     content_designers: 2,
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     // Calculate weeks_per_period from the selected planning period
     const weeksPerPeriod = getWeeksForPeriod(formData.planningPeriod)
     
-    const newSession = createSession({
+    try {
+      const newSession = await createSession({
       name: formData.name,
       planningPeriod: formData.planningPeriod,
       weeks_per_period: weeksPerPeriod,
       sprint_length_weeks: SPRINT_LENGTH_WEEKS, // Fixed constant
       ux_designers: formData.ux_designers,
       content_designers: formData.content_designers,
-    })
-    onClose()
-    setFormData({
-      name: '',
-      planningPeriod: '2026-Q4',
-      ux_designers: 3,
-      content_designers: 2,
-    })
-    navigate(`/sessions/${newSession.id}`)
+      })
+      onClose()
+      setFormData({
+        name: '',
+        planningPeriod: '2026-Q4',
+        ux_designers: 3,
+        content_designers: 2,
+      })
+      navigate(`/sessions/${newSession.id}`)
+    } catch (error) {
+      console.error('Error creating scenario:', error)
+      // Error is handled by context fallback
+    }
   }
 
   // Calculate metrics for each scenario - safely handle undefined/null
@@ -178,39 +202,83 @@ function SessionsListPage() {
     if (!sessions || sessions.length === 0) {
       return []
     }
-    return sessions
+    
+    // Sort scenarios: committed first, then by quarter (parsed), then by title
+    const sortedSessions = [...sessions]
       .filter((session) => session != null) // Filter out null/undefined sessions
-      .map((session) => {
-        try {
-          return {
-            session,
-            metrics: calculateScenarioMetrics(session, getItemsForSession),
+      .sort((a, b) => {
+        // First: sort by status (committed first)
+        const statusOrderA = a.status === 'committed' ? 0 : 1
+        const statusOrderB = b.status === 'committed' ? 0 : 1
+        const statusDiff = statusOrderA - statusOrderB
+        if (statusDiff !== 0) return statusDiff
+
+        // Second: sort by quarter (parse "2026-Q1" into { year: 2026, quarter: 1 })
+        const parseQuarter = (quarterStr: string | undefined): { year: number; quarter: number } => {
+          if (!quarterStr) return { year: 0, quarter: 0 }
+          const match = quarterStr.match(/(\d{4})-Q(\d)/)
+          if (match) {
+            return { year: parseInt(match[1], 10), quarter: parseInt(match[2], 10) }
           }
-        } catch (error) {
-          console.error('Error calculating metrics for session:', session?.id, error)
-          // Return safe defaults if calculation fails
-          return {
-            session,
-            metrics: {
-              uxFocusCapacity: 0,
-              uxFocusDemand: null,
-              contentFocusCapacity: 0,
-              contentFocusDemand: null,
-              uxWorkCapacity: 0,
-              uxWorkDemand: null,
-              contentWorkCapacity: 0,
-              contentWorkDemand: null,
-              status: null,
-            },
-          }
+          return { year: 0, quarter: 0 }
         }
+
+        const quarterA = parseQuarter(a.planningPeriod || a.planning_period)
+        const quarterB = parseQuarter(b.planningPeriod || b.planning_period)
+        
+        // Sort by year first
+        const yearDiff = quarterA.year - quarterB.year
+        if (yearDiff !== 0) return yearDiff
+        
+        // Then by quarter
+        const quarterDiff = quarterA.quarter - quarterB.quarter
+        if (quarterDiff !== 0) return quarterDiff
+
+        // Third: sort by title alphabetically (case-insensitive)
+        const nameA = (a.name || '').toLowerCase()
+        const nameB = (b.name || '').toLowerCase()
+        return nameA.localeCompare(nameB)
       })
+    
+    return sortedSessions.map((session) => {
+      try {
+        return {
+          session,
+          metrics: calculateScenarioMetrics(session, getItemsForSession),
+        }
+      } catch (error) {
+        console.error('Error calculating metrics for session:', session?.id, error)
+        // Return safe defaults if calculation fails
+        return {
+          session,
+          metrics: {
+            uxFocusCapacity: 0,
+            uxFocusDemand: null,
+            contentFocusCapacity: 0,
+            contentFocusDemand: null,
+            uxWorkCapacity: 0,
+            uxWorkDemand: null,
+            contentWorkCapacity: 0,
+            contentWorkDemand: null,
+            status: null,
+          },
+        }
+      }
+    })
   }, [sessions, getItemsForSession])
 
   // Show empty state when no scenarios exist
   if (sessions.length === 0) {
     return (
       <Box maxW="1200px" mx="auto" px={6} py={20}>
+        {/* Error message for PlanningSessionsContext */}
+        {sessionsError && (
+          <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
+            <AlertIcon color="#f59e0b" />
+            <AlertTitle color="white" mr={2}>Session Error:</AlertTitle>
+            <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
+          </Alert>
+        )}
         <VStack spacing={8} align="center" textAlign="center">
           {/* Calendar Icon with cyan circular background */}
           <Box
@@ -252,16 +320,21 @@ function SessionsListPage() {
 
         {/* Modal for creating new scenario */}
         <Modal isOpen={isOpen} onClose={onClose}>
-          <ModalOverlay />
+          <ModalOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)" />
           <ModalContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
             <form onSubmit={handleSubmit}>
-              <ModalHeader color="white">Create New Scenario</ModalHeader>
-              <ModalCloseButton />
+              <ModalHeader color="white" borderBottom="1px solid" borderColor="rgba(255, 255, 255, 0.1)">Create New Scenario</ModalHeader>
+              <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
               <ModalBody>
                 <Stack spacing={4}>
                   <FormControl isRequired>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel color="gray.300">Name</FormLabel>
                     <Input
+                      bg="#1a1a20"
+                      borderColor="rgba(255, 255, 255, 0.1)"
+                      color="white"
+                      _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                      _placeholder={{ color: 'gray.500' }}
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="e.g., Payments Q2 2026"
@@ -269,29 +342,33 @@ function SessionsListPage() {
                   </FormControl>
 
                   <FormControl isRequired>
-                    <FormLabel>Planning Period</FormLabel>
+                    <FormLabel color="gray.300">Planning Period</FormLabel>
                     <Select
+                      bg="#1a1a20"
+                      borderColor="rgba(255, 255, 255, 0.1)"
+                      color="white"
+                      _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
                       value={formData.planningPeriod}
                       onChange={(e) =>
                         setFormData({ ...formData, planningPeriod: e.target.value as PlanningPeriod })
                       }
                     >
                       {QUARTER_OPTIONS.map((period) => (
-                        <option key={period} value={period}>
+                        <option key={period} value={period} style={{ background: '#1a1a20', color: 'white' }}>
                           {period}
                         </option>
                       ))}
                     </Select>
-                    <Text fontSize="sm" color="gray.500" mt={1}>
+                    <Text fontSize="sm" color="gray.400" mt={1}>
                       {getWeeksForPeriod(formData.planningPeriod)} weeks per period
                     </Text>
-                    <Text fontSize="sm" color="gray.500" mt={1}>
+                    <Text fontSize="sm" color="gray.400" mt={1}>
                       Assumes {SPRINT_LENGTH_WEEKS}-week sprints (about {Math.floor(getWeeksForPeriod(formData.planningPeriod) / SPRINT_LENGTH_WEEKS)} sprints per quarter).
                     </Text>
                   </FormControl>
 
                   <FormControl isRequired>
-                    <FormLabel>UX Designers</FormLabel>
+                    <FormLabel color="gray.300">UX Designers</FormLabel>
                     <NumberInput
                       value={formData.ux_designers}
                       onChange={(_, valueAsNumber) =>
@@ -299,16 +376,21 @@ function SessionsListPage() {
                       }
                       min={0}
                     >
-                      <NumberInputField />
+                      <NumberInputField
+                        bg="#1a1a20"
+                        borderColor="rgba(255, 255, 255, 0.1)"
+                        color="white"
+                        _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                      />
                       <NumberInputStepper>
-                        <NumberIncrementStepper />
-                        <NumberDecrementStepper />
+                        <NumberIncrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
+                        <NumberDecrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
                       </NumberInputStepper>
                     </NumberInput>
                   </FormControl>
 
                   <FormControl isRequired>
-                    <FormLabel>Content Designers</FormLabel>
+                    <FormLabel color="gray.300">Content Designers</FormLabel>
                     <NumberInput
                       value={formData.content_designers}
                       onChange={(_, valueAsNumber) =>
@@ -316,21 +398,26 @@ function SessionsListPage() {
                       }
                       min={0}
                     >
-                      <NumberInputField />
+                      <NumberInputField
+                        bg="#1a1a20"
+                        borderColor="rgba(255, 255, 255, 0.1)"
+                        color="white"
+                        _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                      />
                       <NumberInputStepper>
-                        <NumberIncrementStepper />
-                        <NumberDecrementStepper />
+                        <NumberIncrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
+                        <NumberDecrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
                       </NumberInputStepper>
                     </NumberInput>
                   </FormControl>
                 </Stack>
               </ModalBody>
 
-              <ModalFooter>
+              <ModalFooter borderTop="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
                 <Button variant="ghost" mr={3} onClick={onClose}>
                   Cancel
                 </Button>
-                <Button colorScheme="blue" type="submit">
+                <Button colorScheme="cyan" type="submit">
                   Create Scenario
                 </Button>
               </ModalFooter>
@@ -343,16 +430,25 @@ function SessionsListPage() {
 
   // Show populated state with cards when scenarios exist
   return (
-    <Box maxW="1200px" mx="auto" px={6} py={8}>
+    <Box maxW="1400px" mx="auto" px={6} py={8}>
+      {/* Error message for PlanningSessionsContext */}
+      {sessionsError && (
+        <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
+          <AlertIcon color="#f59e0b" />
+          <AlertTitle color="white" mr={2}>Session Error:</AlertTitle>
+          <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
+        </Alert>
+      )}
+
       <Stack direction="row" justify="space-between" align="center" mb={6}>
         <Box>
           <Heading size="lg" mb={1} color="white">Planning Scenarios</Heading>
-          <Text fontSize="sm" color="gray.600">
+          <Text fontSize="sm" color="gray.400">
             {sessions.length} {sessions.length === 1 ? 'scenario' : 'scenarios'}
           </Text>
         </Box>
         <Button
-          colorScheme="black"
+          colorScheme="cyan"
           size="md"
           onClick={onOpen}
         >
@@ -379,54 +475,228 @@ function SessionsListPage() {
           
           return (
             <Card 
-              key={session?.id || 'unknown'} 
+              key={session?.id || 'unknown'}
+              ref={(el) => {
+                if (session?.id) {
+                  cardRefs.current[session.id] = el
+                }
+              }}
               variant="outline" 
-              cursor="pointer" 
+              bg={
+                highlightedCardId === session?.id 
+                  ? 'rgba(0, 217, 255, 0.1)' 
+                  : session?.status === 'committed' 
+                    ? 'rgba(16, 185, 129, 0.1)' 
+                    : '#141419'
+              }
+              borderColor={
+                highlightedCardId === session?.id 
+                  ? 'rgba(0, 217, 255, 0.5)' 
+                  : session?.status === 'committed' 
+                    ? 'rgba(16, 185, 129, 0.3)' 
+                    : 'rgba(255, 255, 255, 0.1)'
+              }
+              borderWidth={highlightedCardId === session?.id ? '2px' : '1px'}
+              _hover={{
+                borderColor: 'rgba(0, 217, 255, 0.5)',
+                boxShadow: '0 10px 15px -3px rgba(0, 217, 255, 0.2), 0 4px 6px -2px rgba(0, 217, 255, 0.2)',
+                transform: 'translateY(-2px)',
+              }}
+              transition="all 0.3s ease"
+              cursor="pointer"
               onClick={() => session?.id && navigate(`/sessions/${session.id}`)}
-              _hover={{ boxShadow: 'md', borderColor: 'rgba(0, 217, 255, 0.3)' }}
-              transition="all 0.2s"
-              bg="#141419"
-              borderColor="rgba(255, 255, 255, 0.1)"
             >
               <CardBody p={6}>
                 <Stack spacing={4}>
                   {/* Title and Status */}
-                  <HStack justify="space-between" align="start">
-                    <Heading size="md" fontWeight="bold" color="white">
-                      {session?.name || 'Unnamed Scenario'}
-                    </Heading>
-                    {metrics.status && (
-                      <Badge
-                        colorScheme={metrics.status === 'Within capacity' ? 'green' : 'red'}
-                        px={3}
-                        py={1}
-                        borderRadius="full"
-                        fontSize="sm"
-                      >
-                        {metrics.status}
-                      </Badge>
-                    )}
+                  <HStack justify="space-between" align="center">
+                    <HStack spacing={3} align="center" flex={1}>
+                      <InlineEditableText
+                        value={session?.name || 'Unnamed Scenario'}
+                        onChange={(newName) => {
+                          if (session?.id && newName.trim()) {
+                            updateSession(session.id, { name: newName.trim() })
+                            toast({
+                              title: 'Scenario renamed',
+                              description: `Scenario name updated to "${newName.trim()}".`,
+                              status: 'success',
+                              duration: 2000,
+                              isClosable: true,
+                            })
+                          }
+                        }}
+                        ariaLabel="Scenario name"
+                        fontSize="md"
+                        fontWeight="bold"
+                      />
+                      {metrics.status && (
+                        <HStack spacing={1.5} align="center">
+                          <Box
+                            w={2}
+                            h={2}
+                            borderRadius="full"
+                            bg={metrics.status === 'Within capacity' ? '#10b981' : '#f59e0b'}
+                            boxShadow={metrics.status === 'Within capacity' ? '0 0 8px rgba(16, 185, 129, 0.5)' : '0 0 8px rgba(245, 158, 11, 0.5)'}
+                          />
+                          <Text fontSize="sm" color={metrics.status === 'Within capacity' ? '#10b981' : '#f59e0b'} fontWeight="medium">
+                            {metrics.status === 'Within capacity' ? 'Within' : 'Over'}
+                          </Text>
+                        </HStack>
+                      )}
+                    </HStack>
+                    <HStack spacing={2} align="center">
+                      {/* Delete button - only show if no roadmap items */}
+                      {itemCount === 0 && (
+                        <Tooltip
+                          label="Delete scenario"
+                          placement="top"
+                          hasArrow
+                        >
+                          <IconButton
+                            aria-label="Delete scenario"
+                            icon={<DeleteIcon />}
+                            size="sm"
+                            variant="ghost"
+                            colorScheme="red"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (session?.id && session?.name) {
+                                setSessionToDelete({ id: session.id, name: session.name })
+                                onDeleteOpen()
+                              }
+                            }}
+                            _hover={{ bg: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}
+                          />
+                        </Tooltip>
+                      )}
+                      {itemCount === 0 && session?.status === 'draft' ? (
+                        <Tooltip
+                          label="Add at least one roadmap item before committing this scenario."
+                          placement="top"
+                          hasArrow
+                        >
+                          <HStack
+                            spacing={2}
+                            align="center"
+                            cursor="not-allowed"
+                            opacity={0.5}
+                          >
+                            <Box
+                              w={4}
+                              h={4}
+                              borderRadius="full"
+                              border="2px solid"
+                              borderColor="gray.300"
+                              bg="transparent"
+                              display="flex"
+                              alignItems="center"
+                              justifyContent="center"
+                            />
+                            <Text fontSize="sm" color="gray.400" fontWeight="medium">
+                              Commit as plan
+                            </Text>
+                          </HStack>
+                        </Tooltip>
+                      ) : (
+                        <HStack
+                          spacing={2}
+                          align="center"
+                          cursor="pointer"
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            if (session?.id && itemCount > 0) {
+                              if (session.status === 'committed') {
+                                // Uncommit if already committed
+                                await uncommitSession(session.id)
+                                toast({
+                                  title: 'Scenario uncommitted',
+                                  description: `${session.name} has been uncommitted.`,
+                                  status: 'success',
+                                  duration: 3000,
+                                  isClosable: true,
+                                })
+                              } else {
+                                // Commit if not committed
+                                await commitSession(session.id, itemCount)
+                                toast({
+                                  title: 'Scenario committed',
+                                  description: `${session.name} has been set as the committed plan.`,
+                                  status: 'success',
+                                  duration: 3000,
+                                  isClosable: true,
+                                })
+                              }
+                              
+                              // Highlight the card briefly
+                              setHighlightedCardId(session.id)
+                              setTimeout(() => setHighlightedCardId(null), 2000)
+                              
+                              // Scroll card into view if needed
+                              const cardElement = cardRefs.current[session.id]
+                              if (cardElement) {
+                                cardElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+                              }
+                            }
+                          }}
+                          _hover={{ opacity: 0.8 }}
+                        >
+                          <Box
+                            w={4}
+                            h={4}
+                            borderRadius="full"
+                            border="2px solid"
+                            borderColor={session?.status === 'committed' ? '#00d9ff' : 'rgba(255, 255, 255, 0.2)'}
+                            bg={session?.status === 'committed' ? '#00d9ff' : 'transparent'}
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="center"
+                            boxShadow={session?.status === 'committed' ? '0 0 8px rgba(0, 217, 255, 0.5)' : 'none'}
+                          >
+                            {session?.status === 'committed' && (
+                              <Box
+                                w={2}
+                                h={2}
+                                borderRadius="full"
+                                bg="#0a0a0f"
+                              />
+                            )}
+                          </Box>
+                          <Text fontSize="sm" color="gray.300" fontWeight="medium">
+                            {session?.status === 'committed' ? 'Committed plan' : 'Commit as plan'}
+                          </Text>
+                        </HStack>
+                      )}
+                    </HStack>
                   </HStack>
 
                   {/* Details Line */}
-                  <HStack spacing={4} color="gray.400" fontSize="sm">
-                    <HStack spacing={1}>
-                      <Icon as={CalendarIcon} w={4} h={4} />
-                      <Text>{planningPeriod}</Text>
+                  <Box
+                    cursor="pointer"
+                    onClick={() => session?.id && navigate(`/sessions/${session.id}`)}
+                  >
+                    <HStack spacing={4} color="gray.400" fontSize="sm">
+                      <HStack spacing={1}>
+                        <Icon as={CalendarIcon} w={4} h={4} />
+                        <Text>{planningPeriod}</Text>
+                      </HStack>
+                      <HStack spacing={1}>
+                        <Text>👤</Text>
+                        <Text>
+                          {session?.ux_designers || 0} UX, {session?.content_designers || 0} Content
+                        </Text>
+                      </HStack>
+                      <Text>{itemCount} roadmap {itemCount === 1 ? 'item' : 'items'}</Text>
                     </HStack>
-                    <HStack spacing={1}>
-                      <Text>👤</Text>
-                      <Text>
-                        {session?.ux_designers || 0} UX, {session?.content_designers || 0} Content
-                      </Text>
-                    </HStack>
-                    <Text>{itemCount} roadmap {itemCount === 1 ? 'item' : 'items'}</Text>
-                  </HStack>
+                  </Box>
 
                   <Divider />
 
                   {/* Two-Column Capacity Display */}
-                  <SimpleGrid columns={2} spacing={6}>
+                  <Box
+                    cursor="pointer"
+                    onClick={() => session?.id && navigate(`/sessions/${session.id}`)}
+                  >
+                    <SimpleGrid columns={2} spacing={6}>
                     {/* Left Column - UX Design */}
                     <Box>
                       <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.300">
@@ -479,6 +749,7 @@ function SessionsListPage() {
                       </VStack>
                     </Box>
                   </SimpleGrid>
+                  </Box>
                 </Stack>
               </CardBody>
             </Card>
@@ -487,16 +758,21 @@ function SessionsListPage() {
       </VStack>
 
       <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent>
+        <ModalOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)" />
+        <ModalContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
           <form onSubmit={handleSubmit}>
-            <ModalHeader>Create New Scenario</ModalHeader>
-            <ModalCloseButton />
+            <ModalHeader color="white" borderBottom="1px solid" borderColor="rgba(255, 255, 255, 0.1)">Create New Scenario</ModalHeader>
+            <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
             <ModalBody>
               <Stack spacing={4}>
                 <FormControl isRequired>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel color="gray.300">Name</FormLabel>
                   <Input
+                    bg="#1a1a20"
+                    borderColor="rgba(255, 255, 255, 0.1)"
+                    color="white"
+                    _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                    _placeholder={{ color: 'gray.500' }}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="e.g., Payments Q2 2026"
@@ -504,29 +780,33 @@ function SessionsListPage() {
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel>Planning Period</FormLabel>
+                  <FormLabel color="gray.300">Planning Period</FormLabel>
                   <Select
+                    bg="#1a1a20"
+                    borderColor="rgba(255, 255, 255, 0.1)"
+                    color="white"
+                    _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
                     value={formData.planningPeriod}
                     onChange={(e) =>
                       setFormData({ ...formData, planningPeriod: e.target.value as PlanningPeriod })
                     }
                   >
                     {QUARTER_OPTIONS.map((period) => (
-                      <option key={period} value={period}>
+                      <option key={period} value={period} style={{ background: '#1a1a20', color: 'white' }}>
                         {period}
                       </option>
                     ))}
                   </Select>
-                  <Text fontSize="sm" color="gray.500" mt={1}>
+                  <Text fontSize="sm" color="gray.400" mt={1}>
                     {getWeeksForPeriod(formData.planningPeriod)} weeks per period
                   </Text>
-                  <Text fontSize="sm" color="gray.500" mt={1}>
+                  <Text fontSize="sm" color="gray.400" mt={1}>
                     Assumes {SPRINT_LENGTH_WEEKS}-week sprints (about {Math.floor(getWeeksForPeriod(formData.planningPeriod) / SPRINT_LENGTH_WEEKS)} sprints per quarter).
                   </Text>
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel>UX Designers</FormLabel>
+                  <FormLabel color="gray.300">UX Designers</FormLabel>
                   <NumberInput
                     value={formData.ux_designers}
                     onChange={(_, valueAsNumber) =>
@@ -534,16 +814,21 @@ function SessionsListPage() {
                     }
                     min={0}
                   >
-                    <NumberInputField />
+                    <NumberInputField
+                      bg="#1a1a20"
+                      borderColor="rgba(255, 255, 255, 0.1)"
+                      color="white"
+                      _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                    />
                     <NumberInputStepper>
-                      <NumberIncrementStepper />
-                      <NumberDecrementStepper />
+                      <NumberIncrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
+                      <NumberDecrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
                     </NumberInputStepper>
                   </NumberInput>
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel>Content Designers</FormLabel>
+                  <FormLabel color="gray.300">Content Designers</FormLabel>
                   <NumberInput
                     value={formData.content_designers}
                     onChange={(_, valueAsNumber) =>
@@ -551,27 +836,82 @@ function SessionsListPage() {
                     }
                     min={0}
                   >
-                    <NumberInputField />
+                    <NumberInputField
+                      bg="#1a1a20"
+                      borderColor="rgba(255, 255, 255, 0.1)"
+                      color="white"
+                      _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                    />
                     <NumberInputStepper>
-                      <NumberIncrementStepper />
-                      <NumberDecrementStepper />
+                      <NumberIncrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
+                      <NumberDecrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
                     </NumberInputStepper>
                   </NumberInput>
                 </FormControl>
               </Stack>
             </ModalBody>
 
-            <ModalFooter>
+            <ModalFooter borderTop="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
               <Button variant="ghost" mr={3} onClick={onClose}>
                 Cancel
               </Button>
-              <Button colorScheme="blue" type="submit">
+              <Button colorScheme="cyan" type="submit">
                 Create Scenario
               </Button>
             </ModalFooter>
           </form>
         </ModalContent>
       </Modal>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        isOpen={isDeleteOpen}
+        leastDestructiveRef={cancelDeleteRef}
+        onClose={onDeleteClose}
+      >
+        <AlertDialogOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)">
+          <AlertDialogContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white" borderBottom="1px solid" borderColor="rgba(255, 255, 255, 0.1)" px={6} py={4}>
+              Delete this scenario?
+            </AlertDialogHeader>
+            <AlertDialogBody color="gray.300" px={6} py={4}>
+              This scenario has no roadmap items and will be permanently removed.
+            </AlertDialogBody>
+            <AlertDialogFooter borderTop="1px solid" borderColor="rgba(255, 255, 255, 0.1)" px={6} py={4}>
+              <Button ref={cancelDeleteRef} onClick={onDeleteClose} variant="outline">
+                Cancel
+              </Button>
+              <Button
+                bg="rgba(239, 68, 68, 0.1)"
+                border="1px solid"
+                borderColor="rgba(239, 68, 68, 0.5)"
+                color="#ef4444"
+                _hover={{
+                  bg: 'rgba(239, 68, 68, 0.2)',
+                  borderColor: '#ef4444',
+                }}
+                onClick={async () => {
+                  if (sessionToDelete) {
+                    await deleteSession(sessionToDelete.id)
+                    toast({
+                      title: 'Scenario deleted',
+                      description: `${sessionToDelete.name} has been deleted.`,
+                      status: 'success',
+                      duration: 3000,
+                      isClosable: true,
+                    })
+                    setSessionToDelete(null)
+                    onDeleteClose()
+                  }
+                }}
+                ml={3}
+              >
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Box>
   )
 }

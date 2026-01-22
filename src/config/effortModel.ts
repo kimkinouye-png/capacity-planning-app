@@ -164,21 +164,25 @@ export const FACTOR_WEIGHTS_CONTENT: Record<string, number> = {
 /**
  * Calculate weighted score from factor scores
  * @param factorsWithScores Map of factor names to their scores (1-5)
- * @param factorDefinitions Factor definitions with weights
+ * @param factorDefinitions Factor definitions with weights (can be overridden by settings)
+ * @param settingsWeights Optional weights from settings to override factor definitions
  * @returns Weighted score
  */
 export function calculateWeightedScore(
   factorsWithScores: FactorScores,
-  factorDefinitions: Record<string, Omit<Factor, 'score'>>
+  factorDefinitions: Record<string, Omit<Factor, 'score'>>,
+  settingsWeights?: Record<string, number>
 ): number {
   let totalWeightedScore = 0
   let totalWeight = 0
 
   for (const [factorName, score] of Object.entries(factorsWithScores)) {
-    const factor = factorDefinitions[factorName]
-    if (factor && score >= 1 && score <= 5) {
-      totalWeightedScore += score * factor.weight
-      totalWeight += factor.weight
+    // Use settings weight if provided, otherwise use factor definition weight
+    const weight = settingsWeights?.[factorName] ?? factorDefinitions[factorName]?.weight ?? 1.0
+    
+    if (score >= 1 && score <= 5) {
+      totalWeightedScore += score * weight
+      totalWeight += weight
     }
   }
 
@@ -186,7 +190,7 @@ export function calculateWeightedScore(
   const weightedAverage = totalWeight > 0 ? totalWeightedScore / totalWeight : 0
 
   // Debug logging
-  console.log('UX factors used:', Object.keys(factorsWithScores))
+  console.log('Factors used:', Object.keys(factorsWithScores))
   console.log('Weights sum:', totalWeight)
   console.log('Weighted average:', weightedAverage)
 
@@ -197,24 +201,39 @@ export function calculateWeightedScore(
 /**
  * Map weighted score to size band
  * @param weightedAverage Weighted average score (typically 1-5 range)
+ * @param sizeBands Optional size band thresholds from settings. Falls back to defaults if not provided.
  * @returns Size band
  */
-export function mapScoreToSizeBand(weightedAverage: number): SizeBand {
-  if (weightedAverage < 1.6) return 'XS'
-  if (weightedAverage < 2.6) return 'S'
-  if (weightedAverage < 3.6) return 'M'
-  if (weightedAverage < 4.6) return 'L'
-  return 'XL'  // Catches >= 4.6, including exactly 5.0
+export function mapScoreToSizeBand(
+  weightedAverage: number,
+  sizeBands?: { xs: number; s: number; m: number; l: number; xl: number }
+): SizeBand {
+  // Use settings if provided, otherwise use defaults
+  const thresholds = sizeBands || {
+    xs: 1.6,
+    s: 2.6,
+    m: 3.6,
+    l: 4.6,
+    xl: 5.0,
+  }
+
+  if (weightedAverage < thresholds.xs) return 'XS'
+  if (weightedAverage < thresholds.s) return 'S'
+  if (weightedAverage < thresholds.m) return 'M'
+  if (weightedAverage < thresholds.l) return 'L'
+  return 'XL'  // Catches >= thresholds.l, including exactly thresholds.xl
 }
 
 /**
  * Calculate work weeks from focus weeks
- * Work weeks = focus weeks ÷ 0.75 (accounting for context switching and dependencies)
+ * Work weeks = focus weeks ÷ focusTimeRatio (accounting for context switching and dependencies)
  * @param focusWeeks Focus weeks (dedicated designer time)
+ * @param focusTimeRatio Optional focus-time ratio from settings. Defaults to 0.75 if not provided.
  * @returns Work weeks rounded to 1 decimal place
  */
-export function calculateWorkWeeks(focusWeeks: number): number {
-  return Number((focusWeeks / 0.75).toFixed(1))
+export function calculateWorkWeeks(focusWeeks: number, focusTimeRatio?: number): number {
+  const ratio = focusTimeRatio ?? 0.75
+  return Number((focusWeeks / ratio).toFixed(1))
 }
 
 /**
@@ -253,14 +272,16 @@ export function mapSizeBandToContentFocusWeeks(sizeBand: SizeBand): number {
 
 /**
  * Map size band to time estimates for a given role
- * Work weeks are calculated as: focus weeks ÷ 0.75 (accounting for context switching and dependencies)
+ * Work weeks are calculated as: focus weeks ÷ focusTimeRatio (accounting for context switching and dependencies)
  * @param sizeBand Size band
  * @param role 'ux' or 'content'
+ * @param focusTimeRatio Optional focus-time ratio from settings. Defaults to 0.75 if not provided.
  * @returns Object with focusWeeks and workWeeks
  */
 export function mapSizeBandToTime(
   sizeBand: SizeBand,
-  role: Role
+  role: Role,
+  focusTimeRatio?: number
 ): { focusWeeks: number; workWeeks: number } {
   // Get focus weeks based on role
   const focusWeeks = role === 'ux' 
@@ -274,8 +295,8 @@ export function mapSizeBandToTime(
     console.log('Expected for XL: 8.0, Actual:', focusWeeks)
   }
 
-  // Calculate work weeks from focus weeks
-  const workWeeks = calculateWorkWeeks(focusWeeks)
+  // Calculate work weeks from focus weeks using settings ratio
+  const workWeeks = calculateWorkWeeks(focusWeeks, focusTimeRatio)
 
   return {
     focusWeeks,
@@ -287,15 +308,27 @@ export function mapSizeBandToTime(
  * Calculate effort for a given role and factor scores
  * @param role 'ux' or 'content'
  * @param scores Map of factor names to scores (1-5)
+ * @param settings Optional settings object with weights, size bands, and focus-time ratio
  * @returns Effort result with sizeBand, focusWeeks, workWeeks, and weightedScore
  */
-export function calculateEffort(role: Role, scores: FactorScores): EffortResult {
+export function calculateEffort(
+  role: Role,
+  scores: FactorScores,
+  settings?: {
+    weights?: Record<string, number>
+    sizeBands?: { xs: number; s: number; m: number; l: number; xl: number }
+    focusTimeRatio?: number
+  }
+): EffortResult {
   const factorDefinitions =
     role === 'ux' ? uxFactors : contentFactors
 
-  const weightedScore = calculateWeightedScore(scores, factorDefinitions)
-  const sizeBand = mapScoreToSizeBand(weightedScore)
-  const { focusWeeks, workWeeks } = mapSizeBandToTime(sizeBand, role)
+  // Use settings weights if provided
+  const settingsWeights = settings?.weights
+
+  const weightedScore = calculateWeightedScore(scores, factorDefinitions, settingsWeights)
+  const sizeBand = mapScoreToSizeBand(weightedScore, settings?.sizeBands)
+  const { focusWeeks, workWeeks } = mapSizeBandToTime(sizeBand, role, settings?.focusTimeRatio)
 
   // Debug logging
   console.log('Size band:', sizeBand)

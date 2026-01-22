@@ -1,5 +1,94 @@
 # UI/UX Improvement Backlog
 
+## Development Roadmap
+
+### Global Settings & Effort Model (Phase 4) ✅ COMPLETE (2026-01-19)
+
+#### Global Settings: Effort model weights (UX / Content / PM Intake) ✅
+- [x] **Settings page for editing effort model weights**
+  - Implemented: Settings page at `/settings` with form controls for:
+    - UX factor weights (3 factors: Product Risk, Problem Ambiguity, Discovery Depth)
+    - Content factor weights (4 factors: Content Surface Area, Localization Scope, Regulatory & Brand Risk, Legal Compliance Dependency)
+    - PM Intake overall weight multiplier
+  - Behavior: Updates settings row in Neon database; all scenarios use these global values; includes "Reset to defaults" button
+  - Priority: [Must] ✅
+
+#### Global Settings: Focus-time ratio ✅
+- [x] **Configurable focus-time ratio**
+  - Implemented: Settings page exposes "Focus-time Ratio" (0.0-1.0) with NumberInput control
+  - Behavior: Recomputes workWeeks = focusWeeks ÷ ratio everywhere; default is 0.75
+  - Priority: [Must] ✅
+
+#### Global Settings: Size-band thresholds (XS–XL) ✅
+- [x] **Configurable size-band thresholds**
+  - Implemented: Settings page with NumberInput controls for XS, S, M, L, XL thresholds
+  - Behavior: Global config used in Item Detail, Session Summary, and all effort calculations
+  - Priority: [Must] ✅
+
+### Capacity & Designer Count (Phase 5)
+
+#### Global Settings: UX/Content FTE focus weeks per quarter
+- [ ] **Settings for FTE focus weeks per quarter**
+  - Desired: Settings controls defining how many focus-time weeks 1 FTE can give per quarter (UX and Content separately)
+  - Priority: [Must]
+
+#### Designer count calculation on Summary/Committed Plan
+- [ ] **Calculate and display designer counts needed**
+  - Desired: For each quarter, compute and display:
+    - UX designers needed = total UX focus weeks ÷ UX FTE focus weeks per quarter
+    - Content designers needed = total Content focus weeks ÷ Content FTE focus weeks per quarter
+  - Priority: [Must]
+
+### Bulk Item Entry (Phase 5)
+
+#### Bulk add / import roadmap items via table paste
+- [ ] **Table paste import functionality**
+  - Desired: Modal where users paste rows from Sheets/Excel; app parses into a preview grid, maps columns, shows validation errors, and on confirm creates multiple items at once
+  - Priority: [Should]
+
+#### CSV bulk upload endpoint
+- [ ] **CSV bulk upload via Netlify Function**
+  - Desired: Netlify Function accepting a CSV file, parsing rows, validating, and inserting items for a scenario
+  - Priority: [Nice]
+
+### Persistence & Storage (Phase 4–5 foundation) ✅ PARTIALLY COMPLETE (2026-01-19)
+
+#### Neon schema: settings, scenarios, roadmap_items, activity_log ✅
+- [x] **Postgres database schema and migration**
+  - Implemented: Complete PostgreSQL schema with all 4 tables
+  - Tables: `settings`, `scenarios`, `roadmap_items`, `activity_log`
+  - Features: UUID primary keys, JSONB columns, automatic timestamps, indexes, foreign keys
+  - Migration: Settings migrated to database; scenarios/items still use localStorage (Phase 5)
+  - Priority: [Must] ✅
+
+#### Netlify Functions: basic API ✅ (Settings only)
+- [x] **REST API endpoints via Netlify Functions**
+  - Implemented:
+    - ✅ GET /settings, PUT /settings (fully integrated)
+    - ✅ GET /scenarios, POST /scenarios (created but not integrated with React)
+    - [ ] PATCH /scenarios/:id (not yet created)
+    - [ ] GET /scenarios/:id/items, POST /scenarios/:id/items (not yet created)
+  - Priority: [Must] - Settings complete, scenarios/items pending Phase 5
+
+### Exports & Integrations (Phase 6+)
+
+#### Export committed plan to CSV/Excel
+- [ ] **CSV/Excel export functionality**
+  - Desired: From Committed Plan, export roadmap items and capacity numbers to CSV or .xlsx
+  - Priority: [Should]
+
+#### Export committed plan to PDF
+- [ ] **PDF report generation**
+  - Desired: Nicely formatted PDF report, generated client-side or via a Netlify Function
+  - Priority: [Nice]
+
+#### API integration foundation (Asana later)
+- [ ] **REST API for external integrations**
+  - Desired: Prepare REST endpoints exposing committed plan data; future Netlify Function to push items into Asana via their API
+  - Priority: [Nice]
+
+---
+
 ## UI Backlog Highlights
 
 ### Home / Scenarios

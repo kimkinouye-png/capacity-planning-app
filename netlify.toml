@@ -1,3 +1,17 @@
 [build]
   command = "npm run build"
   publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[dev]
+  command = "npm run dev"
+  port = 8888
+  publish = "dist"
+  framework = "vite"
+  targetPort = 5173
+  # Netlify dev automatically loads .env files, but you must also add
+  # NETLIFY_DATABASE_URL as an environment variable in Netlify dashboard
+  # (Site settings → Environment variables) to prevent addon fetch errors

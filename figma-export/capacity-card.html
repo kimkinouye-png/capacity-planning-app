@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Capacity Card</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: #F9FAFB;
+      padding: 24px;
+    }
+    .cards-container {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      max-width: 1200px;
+    }
+    .capacity-card {
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      border-radius: 8px;
+      padding: 24px;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 16px;
+    }
+    .metric-group {
+      margin-bottom: 16px;
+    }
+    .metric-label {
+      font-size: 12px;
+      color: #4B5563;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .metric-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #111827;
+    }
+    .divider {
+      border-top: 1px solid #E5E7EB;
+      margin: 16px 0;
+      padding-top: 16px;
+    }
+    .surplus-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .surplus-arrow {
+      font-size: 20px;
+      color: #10B981;
+    }
+    .surplus-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #10B981;
+    }
+    .surplus-value.negative {
+      color: #EF4444;
+    }
+    .surplus-label {
+      font-size: 12px;
+      color: #4B5563;
+    }
+    @media (max-width: 768px) {
+      .cards-container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="cards-container">
+    <!-- UX Design Capacity Card -->
+    <div class="capacity-card">
+      <h3 class="card-title">UX Design Capacity</h3>
+      
+      <div class="metric-group">
+        <div class="metric-label">Team Size</div>
+        <div class="metric-value">3</div>
+      </div>
+      
+      <div class="metric-group">
+        <div class="metric-label">Total Capacity</div>
+        <div class="metric-value">39.0 focus weeks</div>
+      </div>
+      
+      <div class="metric-group">
+        <div class="metric-label">Total Demand</div>
+        <div class="metric-value">28.5 focus weeks</div>
+      </div>
+      
+      <div class="divider">
+        <div class="surplus-section">
+          <span class="surplus-arrow">↑</span>
+          <span class="surplus-value">+10.5 focus weeks</span>
+        </div>
+        <div class="surplus-label">Surplus • 73% utilized</div>
+      </div>
+    </div>
+
+    <!-- Content Design Capacity Card -->
+    <div class="capacity-card">
+      <h3 class="card-title">Content Design Capacity</h3>
+      
+      <div class="metric-group">
+        <div class="metric-label">Team Size</div>
+        <div class="metric-value">2</div>
+      </div>
+      
+      <div class="metric-group">
+        <div class="metric-label">Total Capacity</div>
+        <div class="metric-value">26.0 focus weeks</div>
+      </div>
+      
+      <div class="metric-group">
+        <div class="metric-label">Total Demand</div>
+        <div class="metric-value">32.0 focus weeks</div>
+      </div>
+      
+      <div class="divider">
+        <div class="surplus-section">
+          <span class="surplus-arrow" style="color: #EF4444;">↓</span>
+          <span class="surplus-value negative">-6.0 focus weeks</span>
+        </div>
+        <div class="surplus-label">Deficit • 123% utilized</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

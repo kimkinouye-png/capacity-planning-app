@@ -33,13 +33,19 @@ export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
 
   // Shared textarea styles
   const textareaStyles = {
-    bg: '#F3F4F6',
+    bg: '#1a1a20',
     borderRadius: '6px',
-    border: 'none',
+    border: '1px solid',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    color: 'white',
     p: '12px',
     _focus: {
       outline: 'none',
-      boxShadow: '0 0 0 2px #3B82F6',
+      borderColor: '#00d9ff',
+      boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
+    },
+    _placeholder: {
+      color: 'gray.500',
     },
   }
 
@@ -47,7 +53,7 @@ export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
   const labelStyles = {
     textAlign: 'left' as const,
     fontWeight: 500,
-    color: '#374151',
+    color: 'gray.300',
     mb: '6px',
   }
 
@@ -99,14 +105,17 @@ export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
           type="date"
           value={value.timeline || ''}
           onChange={(e) => handleChange('timeline', e.target.value)}
-          bg="#F3F4F6"
+          bg="#1a1a20"
           borderRadius="6px"
-          border="none"
+          border="1px solid"
+          borderColor="rgba(255, 255, 255, 0.1)"
+          color="white"
           p="12px"
           h="auto"
           _focus={{
             outline: 'none',
-            boxShadow: '0 0 0 2px #3B82F6',
+            borderColor: '#00d9ff',
+            boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
           }}
         />
       </FormControl>
@@ -146,33 +155,37 @@ export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
         <Stack spacing={3} mt={2} align="flex-start">
           <Checkbox
             size="md"
-            colorScheme="blue"
+            colorScheme="cyan"
             isChecked={(value.surfaces_in_scope || []).includes('Mobile iOS')}
             onChange={(e) => handleSurfacesChange('Mobile iOS', e.target.checked)}
+            color="gray.300"
           >
             Mobile iOS
           </Checkbox>
           <Checkbox
             size="md"
-            colorScheme="blue"
+            colorScheme="cyan"
             isChecked={(value.surfaces_in_scope || []).includes('Mobile Android')}
             onChange={(e) => handleSurfacesChange('Mobile Android', e.target.checked)}
+            color="gray.300"
           >
             Mobile Android
           </Checkbox>
           <Checkbox
             size="md"
-            colorScheme="blue"
+            colorScheme="cyan"
             isChecked={(value.surfaces_in_scope || []).includes('Mobile Web')}
             onChange={(e) => handleSurfacesChange('Mobile Web', e.target.checked)}
+            color="gray.300"
           >
             Mobile Web
           </Checkbox>
           <Checkbox
             size="md"
-            colorScheme="blue"
+            colorScheme="cyan"
             isChecked={(value.surfaces_in_scope || []).includes('Web')}
             onChange={(e) => handleSurfacesChange('Web', e.target.checked)}
+            color="gray.300"
           >
             Web
           </Checkbox>
@@ -184,17 +197,19 @@ export default function PMIntakeForm({ value, onChange }: PMIntakeFormProps) {
         <Stack spacing={3} mt={2} align="flex-start">
           <Checkbox
             size="md"
-            colorScheme="blue"
+            colorScheme="cyan"
             isChecked={value.new_or_existing === 'new'}
             onChange={() => handleNewOrExistingChange('new')}
+            color="gray.300"
           >
             New
           </Checkbox>
           <Checkbox
             size="md"
-            colorScheme="blue"
+            colorScheme="cyan"
             isChecked={value.new_or_existing === 'existing'}
             onChange={() => handleNewOrExistingChange('existing')}
+            color="gray.300"
           >
             Existing
           </Checkbox>

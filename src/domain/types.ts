@@ -9,6 +9,8 @@ export interface PlanningSession {
   sprint_length_weeks: number
   ux_designers: number
   content_designers: number
+  status: 'draft' | 'committed'
+  isCommitted: boolean // Mirrors status === 'committed'
   created_by?: string
   created_at: string
   updated_at: string
@@ -28,6 +30,25 @@ export interface RoadmapItem {
   contentSizeBand: 'XS' | 'S' | 'M' | 'L' | 'XL'
   contentFocusWeeks: number
   contentWorkWeeks: number
+  startDate?: string | null
+  endDate?: string | null
+}
+
+export type ActivityEventType = 
+  | 'scenario_created' 
+  | 'scenario_committed' 
+  | 'scenario_deleted'
+  | 'scenario_renamed'
+  | 'roadmap_item_updated' 
+  | 'effort_updated'
+
+export interface ActivityEvent {
+  id: string
+  timestamp: string // ISO string
+  type: ActivityEventType
+  scenarioId?: string
+  scenarioName?: string
+  description: string
 }
 
 export interface PMIntake {

@@ -28,6 +28,7 @@ import CDInputsForm from '../components/CDInputsForm'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
 import { useItemInputs } from '../context/ItemInputsContext'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
+import { useActivity } from '../context/ActivityContext'
 import { calculateEffort, type FactorScores } from '../config/effortModel'
 import {
   demoItems,
@@ -40,8 +41,9 @@ function ItemDetailPage() {
   const { id: sessionId, itemId } = useParams<{ id: string; itemId: string }>()
   const navigate = useNavigate()
   const { getItemsForSession, updateItem } = useRoadmapItems()
-  const { getInputsForItem, setInputsForItem } = useItemInputs()
+  const { getInputsForItem, setInputsForItem, error: itemInputsError } = useItemInputs()
   const { getSessionById } = usePlanningSessions()
+  const { logActivity } = useActivity()
 
   // Load the RoadmapItem - reload when items change (e.g., after updateItem)
   const items = useMemo(() => {
@@ -317,51 +319,87 @@ function ItemDetailPage() {
   useEffect(() => {
     if (!itemId || sessionId === 'demo') return
 
-    // Use factor scores from pdInputs, defaulting to 3 if not set
-    const uxScores: FactorScores = {
-      productRisk: pdInputs.productRisk ?? 3,
-      problemAmbiguity: pdInputs.problemAmbiguity ?? 3,
-      discoveryDepth: pdInputs.discoveryDepth ?? 3,
+    const updateUXEffort = async () => {
+      // Use factor scores from pdInputs, defaulting to 3 if not set
+      const uxScores: FactorScores = {
+        productRisk: pdInputs.productRisk ?? 3,
+        problemAmbiguity: pdInputs.problemAmbiguity ?? 3,
+        discoveryDepth: pdInputs.discoveryDepth ?? 3,
+      }
+
+      const uxEffort = calculateEffort('ux', uxScores)
+      const session = sessionId ? getSessionById(sessionId) : undefined
+      const sessionName = session?.name || 'Unknown scenario'
+      const itemName = item?.name || 'Unknown item'
+      
+      await updateItem(itemId, {
+        uxSizeBand: uxEffort.sizeBand,
+        uxFocusWeeks: uxEffort.focusWeeks,
+        uxWorkWeeks: uxEffort.workWeeks,
+      })
+      
+      // Log effort update
+      logActivity({
+        type: 'effort_updated',
+        scenarioId: sessionId,
+        scenarioName: sessionName,
+        description: `Updated UX effort for '${itemName}' in scenario '${sessionName}' (${uxEffort.sizeBand}, ${uxEffort.focusWeeks} focus weeks).`,
+      })
     }
 
-    const uxEffort = calculateEffort('ux', uxScores)
-    updateItem(itemId, {
-      uxSizeBand: uxEffort.sizeBand,
-      uxFocusWeeks: uxEffort.focusWeeks,
-      uxWorkWeeks: uxEffort.workWeeks,
+    updateUXEffort().catch((error) => {
+      console.error('Error updating UX effort:', error)
     })
-  }, [itemId, sessionId, pdInputs.productRisk, pdInputs.problemAmbiguity, pdInputs.discoveryDepth, updateItem])
+  }, [itemId, sessionId, pdInputs.productRisk, pdInputs.problemAmbiguity, pdInputs.discoveryDepth, updateItem, logActivity, getSessionById, item?.name])
 
   // Calculate Content effort when Content factor scores change
   // Factor scores are stored per-item in cdInputs and default to 3 if not set
   useEffect(() => {
     if (!itemId || sessionId === 'demo') return
 
-    // Use factor scores from cdInputs, defaulting to 3 if not set
-    const contentScores: FactorScores = {
-      contentSurfaceArea: cdInputs.contentSurfaceArea ?? 3,
-      localizationScope: cdInputs.localizationScope ?? 3,
-      regulatoryBrandRisk: cdInputs.regulatoryBrandRisk ?? 3,
-      legalComplianceDependency: cdInputs.legalComplianceDependency ?? 3,
+    const updateContentEffort = async () => {
+      // Use factor scores from cdInputs, defaulting to 3 if not set
+      const contentScores: FactorScores = {
+        contentSurfaceArea: cdInputs.contentSurfaceArea ?? 3,
+        localizationScope: cdInputs.localizationScope ?? 3,
+        regulatoryBrandRisk: cdInputs.regulatoryBrandRisk ?? 3,
+        legalComplianceDependency: cdInputs.legalComplianceDependency ?? 3,
+      }
+
+      const contentEffort = calculateEffort('content', contentScores)
+      const session = sessionId ? getSessionById(sessionId) : undefined
+      const sessionName = session?.name || 'Unknown scenario'
+      const itemName = item?.name || 'Unknown item'
+      
+      await updateItem(itemId, {
+        contentSizeBand: contentEffort.sizeBand,
+        contentFocusWeeks: contentEffort.focusWeeks,
+        contentWorkWeeks: contentEffort.workWeeks,
+      })
+    
+      // Log effort update
+      logActivity({
+        type: 'effort_updated',
+        scenarioId: sessionId,
+        scenarioName: sessionName,
+        description: `Updated Content effort for '${itemName}' in scenario '${sessionName}' (${contentEffort.sizeBand}, ${contentEffort.focusWeeks} focus weeks).`,
+      })
     }
 
-    const contentEffort = calculateEffort('content', contentScores)
-    updateItem(itemId, {
-      contentSizeBand: contentEffort.sizeBand,
-      contentFocusWeeks: contentEffort.focusWeeks,
-      contentWorkWeeks: contentEffort.workWeeks,
+    updateContentEffort().catch((error) => {
+      console.error('Error updating Content effort:', error)
     })
-  }, [itemId, sessionId, cdInputs.contentSurfaceArea, cdInputs.localizationScope, cdInputs.regulatoryBrandRisk, cdInputs.legalComplianceDependency, updateItem])
+  }, [itemId, sessionId, cdInputs.contentSurfaceArea, cdInputs.localizationScope, cdInputs.regulatoryBrandRisk, cdInputs.legalComplianceDependency, updateItem, logActivity, getSessionById, item?.name])
 
 
   // Handle missing itemId
   if (!itemId) {
     return (
-      <Box p={8}>
-        <Alert status="error">
-          <AlertIcon />
-          <AlertTitle>Invalid item ID</AlertTitle>
-          <AlertDescription>No item ID provided in the URL.</AlertDescription>
+      <Box p={8} bg="#0a0a0f" minH="100vh">
+        <Alert status="error" bg="#141419" border="1px solid" borderColor="rgba(239, 68, 68, 0.3)">
+          <AlertIcon color="#ef4444" />
+          <AlertTitle color="white">Invalid item ID</AlertTitle>
+          <AlertDescription color="gray.300">No item ID provided in the URL.</AlertDescription>
         </Alert>
       </Box>
     )
@@ -370,11 +408,11 @@ function ItemDetailPage() {
   // Handle item not found
   if (!item) {
     return (
-      <Box p={8}>
-        <Alert status="warning">
-          <AlertIcon />
-          <AlertTitle>Item not found</AlertTitle>
-          <AlertDescription>
+      <Box p={8} bg="#0a0a0f" minH="100vh">
+        <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)">
+          <AlertIcon color="#f59e0b" />
+          <AlertTitle color="white">Item not found</AlertTitle>
+          <AlertDescription color="gray.300">
             The roadmap item with ID "{itemId}" could not be found in session "{sessionId}".
           </AlertDescription>
         </Alert>
@@ -415,50 +453,62 @@ function ItemDetailPage() {
   }
 
   return (
-    <Box minH="100vh" bg="#F9FAFB">
-      <Box maxW="1200px" mx="auto" px={6} py={8}>
+    <Box minH="100vh" bg="#0a0a0f">
+      <Box maxW="1400px" mx="auto" px={6} py={8}>
         {/* Breadcrumb Navigation */}
         <HStack spacing={2} mb={6} align="center" fontSize="14px">
           <IconButton
-            aria-label="Back to roadmap items"
+            aria-label="Back to scenario summary"
             icon={<ChevronLeftIcon />}
             variant="ghost"
             size="sm"
-            onClick={() => navigate(`/sessions/${sessionId}/items`)}
-            color="gray.700"
-            _hover={{ bg: 'gray.100' }}
+            onClick={() => navigate(`/sessions/${sessionId}`)}
+            color="gray.300"
+            _hover={{ color: '#00d9ff', bg: 'rgba(255, 255, 255, 0.05)' }}
           />
-          <ChakraLink as={Link} to="/" color="#3B82F6" _hover={{ textDecoration: 'underline' }}>
+          <ChakraLink as={Link} to="/" color="#00d9ff" _hover={{ textDecoration: 'underline' }}>
             Home
           </ChakraLink>
           <Text color="gray.400"> &gt; </Text>
           <ChakraLink 
             as={Link} 
-            to={`/sessions/${sessionId}/items`} 
-            color="#3B82F6" 
+            to={`/sessions/${sessionId}`} 
+            color="#00d9ff" 
             _hover={{ textDecoration: 'underline' }}
           >
             {sessionName}
           </ChakraLink>
           <Text color="gray.400"> &gt; </Text>
-          <Text color="#374151" fontWeight="medium">
+          <Text color="gray.300" fontWeight="medium">
             {item.short_key}: {item.name}
           </Text>
         </HStack>
 
         {/* Page Heading */}
-        <Heading size="xl" mb={2} color="gray.900">
+        <Heading size="xl" mb={2} color="white">
           {item.short_key}: {item.name}
         </Heading>
 
         {/* Metadata */}
-        <HStack spacing={2} mb={8} fontSize="sm" color="gray.600">
+        <HStack spacing={2} mb={8} fontSize="sm" color="gray.400">
           <Text>{item.initiative}</Text>
           <Text>•</Text>
           <Text>P{item.priority}</Text>
           <Text>•</Text>
           <Badge
-            colorScheme={getStatusColorScheme(item.status)}
+            bg={getStatusColorScheme(item.status) === 'gray' ? 'rgba(255, 255, 255, 0.1)' : 
+                getStatusColorScheme(item.status) === 'yellow' ? 'rgba(245, 158, 11, 0.1)' :
+                getStatusColorScheme(item.status) === 'green' ? 'rgba(16, 185, 129, 0.1)' :
+                'rgba(59, 130, 246, 0.1)'}
+            color={getStatusColorScheme(item.status) === 'gray' ? 'gray.300' : 
+                   getStatusColorScheme(item.status) === 'yellow' ? '#f59e0b' :
+                   getStatusColorScheme(item.status) === 'green' ? '#10b981' :
+                   '#00d9ff'}
+            border="1px solid"
+            borderColor={getStatusColorScheme(item.status) === 'gray' ? 'rgba(255, 255, 255, 0.2)' : 
+                        getStatusColorScheme(item.status) === 'yellow' ? 'rgba(245, 158, 11, 0.5)' :
+                        getStatusColorScheme(item.status) === 'green' ? 'rgba(16, 185, 129, 0.5)' :
+                        'rgba(0, 217, 255, 0.5)'}
             px={2}
             py={1}
             borderRadius="full"
@@ -468,62 +518,79 @@ function ItemDetailPage() {
           </Badge>
         </HStack>
 
-        <Box bg="white" borderRadius="md" boxShadow="sm" p={6}>
+        {/* Error message for ItemInputsContext */}
+        {itemInputsError && (
+          <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
+            <AlertIcon color="#f59e0b" />
+            <AlertTitle color="white" mr={2}>Storage Error:</AlertTitle>
+            <AlertDescription color="gray.300">{itemInputsError}</AlertDescription>
+          </Alert>
+        )}
+
+        <Box bg="#141419" borderRadius="md" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" p={6}>
           <Stack spacing={8}>
             {/* Forms in Tabs */}
             <Tabs>
               <TabList
                 borderBottom="none"
                 gap={2}
+                bg="#1a1a20"
+                borderRadius="lg"
+                p={1}
+                border="1px solid"
+                borderColor="rgba(255, 255, 255, 0.1)"
               >
                 <Tab
-                  borderRadius="full"
-                  border="1px"
-                  borderColor="gray.200"
+                  borderRadius="md"
+                  border="none"
                   _selected={{
-                    borderColor: '#3B82F6',
-                    color: '#3B82F6',
-                    bg: 'transparent',
+                    bg: 'linear-gradient(to right, #00b8d9, #1e40af)',
+                    color: 'white',
+                    textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
                   }}
                   _hover={{
-                    bg: 'gray.50',
+                    bg: 'rgba(255, 255, 255, 0.05)',
                   }}
+                  color="gray.300"
                   px={4}
                   py={2}
+                  transition="all 0.3s ease"
                 >
                   PM Intake
                 </Tab>
                 <Tab
-                  borderRadius="full"
-                  border="1px"
-                  borderColor="gray.200"
+                  borderRadius="md"
+                  border="none"
                   _selected={{
-                    borderColor: '#3B82F6',
-                    color: '#3B82F6',
-                    bg: 'transparent',
+                    bg: 'linear-gradient(to right, #00b8d9, #1e40af)',
+                    color: 'white',
+                    textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
                   }}
                   _hover={{
-                    bg: 'gray.50',
+                    bg: 'rgba(255, 255, 255, 0.05)',
                   }}
+                  color="gray.300"
                   px={4}
                   py={2}
+                  transition="all 0.3s ease"
                 >
                   Product Design
                 </Tab>
                 <Tab
-                  borderRadius="full"
-                  border="1px"
-                  borderColor="gray.200"
+                  borderRadius="md"
+                  border="none"
                   _selected={{
-                    borderColor: '#3B82F6',
-                    color: '#3B82F6',
-                    bg: 'transparent',
+                    bg: 'linear-gradient(to right, #00b8d9, #1e40af)',
+                    color: 'white',
+                    textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
                   }}
                   _hover={{
-                    bg: 'gray.50',
+                    bg: 'rgba(255, 255, 255, 0.05)',
                   }}
+                  color="gray.300"
                   px={4}
                   py={2}
+                  transition="all 0.3s ease"
                 >
                   Content Design
                 </Tab>
@@ -532,30 +599,23 @@ function ItemDetailPage() {
               <TabPanels>
                 {/* PM Intake Tab */}
                 <TabPanel px={0} pt={6}>
-                  <Text fontSize="sm" color="gray.600" mb={6}>
+                  <Text fontSize="sm" color="gray.300" mb={6}>
                     Filled by the product manager to describe business context, goals, market, and
                     requirements.
                   </Text>
                   <PMIntakeForm value={pmIntake} onChange={setPMIntake} />
                   
                   {/* Footer */}
-                  <Box mt={8} pt={6} borderTop="1px" borderColor="gray.200">
+                  <Box mt={8} pt={6} borderTop="1px" borderColor="rgba(255, 255, 255, 0.1)">
                     <Stack spacing={4} align="center">
-                      <Text fontSize="sm" color="#6B7280" textAlign="center">
+                      <Text fontSize="sm" color="gray.400" textAlign="center">
                         Changes are saved automatically
                       </Text>
                       <Button
                         variant="outline"
-                        bg="white"
-                        borderColor="gray.300"
-                        color="gray.700"
-                        onClick={() => navigate(`/sessions/${sessionId}/items`)}
-                        _hover={{
-                          bg: 'gray.50',
-                          borderColor: 'gray.400',
-                        }}
+                        onClick={() => navigate(`/sessions/${sessionId}`)}
                       >
-                        Back to roadmap
+                        View scenario summary
                       </Button>
                     </Stack>
                   </Box>
@@ -563,30 +623,23 @@ function ItemDetailPage() {
 
                 {/* Product Design Inputs Tab */}
                 <TabPanel px={0} pt={6}>
-                  <Text fontSize="sm" color="gray.600" mb={6}>
+                  <Text fontSize="sm" color="gray.300" mb={6}>
                     Filled by the product designer to describe UX complexity factors, patterns, and
                     design considerations.
                   </Text>
                   <PDInputsForm value={pdInputs} onChange={setPDInputs} sizeBand={item.uxSizeBand} />
                   
                   {/* Footer */}
-                  <Box mt={8} pt={6} borderTop="1px" borderColor="gray.200">
+                  <Box mt={8} pt={6} borderTop="1px" borderColor="rgba(255, 255, 255, 0.1)">
                     <Stack spacing={4} align="center">
-                      <Text fontSize="sm" color="#6B7280" textAlign="center">
+                      <Text fontSize="sm" color="gray.400" textAlign="center">
                         Changes are saved automatically
                       </Text>
                       <Button
                         variant="outline"
-                        bg="white"
-                        borderColor="gray.300"
-                        color="gray.700"
-                        onClick={() => navigate(`/sessions/${sessionId}/items`)}
-                        _hover={{
-                          bg: 'gray.50',
-                          borderColor: 'gray.400',
-                        }}
+                        onClick={() => navigate(`/sessions/${sessionId}`)}
                       >
-                        Back to roadmap
+                        View scenario summary
                       </Button>
                     </Stack>
                   </Box>
@@ -594,30 +647,23 @@ function ItemDetailPage() {
 
                 {/* Content Design Inputs Tab */}
                 <TabPanel px={0} pt={6}>
-                  <Text fontSize="sm" color="gray.600" mb={6}>
+                  <Text fontSize="sm" color="gray.300" mb={6}>
                     Filled by the content designer to describe content complexity factors and
                     localization needs.
                   </Text>
                   <CDInputsForm value={cdInputs} onChange={setCDInputs} sizeBand={item.contentSizeBand} />
                   
                   {/* Footer */}
-                  <Box mt={8} pt={6} borderTop="1px" borderColor="gray.200">
+                  <Box mt={8} pt={6} borderTop="1px" borderColor="rgba(255, 255, 255, 0.1)">
                     <Stack spacing={4} align="center">
-                      <Text fontSize="sm" color="#6B7280" textAlign="center">
+                      <Text fontSize="sm" color="gray.400" textAlign="center">
                         Changes are saved automatically
                       </Text>
                       <Button
                         variant="outline"
-                        bg="white"
-                        borderColor="gray.300"
-                        color="gray.700"
-                        onClick={() => navigate(`/sessions/${sessionId}/items`)}
-                        _hover={{
-                          bg: 'gray.50',
-                          borderColor: 'gray.400',
-                        }}
+                        onClick={() => navigate(`/sessions/${sessionId}`)}
                       >
-                        Back to roadmap
+                        View scenario summary
                       </Button>
                     </Stack>
                   </Box>

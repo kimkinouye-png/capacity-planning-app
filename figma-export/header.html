@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Header - Capacity Planning</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: white;
+    }
+    .header {
+      border-bottom: 1px solid #E5E7EB;
+      background: white;
+      padding: 24px;
+    }
+    .header-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .header-left {
+      flex: 1;
+    }
+    .header-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 8px;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .header-title:hover {
+      color: #3B82F6;
+    }
+    .header-subtitle {
+      font-size: 14px;
+      color: #4B5563;
+    }
+    .header-nav {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      font-size: 14px;
+    }
+    .nav-link {
+      color: #6B7280;
+      text-decoration: none;
+      font-weight: 400;
+    }
+    .nav-link:hover {
+      color: #3B82F6;
+      text-decoration: underline;
+    }
+    .nav-link.active {
+      color: #3B82F6;
+      font-weight: 600;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-container">
+      <div class="header-left">
+        <a href="#" class="header-title">Capacity Planning</a>
+        <div class="header-subtitle">Manage team capacity across quarterly planning cycles</div>
+      </div>
+      <nav class="header-nav">
+        <a href="#" class="nav-link active">Home</a>
+        <a href="#" class="nav-link">Scenarios</a>
+        <a href="#" class="nav-link">Committed Plan</a>
+        <a href="#" class="nav-link">Guide</a>
+      </nav>
+    </div>
+  </header>
+</body>
+</html>
