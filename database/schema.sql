@@ -79,6 +79,8 @@ CREATE TABLE IF NOT EXISTS roadmap_items (
   content_focus_weeks NUMERIC(5, 2),
   ux_work_weeks NUMERIC(5, 2),
   content_work_weeks NUMERIC(5, 2),
+  start_date DATE,
+  end_date DATE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

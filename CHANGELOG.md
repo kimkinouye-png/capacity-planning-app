@@ -4,6 +4,73 @@ All notable changes to the Capacity Planning App will be documented in this file
 
 ## [Unreleased]
 
+### Recent Updates (January 2026)
+
+#### Inline Editing for Roadmap Items Grid
+- **Added EditableNumberCell Component**: Reusable component for inline editing of numeric fields (UX/Content focus weeks)
+  - Click to edit, blur/Enter to commit, Escape to cancel
+  - Validates input and reverts invalid values without calling callbacks
+  - Comprehensive test coverage (16 tests)
+- **Added EditableTextCell Component**: Reusable component for inline editing of text fields (Name, Key)
+  - Same interaction model as EditableNumberCell
+  - Supports `maxLength` and custom `validate` function
+  - Key column validates: non-empty, no spaces
+  - Comprehensive test coverage (11 tests)
+- **Added EditableDateCell Component**: Reusable component for inline editing of date fields (Start, End dates)
+  - Uses HTML5 date input (`type="date"`)
+  - Formats dates as YYYY-MM-DD
+  - Handles ISO timestamp strings and invalid dates gracefully
+  - Allows clearing dates (empty input → null)
+  - Comprehensive test coverage (10 tests)
+- **Integrated Inline Editing**: Roadmap Items grid now supports inline editing for:
+  - Key (text, with validation)
+  - Name (text)
+  - Start date (date)
+  - End date (date)
+  - UX Focus Weeks (number)
+  - Content Focus Weeks (number)
+
+#### Paste Import Enhancements
+- **Extended Paste Format**: Support for 5-column format with separate UX and Content effort
+  - New format: `Title | Start date | End date | UX effort weeks | Content effort weeks`
+  - Legacy 4-column format still supported: `Title | Start date | End date | Effort weeks`
+  - Header auto-detection for both formats
+  - Field-specific validation errors (e.g., "UX effort is not a number")
+- **Date Parsing and Display**: Start/End dates from paste are now parsed and displayed in dedicated columns
+  - Dates stored in `startDate` and `endDate` fields on `RoadmapItem`
+  - Read-only date columns added to grid (now editable via EditableDateCell)
+
+#### Field Preservation Fix
+- **Fixed updateItem to Preserve Existing Fields**: Resolved issue where updating one field caused other fields to disappear
+  - Problem: API response might not include all fields, causing data loss when merging
+  - Solution: Merge current item from state + API response + updates (in that order)
+  - Ensures fields like `startDate`, `endDate`, and other unchanged fields are preserved
+  - See `docs/fix-field-preservation-on-update.md` for details
+
+### Known Issues
+
+#### Data Persistence Problem ⚠️ **ROOT CAUSE IDENTIFIED**
+- **Issue**: Inline edits to roadmap items (name, key, dates, UX/Content focus weeks) are not persisting to the database
+- **Symptoms**:
+  - Changes appear in UI immediately (local state update works)
+  - Changes disappear after page refresh
+  - No errors visible in console or network tab
+- **Root Cause Confirmed**:
+  - `startDate` and `endDate` fields were added to frontend `RoadmapItem` TypeScript interface
+  - **Database schema** (`roadmap_items` table) does NOT have `start_date` or `end_date` columns
+  - **Database interface** (`DatabaseRoadmapItem`) does NOT include date fields
+  - **Field mapping** (`roadmapItemToDbFormat`) does NOT map `startDate` → `start_date`
+  - **API function** (`update-roadmap-item.ts`) UPDATE statement does NOT include date columns
+  - Result: Date values (and potentially other fields) are lost on every update
+- **Required Fixes**:
+  1. Add `start_date` and `end_date` DATE columns to `roadmap_items` table (database migration)
+  2. Update `DatabaseRoadmapItem` interface to include date fields
+  3. Update `roadmapItemToDbFormat` to map `startDate`/`endDate` → `start_date`/`end_date`
+  4. Update `dbRoadmapItemToRoadmapItemResponse` to map back
+  5. Update `update-roadmap-item.ts` UPDATE statement to include date columns
+  6. Verify all other editable fields (name, key, focus weeks) are properly persisted
+- **Documentation**: See `docs/persistence-issue-summary.md` and `docs/perplexity-persistence-issue.md` for detailed analysis and proposed solutions
+
 ### Fixed
 - **Blank Page on Session Summary**: Fixed issue where navigating to session summary pages resulted in blank screens
   - Added `ErrorBoundary` component to catch and display React rendering errors gracefully
@@ -16,6 +83,9 @@ All notable changes to the Capacity Planning App will be documented in this file
   - Ensured all numeric calculations return proper numbers with `Number()` coercion
   - Added null/undefined checks for `capacityMetrics` before rendering
   - Graceful fallbacks: displays "—" or "0.0" instead of crashing when data is invalid
+- **Field Loss on Update**: Fixed issue where updating one field (e.g., name) caused other fields (e.g., dates) to disappear
+  - Modified `updateItem` in `RoadmapItemsContext` to preserve current item from state before merging with API response
+  - Ensures all existing fields are preserved when API response is partial
 
 ### Added
 - **ErrorBoundary Component**: New React error boundary that catches JavaScript errors and displays helpful error UI
@@ -27,6 +97,7 @@ All notable changes to the Capacity Planning App will be documented in this file
   - Error state with retry functionality
   - "Session not found" state with reload options
   - Better user feedback for all error scenarios
+- **Documentation**: Added `docs/fix-field-preservation-on-update.md` explaining the field preservation fix
 
 ## [4.0.0] - 2026-01-19
 

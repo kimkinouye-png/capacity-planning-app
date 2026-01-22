@@ -135,6 +135,8 @@ export interface DatabaseRoadmapItem {
   content_focus_weeks: number | null
   ux_work_weeks: number | null
   content_work_weeks: number | null
+  start_date: string | null // DATE in Postgres, ISO string (YYYY-MM-DD) in TypeScript
+  end_date: string | null    // DATE in Postgres, ISO string (YYYY-MM-DD) in TypeScript
   created_at: string
   updated_at: string
 }
@@ -175,6 +177,8 @@ export interface UpdateRoadmapItemRequest {
   content_focus_weeks?: number
   ux_work_weeks?: number
   content_work_weeks?: number
+  startDate?: string | null
+  endDate?: string | null
 }
 
 /**
@@ -238,6 +242,8 @@ export function dbRoadmapItemToRoadmapItemResponse(db: DatabaseRoadmapItem): Roa
     contentSizeBand,
     contentFocusWeeks,
     contentWorkWeeks,
+    startDate: db.start_date || null,
+    endDate: db.end_date || null,
   }
 }
 
@@ -259,6 +265,8 @@ export function roadmapItemToDbFormat(item: Partial<RoadmapItem>): Partial<Datab
   if (item.contentFocusWeeks !== undefined) db.content_focus_weeks = item.contentFocusWeeks
   if (item.uxWorkWeeks !== undefined) db.ux_work_weeks = item.uxWorkWeeks
   if (item.contentWorkWeeks !== undefined) db.content_work_weeks = item.contentWorkWeeks
+  if (item.startDate !== undefined) db.start_date = item.startDate || null
+  if (item.endDate !== undefined) db.end_date = item.endDate || null
   
   return db
 }

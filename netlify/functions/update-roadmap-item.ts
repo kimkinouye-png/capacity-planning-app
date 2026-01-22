@@ -67,6 +67,21 @@ export const handler: Handler = async (event, context) => {
       return errorResponse(400, 'Invalid content_focus_weeks: must be a non-negative number')
     }
 
+    // Validate date fields if provided
+    if (body.startDate !== undefined && body.startDate !== null) {
+      const startDate = new Date(body.startDate)
+      if (isNaN(startDate.getTime())) {
+        return errorResponse(400, 'Invalid startDate: must be a valid date string')
+      }
+    }
+
+    if (body.endDate !== undefined && body.endDate !== null) {
+      const endDate = new Date(body.endDate)
+      if (isNaN(endDate.getTime())) {
+        return errorResponse(400, 'Invalid endDate: must be a valid date string')
+      }
+    }
+
     // Validate size bands are valid enum values
     const validSizes = ['XS', 'S', 'M', 'L', 'XL'] as const
     if (body.ux_size !== undefined && !validSizes.includes(body.ux_size)) {
@@ -135,6 +150,8 @@ export const handler: Handler = async (event, context) => {
         content_focus_weeks = ${finalUpdates.content_focus_weeks ?? currentItem.content_focus_weeks},
         ux_work_weeks = ${finalUpdates.ux_work_weeks ?? currentItem.ux_work_weeks},
         content_work_weeks = ${finalUpdates.content_work_weeks ?? currentItem.content_work_weeks},
+        start_date = ${finalUpdates.start_date ?? currentItem.start_date},
+        end_date = ${finalUpdates.end_date ?? currentItem.end_date},
         updated_at = NOW()
       WHERE id = ${body.id}
       RETURNING *
