@@ -244,17 +244,17 @@ function SessionSummaryPage() {
             <Link to="/" style={{ color: '#3B82F6' }}>
               Home
             </Link>
-            <Text color="gray.500"> &gt; </Text>
-            <Text color="gray.600">
+            <Text color="gray.400"> &gt; </Text>
+            <Text color="gray.300">
               {session.name} - Summary
             </Text>
           </HStack>
         </HStack>
 
-        <Heading size="xl" mb={2} fontWeight="bold">
+        <Heading size="xl" mb={2} fontWeight="bold" color="white">
           {session.name}
         </Heading>
-        <Text fontSize="14px" color="gray.600" mb={8}>
+        <Text fontSize="14px" color="gray.400" mb={8}>
           {formatQuarter(session.planning_period)} • {session.ux_designers} UX Designers • {session.content_designers} Content Designers
         </Text>
 
@@ -263,37 +263,37 @@ function SessionSummaryPage() {
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={8}>
             {/* UX Design Capacity Card */}
             <Box
-              bg="#F0FDF4"
+              bg="#141419"
               borderRadius="md"
               p={6}
               border="1px solid"
-              borderColor={capacityMetrics.ux.surplus >= 0 ? 'green.200' : 'red.200'}
+              borderColor={capacityMetrics.ux.surplus >= 0 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}
             >
-              <Heading size="sm" mb={4} fontWeight="bold">
+              <Heading size="sm" mb={4} fontWeight="bold" color="white">
                 UX Design Capacity
               </Heading>
               <VStack spacing={4} align="stretch">
                 <Box>
-                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
                     Team Size
                   </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                  <Text fontSize="24px" fontWeight="bold" color="white">
                     {capacityMetrics.ux.teamSize}
                   </Text>
                 </Box>
                 <Box>
-                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
                     Total Capacity
                   </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                  <Text fontSize="24px" fontWeight="bold" color="white">
                     {capacityMetrics.ux.capacity.toFixed(1)} focus weeks
                   </Text>
                 </Box>
                 <Box>
-                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
                     Total Demand
                   </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                  <Text fontSize="24px" fontWeight="bold" color="white">
                     {capacityMetrics.ux.demand.toFixed(1)} focus weeks
                   </Text>
                 </Box>
@@ -316,7 +316,7 @@ function SessionSummaryPage() {
                       {capacityMetrics.ux.surplus.toFixed(1)} focus weeks
                     </Text>
                   </HStack>
-                  <Text fontSize="12px" color="gray.600">
+                  <Text fontSize="12px" color="gray.400">
                     {capacityMetrics.ux.surplus >= 0 ? 'Surplus' : 'Deficit'} • {capacityMetrics.ux.utilization.toFixed(0)}% utilized
                   </Text>
                 </Box>
@@ -325,37 +325,37 @@ function SessionSummaryPage() {
 
             {/* Content Design Capacity Card */}
             <Box
-              bg="#F0FDF4"
+              bg="#141419"
               borderRadius="md"
               p={6}
               border="1px solid"
-              borderColor={capacityMetrics.content.surplus >= 0 ? 'green.200' : 'red.200'}
+              borderColor={capacityMetrics.content.surplus >= 0 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}
             >
-              <Heading size="sm" mb={4} fontWeight="bold">
+              <Heading size="sm" mb={4} fontWeight="bold" color="white">
                 Content Design Capacity
               </Heading>
               <VStack spacing={4} align="stretch">
                 <Box>
-                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
                     Team Size
                   </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                  <Text fontSize="24px" fontWeight="bold" color="white">
                     {capacityMetrics.content.teamSize}
                   </Text>
                 </Box>
                 <Box>
-                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
                     Total Capacity
                   </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                  <Text fontSize="24px" fontWeight="bold" color="white">
                     {capacityMetrics.content.capacity.toFixed(1)} focus weeks
                   </Text>
                 </Box>
                 <Box>
-                  <Text fontSize="12px" color="gray.600" fontWeight="medium" mb={1}>
+                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
                     Total Demand
                   </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="gray.900">
+                  <Text fontSize="24px" fontWeight="bold" color="white">
                     {capacityMetrics.content.demand.toFixed(1)} focus weeks
                   </Text>
                 </Box>
@@ -378,7 +378,7 @@ function SessionSummaryPage() {
                       {capacityMetrics.content.surplus.toFixed(1)} focus weeks
                     </Text>
                   </HStack>
-                  <Text fontSize="12px" color="gray.600">
+                  <Text fontSize="12px" color="gray.400">
                     {capacityMetrics.content.surplus >= 0 ? 'Surplus' : 'Deficit'} • {capacityMetrics.content.utilization.toFixed(0)}% utilized
                   </Text>
                 </Box>
@@ -388,15 +388,15 @@ function SessionSummaryPage() {
         )}
 
         {/* Roadmap Items Table */}
-        <Box bg="white" borderRadius="md" p={6} boxShadow="sm">
-          <Heading size="md" mb={6} fontWeight="bold">
+        <Box bg="#141419" borderRadius="md" p={6} border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="sm">
+          <Heading size="md" mb={6} fontWeight="bold" color="white">
             Roadmap Items
           </Heading>
 
           {items.length === 0 ? (
             // Empty State
             <VStack spacing={4} py={12}>
-              <Text color="gray.600" fontSize="16px">
+              <Text color="gray.400" fontSize="16px">
                 No roadmap items yet. Add items to see capacity calculations.
               </Text>
               <Button
@@ -415,21 +415,21 @@ function SessionSummaryPage() {
                 <Table variant="simple">
                   <Thead>
                     <Tr>
-                      <Th>Key</Th>
-                      <Th>Name</Th>
-                      <Th>Priority</Th>
-                      <Th>Status</Th>
-                      <Th bg="blue.50" borderLeft="2px solid" borderColor="blue.200">
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Key</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Name</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Priority</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Status</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider" borderLeft="2px solid" borderColor="rgba(59, 130, 246, 0.3)">
                         UX Size
                       </Th>
-                      <Th bg="blue.50">UX Focus Weeks</Th>
-                      <Th bg="blue.50">UX Sprints</Th>
-                      <Th bg="green.50" borderLeft="2px solid" borderColor="green.200">
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">UX Focus Weeks</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">UX Sprints</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider" borderLeft="2px solid" borderColor="rgba(16, 185, 129, 0.3)">
                         Content Size
                       </Th>
-                      <Th bg="green.50">Content Focus Weeks</Th>
-                      <Th bg="green.50">Content Sprints</Th>
-                      <Th>Actions</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Content Focus Weeks</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Content Sprints</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Actions</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -444,11 +444,11 @@ function SessionSummaryPage() {
                       return (
                         <Tr
                           key={item.id}
-                          _hover={{ bg: 'gray.50', cursor: 'pointer' }}
+                          _hover={{ bg: 'rgba(255, 255, 255, 0.05)', cursor: 'pointer' }}
                           onClick={() => handleRowClick(item.id)}
                         >
-                          <Td fontWeight="medium">{item.short_key}</Td>
-                          <Td>{item.name}</Td>
+                          <Td fontWeight="medium" color="gray.300">{item.short_key}</Td>
+                          <Td color="gray.300">{item.name}</Td>
                           <Td>
                             <Badge
                               bg="#FEF3C7"
@@ -472,12 +472,12 @@ function SessionSummaryPage() {
                               {formatStatus(item.status)}
                             </Badge>
                           </Td>
-                          <Td bg="blue.50" borderLeft="2px solid" borderColor="blue.200">
+                          <Td borderLeft="2px solid" borderColor="rgba(59, 130, 246, 0.3)">
                             {item.uxSizeBand ? (
                               <Text
                                 fontWeight={600}
                                 fontSize="14px"
-                                color="#374151"
+                                color="white"
                               >
                                 {item.uxSizeBand}
                               </Text>
@@ -485,20 +485,20 @@ function SessionSummaryPage() {
                               <Text color="gray.400">—</Text>
                             )}
                           </Td>
-                          <Td bg="blue.50">
+                          <Td color="gray.300">
                             {item.uxFocusWeeks ? item.uxFocusWeeks.toFixed(1) : '—'}
                           </Td>
-                          <Td bg="blue.50">
+                          <Td color="gray.300">
                             {item.uxFocusWeeks
                               ? formatSprintEstimate(uxSprintEstimate)
                               : '—'}
                           </Td>
-                          <Td bg="green.50" borderLeft="2px solid" borderColor="green.200">
+                          <Td borderLeft="2px solid" borderColor="rgba(16, 185, 129, 0.3)">
                             {item.contentSizeBand ? (
                               <Text
                                 fontWeight={600}
                                 fontSize="14px"
-                                color="#374151"
+                                color="white"
                               >
                                 {item.contentSizeBand}
                               </Text>
@@ -506,12 +506,12 @@ function SessionSummaryPage() {
                               <Text color="gray.400">—</Text>
                             )}
                           </Td>
-                          <Td bg="green.50">
+                          <Td color="gray.300">
                             {item.contentFocusWeeks
                               ? item.contentFocusWeeks.toFixed(1)
                               : '—'}
                           </Td>
-                          <Td bg="green.50">
+                          <Td color="gray.300">
                             {item.contentFocusWeeks
                               ? formatSprintEstimate(contentSprintEstimate)
                               : '—'}

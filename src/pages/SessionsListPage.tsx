@@ -383,16 +383,16 @@ function SessionsListPage() {
               variant="outline" 
               cursor="pointer" 
               onClick={() => session?.id && navigate(`/sessions/${session.id}`)}
-              _hover={{ boxShadow: 'md' }}
+              _hover={{ boxShadow: 'md', borderColor: 'rgba(0, 217, 255, 0.3)' }}
               transition="all 0.2s"
-              bg="white"
-              borderColor="gray.200"
+              bg="#141419"
+              borderColor="rgba(255, 255, 255, 0.1)"
             >
               <CardBody p={6}>
                 <Stack spacing={4}>
                   {/* Title and Status */}
                   <HStack justify="space-between" align="start">
-                    <Heading size="md" fontWeight="bold">
+                    <Heading size="md" fontWeight="bold" color="white">
                       {session?.name || 'Unnamed Scenario'}
                     </Heading>
                     {metrics.status && (
@@ -409,7 +409,7 @@ function SessionsListPage() {
                   </HStack>
 
                   {/* Details Line */}
-                  <HStack spacing={4} color="gray.600" fontSize="sm">
+                  <HStack spacing={4} color="gray.400" fontSize="sm">
                     <HStack spacing={1}>
                       <Icon as={CalendarIcon} w={4} h={4} />
                       <Text>{planningPeriod}</Text>
@@ -429,12 +429,12 @@ function SessionsListPage() {
                   <SimpleGrid columns={2} spacing={6}>
                     {/* Left Column - UX Design */}
                     <Box>
-                      <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.700">
+                      <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.300">
                         UX Design
                       </Text>
                       <VStack align="start" spacing={1}>
-                        <Text fontSize="sm" color="gray.600">
-                          <Text as="span" fontWeight="bold" color="gray.900">
+                        <Text fontSize="sm" color="gray.400">
+                          <Text as="span" fontWeight="bold" color="white">
                             {formatValue(uxDemand)}
                           </Text>
                           {' / '}
@@ -455,12 +455,12 @@ function SessionsListPage() {
 
                     {/* Right Column - Content Design */}
                     <Box>
-                      <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.700">
+                      <Text fontSize="sm" fontWeight="medium" mb={2} color="gray.300">
                         Content Design
                       </Text>
                       <VStack align="start" spacing={1}>
-                        <Text fontSize="sm" color="gray.600">
-                          <Text as="span" fontWeight="bold" color="gray.900">
+                        <Text fontSize="sm" color="gray.400">
+                          <Text as="span" fontWeight="bold" color="white">
                             {formatValue(contentDemand)}
                           </Text>
                           {' / '}
