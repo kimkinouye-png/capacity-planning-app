@@ -297,9 +297,33 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
 
       const updatedItem: RoadmapItem = await response.json()
       
-      // Update state using functional update to read current item and preserve all fields
+      // Debug logging
+      console.log('API response received:', { 
+        itemId: updatedItem.id, 
+        uxFocusWeeks: updatedItem.uxFocusWeeks, 
+        contentFocusWeeks: updatedItem.contentFocusWeeks,
+        uxFocusWeeksType: typeof updatedItem.uxFocusWeeks 
+      })
+      
+      // Ensure numeric fields are numbers (Postgres NUMERIC can return as strings)
+      const normalizedResponse: RoadmapItem = {
+        ...updatedItem,
+        uxFocusWeeks: typeof updatedItem.uxFocusWeeks === 'string' ? Number(updatedItem.uxFocusWeeks) : updatedItem.uxFocusWeeks,
+        uxWorkWeeks: typeof updatedItem.uxWorkWeeks === 'string' ? Number(updatedItem.uxWorkWeeks) : updatedItem.uxWorkWeeks,
+        contentFocusWeeks: typeof updatedItem.contentFocusWeeks === 'string' ? Number(updatedItem.contentFocusWeeks) : updatedItem.contentFocusWeeks,
+        contentWorkWeeks: typeof updatedItem.contentWorkWeeks === 'string' ? Number(updatedItem.contentWorkWeeks) : updatedItem.contentWorkWeeks,
+        priority: typeof updatedItem.priority === 'string' ? Number(updatedItem.priority) : updatedItem.priority,
+      }
+      
+      console.log('Normalized response:', { 
+        itemId: normalizedResponse.id, 
+        uxFocusWeeks: normalizedResponse.uxFocusWeeks, 
+        contentFocusWeeks: normalizedResponse.contentFocusWeeks 
+      })
+      
+      // Update state using functional update - use API response as source of truth
       setItemsBySession((prev) => {
-        // Find the current item from state to preserve all existing fields
+        // Find the current item from state to preserve any fields not in API response
         let currentItem: RoadmapItem | undefined
         for (const items of Object.values(prev)) {
           const item = items.find((i) => i.id === itemId)
@@ -314,16 +338,15 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
           return prev // No change if item not found
         }
 
-        // Merge: currentItem (preserves all existing fields) + API response + updates (latest values)
-        // This ensures fields not in the API response (like startDate/endDate) are preserved
-        // Order matters: currentItem (base) -> updatedItem (API) -> updates (our changes, highest priority)
-        const mergedItem = { ...currentItem, ...updatedItem, ...updates }
-        // Normalize the merged item to ensure it has valid focus/work weeks
-        // Normalization preserves valid numbers, so our pasted values will be kept
-        // However, normalization recalculates work weeks from focus weeks, which is correct
-        const normalizedItem = normalizeRoadmapItem(mergedItem)
+        // Use API response as source of truth, but preserve any fields that might not be in response
+        // (This shouldn't happen with our current API, but defensive programming)
+        const finalItem = { ...currentItem, ...normalizedResponse }
+        
+        // Normalize to ensure all calculated fields are correct
+        const normalizedItem = normalizeRoadmapItem(finalItem)
         
         // Log activity (async, but we don't await in setState callback)
+        // Don't pass timestamp - let the API set it
         const sessionId = normalizedItem.planning_session_id
         const session = getSessionById(sessionId)
         const sessionName = session?.name || 'Unknown scenario'
@@ -332,9 +355,12 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
           scenarioId: sessionId,
           scenarioName: sessionName,
           description: `Updated roadmap item '${normalizedItem.name}' in scenario '${sessionName}'.`,
-        }).catch((err) => console.error('Failed to log activity:', err))
+        }).catch((err) => {
+          // Silently fail - activity logging is non-critical
+          console.warn('Failed to log activity (non-critical):', err)
+        })
 
-        // Update state with normalized item
+        // Update state with normalized item - this triggers React re-render
         const updated: Record<string, RoadmapItem[]> = {}
         for (const [sid, items] of Object.entries(prev)) {
           updated[sid] = items.map((item) => (item.id === itemId ? normalizedItem : item))
@@ -363,17 +389,21 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
           })
         }
         
-        // Log activity if item was updated
+        // Log activity if item was updated (non-critical, fail silently)
         if (updatedItem && sessionId) {
           const session = getSessionById(sessionId)
           const sessionName = session?.name || 'Unknown scenario'
           // Note: logActivity is async but we don't await in setState callback
+          // Don't pass timestamp - let the API set it
           logActivity({
             type: 'roadmap_item_updated',
             scenarioId: sessionId,
             scenarioName: sessionName,
             description: `Updated roadmap item '${updatedItem.name}' in scenario '${sessionName}'.`,
-          }).catch((err) => console.error('Failed to log activity:', err))
+          }).catch((err) => {
+            // Silently fail - activity logging is non-critical
+            console.warn('Failed to log activity (non-critical):', err)
+          })
         }
         
         return updated

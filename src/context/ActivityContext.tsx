@@ -134,7 +134,7 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
           scenarioId: newEvent.scenarioId,
           scenarioName: newEvent.scenarioName,
           description: newEvent.description,
-          timestamp: newEvent.timestamp,
+          // Don't send timestamp - let the API set it to avoid parsing issues
         }),
       })
 

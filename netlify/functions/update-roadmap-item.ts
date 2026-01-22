@@ -1,5 +1,6 @@
 import { Handler } from '@netlify/functions'
 import { neon } from '@netlify/neon'
+import type { RoadmapItem } from '../../src/domain/types'
 import { 
   type UpdateRoadmapItemRequest, 
   type DatabaseRoadmapItem, 
@@ -59,12 +60,26 @@ export const handler: Handler = async (event, context) => {
       return errorResponse(400, 'Invalid content_score: must be a number')
     }
 
-    if (body.ux_focus_weeks !== undefined && (typeof body.ux_focus_weeks !== 'number' || body.ux_focus_weeks < 0)) {
-      return errorResponse(400, 'Invalid ux_focus_weeks: must be a non-negative number')
+    // Validate numeric fields - check both camelCase (from frontend) and snake_case (backward compatibility)
+    const uxFocusWeeks = body.uxFocusWeeks !== undefined ? body.uxFocusWeeks : body.ux_focus_weeks
+    const contentFocusWeeks = body.contentFocusWeeks !== undefined ? body.contentFocusWeeks : body.content_focus_weeks
+    const uxWorkWeeks = body.uxWorkWeeks !== undefined ? body.uxWorkWeeks : body.ux_work_weeks
+    const contentWorkWeeks = body.contentWorkWeeks !== undefined ? body.contentWorkWeeks : body.content_work_weeks
+
+    if (uxFocusWeeks !== undefined && (typeof uxFocusWeeks !== 'number' || uxFocusWeeks < 0)) {
+      return errorResponse(400, 'Invalid uxFocusWeeks: must be a non-negative number')
     }
 
-    if (body.content_focus_weeks !== undefined && (typeof body.content_focus_weeks !== 'number' || body.content_focus_weeks < 0)) {
-      return errorResponse(400, 'Invalid content_focus_weeks: must be a non-negative number')
+    if (contentFocusWeeks !== undefined && (typeof contentFocusWeeks !== 'number' || contentFocusWeeks < 0)) {
+      return errorResponse(400, 'Invalid contentFocusWeeks: must be a non-negative number')
+    }
+
+    if (uxWorkWeeks !== undefined && (typeof uxWorkWeeks !== 'number' || uxWorkWeeks < 0)) {
+      return errorResponse(400, 'Invalid uxWorkWeeks: must be a non-negative number')
+    }
+
+    if (contentWorkWeeks !== undefined && (typeof contentWorkWeeks !== 'number' || contentWorkWeeks < 0)) {
+      return errorResponse(400, 'Invalid contentWorkWeeks: must be a non-negative number')
     }
 
     // Validate date fields if provided
@@ -103,8 +118,18 @@ export const handler: Handler = async (event, context) => {
 
     const currentItem = current[0]
     
+    // Normalize request body: convert snake_case to camelCase if present
+    const normalizedBody: Partial<RoadmapItem> = {
+      ...body,
+      // Prefer camelCase, fall back to snake_case for backward compatibility
+      uxFocusWeeks: body.uxFocusWeeks ?? body.ux_focus_weeks,
+      contentFocusWeeks: body.contentFocusWeeks ?? body.content_focus_weeks,
+      uxWorkWeeks: body.uxWorkWeeks ?? body.ux_work_weeks,
+      contentWorkWeeks: body.contentWorkWeeks ?? body.content_work_weeks,
+    }
+    
     // Map request format to database format
-    const updates = roadmapItemToDbFormat(body)
+    const updates = roadmapItemToDbFormat(normalizedBody)
     
     // Check if there are any updates
     const hasUpdates = Object.keys(updates).length > 0

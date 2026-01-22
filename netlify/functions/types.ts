@@ -158,6 +158,7 @@ export interface CreateRoadmapItemRequest {
 
 /**
  * API request for updating a roadmap item
+ * Accepts camelCase field names (matching RoadmapItem interface) for consistency with frontend
  */
 export interface UpdateRoadmapItemRequest {
   id: string
@@ -173,12 +174,18 @@ export interface UpdateRoadmapItemRequest {
   content_score?: number
   ux_size?: 'XS' | 'S' | 'M' | 'L' | 'XL'
   content_size?: 'XS' | 'S' | 'M' | 'L' | 'XL'
+  // Accept camelCase field names (from frontend RoadmapItem interface)
+  uxFocusWeeks?: number
+  contentFocusWeeks?: number
+  uxWorkWeeks?: number
+  contentWorkWeeks?: number
+  startDate?: string | null
+  endDate?: string | null
+  // Also accept snake_case for backward compatibility
   ux_focus_weeks?: number
   content_focus_weeks?: number
   ux_work_weeks?: number
   content_work_weeks?: number
-  startDate?: string | null
-  endDate?: string | null
 }
 
 /**

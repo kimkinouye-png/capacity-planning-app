@@ -231,7 +231,9 @@ function SessionSummaryPage() {
     }
 
     try {
+      console.log('Updating UX focus weeks:', { itemId, newValue, updates })
       await updateItem(itemId, updates)
+      console.log('UX focus weeks update successful')
     } catch (error) {
       console.error('Error updating UX focus weeks:', error)
       toast({
@@ -267,7 +269,9 @@ function SessionSummaryPage() {
     }
 
     try {
+      console.log('Updating Content focus weeks:', { itemId, newValue, updates })
       await updateItem(itemId, updates)
+      console.log('Content focus weeks update successful')
     } catch (error) {
       console.error('Error updating Content focus weeks:', error)
       toast({
