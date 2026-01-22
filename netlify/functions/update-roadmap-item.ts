@@ -154,6 +154,24 @@ export const handler: Handler = async (event, context) => {
       ...updates,
     }
 
+    // Debug: Log what we're updating
+    console.log('🔵 [update-roadmap-item] Updating database:', {
+      itemId: body.id,
+      updates: Object.keys(updates),
+      finalUpdates: {
+        ux_focus_weeks: finalUpdates.ux_focus_weeks,
+        content_focus_weeks: finalUpdates.content_focus_weeks,
+        start_date: finalUpdates.start_date,
+        end_date: finalUpdates.end_date,
+      },
+      currentItem: {
+        ux_focus_weeks: currentItem.ux_focus_weeks,
+        content_focus_weeks: currentItem.content_focus_weeks,
+        start_date: currentItem.start_date,
+        end_date: currentItem.end_date,
+      }
+    })
+
     // Update roadmap item (parameterized query - JSONB fields use JSON.stringify then cast to jsonb)
     // Neon parameterizes the JSON string, then PostgreSQL casts it to jsonb
     const result = await sql<DatabaseRoadmapItem>`
@@ -181,6 +199,14 @@ export const handler: Handler = async (event, context) => {
       WHERE id = ${body.id}
       RETURNING *
     `
+
+    console.log('🟢 [update-roadmap-item] Database update result:', {
+      itemId: result[0]?.id,
+      ux_focus_weeks: result[0]?.ux_focus_weeks,
+      content_focus_weeks: result[0]?.content_focus_weeks,
+      start_date: result[0]?.start_date,
+      end_date: result[0]?.end_date,
+    })
 
     if (result.length === 0) {
       return errorResponse(404, 'Roadmap item not found after update')

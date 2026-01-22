@@ -177,6 +177,7 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
 
   // Load items for a session from API, fallback to localStorage on error
   const loadItemsForSession = useCallback(async (sessionId: string) => {
+    console.log('🟡 [loadItemsForSession] Loading items for session:', sessionId)
     setIsLoading(true)
     setError(null)
     try {
@@ -185,18 +186,62 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
         throw new Error(`Failed to fetch roadmap items: ${response.statusText}`)
       }
       const data: RoadmapItem[] = await response.json()
+      console.log('🟡 [loadItemsForSession] Received items from API:', {
+        sessionId,
+        itemCount: data.length,
+        sampleItem: data[0] ? {
+          id: data[0].id,
+          name: data[0].name,
+          uxFocusWeeks: data[0].uxFocusWeeks,
+          contentFocusWeeks: data[0].contentFocusWeeks,
+          startDate: data[0].startDate,
+          endDate: data[0].endDate
+        } : null
+      })
       // Normalize items to ensure they have valid focus/work weeks
       const normalizedData = normalizeRoadmapItems(data)
+      console.log('🟡 [loadItemsForSession] Normalized items:', {
+        sessionId,
+        itemCount: normalizedData.length,
+        sampleItem: normalizedData[0] ? {
+          id: normalizedData[0].id,
+          uxFocusWeeks: normalizedData[0].uxFocusWeeks,
+          contentFocusWeeks: normalizedData[0].contentFocusWeeks
+        } : null
+      })
       // Use functional setState and save with fresh data to avoid stale closure
       setItemsBySession((prev) => {
+        const prevItems = prev[sessionId] || []
+        console.log('🟡 [loadItemsForSession] Replacing items in state:', {
+          sessionId,
+          prevCount: prevItems.length,
+          newCount: normalizedData.length,
+          prevSample: prevItems[0] ? {
+            id: prevItems[0].id,
+            uxFocusWeeks: prevItems[0].uxFocusWeeks
+          } : null,
+          newSample: normalizedData[0] ? {
+            id: normalizedData[0].id,
+            uxFocusWeeks: normalizedData[0].uxFocusWeeks
+          } : null
+        })
         const updated = { ...prev, [sessionId]: normalizedData }
         // Save immediately with fresh data to avoid race condition
         saveItemsToStorage(updated)
         return updated
       })
     } catch (err) {
-      console.error('Error loading roadmap items from API, falling back to localStorage:', err)
-      setError('Failed to load roadmap items from database. Using local data.')
+      console.warn('⚠️ Roadmap items API unavailable, using local data:', err)
+      // In dev mode without Netlify Dev, this is expected - don't show as error
+      // In production, this indicates a real issue
+      const isDevMode = import.meta.env.DEV
+      if (!isDevMode) {
+        // Only show error in production
+        setError('Failed to load roadmap items from database. Using local data.')
+      } else {
+        // In dev mode, just log it - this is expected if Netlify Dev isn't running
+        console.info('ℹ️ Running in dev mode without Netlify Dev - using localStorage for roadmap items')
+      }
       // Fallback to localStorage
       const localItems = loadItemsFromStorage()
       const sessionItems = localItems[sessionId] || []
@@ -282,27 +327,44 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
   )
 
   const updateItem = useCallback(async (itemId: string, updates: Partial<RoadmapItem>): Promise<void> => {
+    // Debug: Log what we're sending
+    const requestPayload = { id: itemId, ...updates }
+    console.log('🔵 [updateItem] Sending API request:', {
+      endpoint: `${API_BASE_URL}/update-roadmap-item`,
+      method: 'PUT',
+      payload: requestPayload,
+      updatesKeys: Object.keys(updates),
+    })
+
     try {
       const response = await fetch(`${API_BASE_URL}/update-roadmap-item`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id: itemId, ...updates }),
+        body: JSON.stringify(requestPayload),
       })
 
+      console.log('🔵 [updateItem] API response status:', response.status, response.statusText)
+
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error('🔴 [updateItem] API error response:', errorText)
         throw new Error(`Failed to update roadmap item: ${response.statusText}`)
       }
 
       const updatedItem: RoadmapItem = await response.json()
       
       // Debug logging
-      console.log('API response received:', { 
+      console.log('🟢 [updateItem] API response received:', { 
         itemId: updatedItem.id, 
+        name: updatedItem.name,
         uxFocusWeeks: updatedItem.uxFocusWeeks, 
         contentFocusWeeks: updatedItem.contentFocusWeeks,
-        uxFocusWeeksType: typeof updatedItem.uxFocusWeeks 
+        startDate: updatedItem.startDate,
+        endDate: updatedItem.endDate,
+        uxFocusWeeksType: typeof updatedItem.uxFocusWeeks,
+        rawResponse: updatedItem
       })
       
       // Ensure numeric fields are numbers (Postgres NUMERIC can return as strings)
@@ -315,28 +377,47 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
         priority: typeof updatedItem.priority === 'string' ? Number(updatedItem.priority) : updatedItem.priority,
       }
       
-      console.log('Normalized response:', { 
+      console.log('🟡 [updateItem] Normalized response:', { 
         itemId: normalizedResponse.id, 
         uxFocusWeeks: normalizedResponse.uxFocusWeeks, 
-        contentFocusWeeks: normalizedResponse.contentFocusWeeks 
+        contentFocusWeeks: normalizedResponse.contentFocusWeeks,
+        startDate: normalizedResponse.startDate,
+        endDate: normalizedResponse.endDate
       })
       
       // Update state using functional update - use API response as source of truth
       setItemsBySession((prev) => {
+        console.log('🟣 [updateItem] Updating state, current itemsBySession keys:', Object.keys(prev))
+        
         // Find the current item from state to preserve any fields not in API response
         let currentItem: RoadmapItem | undefined
-        for (const items of Object.values(prev)) {
+        let foundSessionId: string | undefined
+        for (const [sid, items] of Object.entries(prev)) {
           const item = items.find((i) => i.id === itemId)
           if (item) {
             currentItem = item
+            foundSessionId = sid
             break
           }
         }
 
         if (!currentItem) {
-          console.error('Cannot update item: item not found in state', itemId)
+          console.error('🔴 [updateItem] Cannot update item: item not found in state', itemId)
+          console.error('🔴 [updateItem] Available items:', Object.entries(prev).map(([sid, items]) => ({
+            sessionId: sid,
+            itemIds: items.map(i => i.id)
+          })))
           return prev // No change if item not found
         }
+
+        console.log('🟣 [updateItem] Found current item:', {
+          itemId: currentItem.id,
+          sessionId: foundSessionId,
+          currentUxFocusWeeks: currentItem.uxFocusWeeks,
+          currentContentFocusWeeks: currentItem.contentFocusWeeks,
+          currentStartDate: currentItem.startDate,
+          currentEndDate: currentItem.endDate
+        })
 
         // Use API response as source of truth, but preserve any fields that might not be in response
         // (This shouldn't happen with our current API, but defensive programming)
@@ -344,6 +425,14 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
         
         // Normalize to ensure all calculated fields are correct
         const normalizedItem = normalizeRoadmapItem(finalItem)
+        
+        console.log('🟣 [updateItem] Final normalized item:', {
+          itemId: normalizedItem.id,
+          uxFocusWeeks: normalizedItem.uxFocusWeeks,
+          contentFocusWeeks: normalizedItem.contentFocusWeeks,
+          startDate: normalizedItem.startDate,
+          endDate: normalizedItem.endDate
+        })
         
         // Log activity (async, but we don't await in setState callback)
         // Don't pass timestamp - let the API set it
@@ -363,8 +452,19 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
         // Update state with normalized item - this triggers React re-render
         const updated: Record<string, RoadmapItem[]> = {}
         for (const [sid, items] of Object.entries(prev)) {
-          updated[sid] = items.map((item) => (item.id === itemId ? normalizedItem : item))
+          updated[sid] = items.map((item) => {
+            if (item.id === itemId) {
+              console.log('🟣 [updateItem] Replacing item in state:', {
+                old: { uxFocusWeeks: item.uxFocusWeeks, contentFocusWeeks: item.contentFocusWeeks },
+                new: { uxFocusWeeks: normalizedItem.uxFocusWeeks, contentFocusWeeks: normalizedItem.contentFocusWeeks }
+              })
+              return normalizedItem
+            }
+            return item
+          })
         }
+        
+        console.log('🟣 [updateItem] State update complete, new state keys:', Object.keys(updated))
         return updated
       })
     } catch (err) {

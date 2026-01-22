@@ -121,11 +121,23 @@ function SessionSummaryPage() {
   }, [id, getItemsForSession])
 
   // Load items for this session when the page loads or when navigating back
+  // NOTE: We only load if items are empty to avoid overwriting optimistic updates
   useEffect(() => {
     if (id) {
-      loadItemsForSession(id)
+      const currentItems = getItemsForSession(id)
+      // Only reload if we don't have items for this session
+      // This prevents overwriting optimistic updates when navigating
+      if (currentItems.length === 0) {
+        console.log('🟡 [SessionSummaryPage] Loading items for session (empty):', id)
+        loadItemsForSession(id)
+      } else {
+        console.log('🟡 [SessionSummaryPage] Skipping reload, items already loaded:', {
+          sessionId: id,
+          itemCount: currentItems.length
+        })
+      }
     }
-  }, [id, loadItemsForSession, location.key]) // location.key changes on navigation
+  }, [id, loadItemsForSession, getItemsForSession]) // Removed location.key to prevent reload on navigation
 
   // Calculate capacity and demand
   const capacityMetrics = useMemo(() => {
@@ -212,6 +224,8 @@ function SessionSummaryPage() {
   const handleUpdateUXFocusWeeks = async (itemId: string, newValue: number | undefined) => {
     if (!id) return
 
+    console.log('🔵 [handleUpdateUXFocusWeeks] Called with:', { itemId, newValue, sessionId: id })
+
     const focusTimeRatio = settings?.time_model.focusTimeRatio ?? 0.75
     const updates: {
       uxFocusWeeks?: number
@@ -231,11 +245,20 @@ function SessionSummaryPage() {
     }
 
     try {
-      console.log('Updating UX focus weeks:', { itemId, newValue, updates })
+      console.log('🔵 [handleUpdateUXFocusWeeks] Calling updateItem with:', { itemId, updates })
       await updateItem(itemId, updates)
-      console.log('UX focus weeks update successful')
+      console.log('🟢 [handleUpdateUXFocusWeeks] Update successful, checking state...')
+      
+      // Verify the update in state
+      const updatedItems = getItemsForSession(id)
+      const updatedItem = updatedItems.find(i => i.id === itemId)
+      console.log('🟢 [handleUpdateUXFocusWeeks] State after update:', {
+        itemId,
+        uxFocusWeeks: updatedItem?.uxFocusWeeks,
+        expected: newValue
+      })
     } catch (error) {
-      console.error('Error updating UX focus weeks:', error)
+      console.error('🔴 [handleUpdateUXFocusWeeks] Error:', error)
       toast({
         title: 'Update failed',
         description: 'Failed to update UX focus weeks. Please try again.',
@@ -249,6 +272,8 @@ function SessionSummaryPage() {
   // Handle updating Content focus weeks from inline edit
   const handleUpdateContentFocusWeeks = async (itemId: string, newValue: number | undefined) => {
     if (!id) return
+
+    console.log('🔵 [handleUpdateContentFocusWeeks] Called with:', { itemId, newValue, sessionId: id })
 
     const focusTimeRatio = settings?.time_model.focusTimeRatio ?? 0.75
     const updates: {
@@ -269,11 +294,20 @@ function SessionSummaryPage() {
     }
 
     try {
-      console.log('Updating Content focus weeks:', { itemId, newValue, updates })
+      console.log('🔵 [handleUpdateContentFocusWeeks] Calling updateItem with:', { itemId, updates })
       await updateItem(itemId, updates)
-      console.log('Content focus weeks update successful')
+      console.log('🟢 [handleUpdateContentFocusWeeks] Update successful, checking state...')
+      
+      // Verify the update in state
+      const updatedItems = getItemsForSession(id)
+      const updatedItem = updatedItems.find(i => i.id === itemId)
+      console.log('🟢 [handleUpdateContentFocusWeeks] State after update:', {
+        itemId,
+        contentFocusWeeks: updatedItem?.contentFocusWeeks,
+        expected: newValue
+      })
     } catch (error) {
-      console.error('Error updating Content focus weeks:', error)
+      console.error('🔴 [handleUpdateContentFocusWeeks] Error:', error)
       toast({
         title: 'Update failed',
         description: 'Failed to update Content focus weeks. Please try again.',
@@ -329,10 +363,23 @@ function SessionSummaryPage() {
   const handleUpdateStartDate = async (itemId: string, newValue: string | null) => {
     if (!id) return
 
+    console.log('🔵 [handleUpdateStartDate] Called with:', { itemId, newValue, sessionId: id })
+
     try {
+      console.log('🔵 [handleUpdateStartDate] Calling updateItem with:', { itemId, startDate: newValue })
       await updateItem(itemId, { startDate: newValue })
+      console.log('🟢 [handleUpdateStartDate] Update successful, checking state...')
+      
+      // Verify the update in state
+      const updatedItems = getItemsForSession(id)
+      const updatedItem = updatedItems.find(i => i.id === itemId)
+      console.log('🟢 [handleUpdateStartDate] State after update:', {
+        itemId,
+        startDate: updatedItem?.startDate,
+        expected: newValue
+      })
     } catch (error) {
-      console.error('Error updating start date:', error)
+      console.error('🔴 [handleUpdateStartDate] Error:', error)
       toast({
         title: 'Update failed',
         description: 'Failed to update start date. Please try again.',
@@ -347,10 +394,23 @@ function SessionSummaryPage() {
   const handleUpdateEndDate = async (itemId: string, newValue: string | null) => {
     if (!id) return
 
+    console.log('🔵 [handleUpdateEndDate] Called with:', { itemId, newValue, sessionId: id })
+
     try {
+      console.log('🔵 [handleUpdateEndDate] Calling updateItem with:', { itemId, endDate: newValue })
       await updateItem(itemId, { endDate: newValue })
+      console.log('🟢 [handleUpdateEndDate] Update successful, checking state...')
+      
+      // Verify the update in state
+      const updatedItems = getItemsForSession(id)
+      const updatedItem = updatedItems.find(i => i.id === itemId)
+      console.log('🟢 [handleUpdateEndDate] State after update:', {
+        itemId,
+        endDate: updatedItem?.endDate,
+        expected: newValue
+      })
     } catch (error) {
-      console.error('Error updating end date:', error)
+      console.error('🔴 [handleUpdateEndDate] Error:', error)
       toast({
         title: 'Update failed',
         description: 'Failed to update end date. Please try again.',

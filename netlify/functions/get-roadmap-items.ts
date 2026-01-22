@@ -59,6 +59,8 @@ export const handler: Handler = async (event, context) => {
         content_focus_weeks,
         ux_work_weeks,
         content_work_weeks,
+        start_date,
+        end_date,
         created_at,
         updated_at
       FROM roadmap_items

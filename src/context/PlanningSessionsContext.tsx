@@ -91,8 +91,17 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
       // Also save to localStorage as backup
       saveSessionsToStorage(data)
     } catch (err) {
-      console.error('Error loading scenarios from API, falling back to localStorage:', err)
-      setError('Failed to load scenarios from database. Using local data.')
+      console.warn('⚠️ Scenarios API unavailable, using local data:', err)
+      // In dev mode without Netlify Dev, this is expected - don't show as error
+      // In production, this indicates a real issue
+      const isDevMode = import.meta.env.DEV
+      if (!isDevMode) {
+        // Only show error in production
+        setError('Failed to load scenarios from database. Using local data.')
+      } else {
+        // In dev mode, just log it - this is expected if Netlify Dev isn't running
+        console.info('ℹ️ Running in dev mode without Netlify Dev - using localStorage for scenarios')
+      }
       // Fallback to localStorage
       const localSessions = loadSessionsFromStorage()
       setSessions(localSessions)
