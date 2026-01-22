@@ -2,15 +2,11 @@
 import { Box, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, Button, useDisclosure } from '@chakra-ui/react'
 import { Routes, Route } from 'react-router-dom'
 import { useEffect, useRef } from 'react'
-import HomePage from './pages/HomePage'
 import SessionsListPage from './pages/SessionsListPage'
 import SessionSummaryPage from './pages/SessionSummaryPage'
 import SessionItemsPage from './pages/SessionItemsPage'
 import ItemDetailPage from './pages/ItemDetailPage'
 import QuarterlyCapacityPage from './pages/QuarterlyCapacityPage'
-import CommittedPlanPage from './pages/CommittedPlanPage'
-import GuidePage from './pages/GuidePage'
-import SettingsPage from './pages/SettingsPage'
 import AppHeader from './components/AppHeader'
 
 function App() {
@@ -76,11 +72,8 @@ function App() {
       {/* Main Content */}
       <Box as="main">
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<SessionsListPage />} />
           <Route path="/scenarios" element={<SessionsListPage />} />
-          <Route path="/committed-plan" element={<CommittedPlanPage />} />
-          <Route path="/guide" element={<GuidePage />} />
-          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/quarterly-capacity" element={<QuarterlyCapacityPage />} />
           <Route path="/sessions/:id" element={<SessionSummaryPage />} />
           <Route path="/sessions/:id/items" element={<SessionItemsPage />} />
