@@ -45,7 +45,7 @@ import {
   AlertDescription,
 } from '@chakra-ui/react'
 import { ChevronLeftIcon, DeleteIcon, CheckIcon } from '@chakra-ui/icons'
-import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useMemo, useRef, useEffect, useState } from 'react'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
@@ -62,7 +62,6 @@ import PasteTableImportModal from '../features/scenarios/pasteTableImport/PasteT
 function SessionSummaryPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const location = useLocation()
   const toast = useToast()
   const { sessions, getSessionById, commitSession, uncommitSession, updateSession, isLoading: sessionsLoading, error: sessionsError, loadSessions } = usePlanningSessions()
   const { getItemsForSession, removeItem, createItem, updateItem, loadItemsForSession, error: roadmapError } = useRoadmapItems()
