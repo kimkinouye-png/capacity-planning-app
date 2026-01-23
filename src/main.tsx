@@ -12,24 +12,27 @@ import { ActivityProvider } from './context/ActivityContext'
 import { SettingsProvider } from './context/SettingsContext'
 import theme from './theme'
 import ErrorBoundary from './components/ErrorBoundary'
+import QAAuth from './components/QAAuth'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <ErrorBoundary>
         <ChakraProvider theme={theme}>
-          <BrowserRouter>
-            <SettingsProvider>
-              <ActivityProvider>
-                <PlanningSessionsProvider>
-                  <RoadmapItemsProvider>
-                    <ItemInputsProvider>
-                      <App />
-                    </ItemInputsProvider>
-                  </RoadmapItemsProvider>
-                </PlanningSessionsProvider>
-              </ActivityProvider>
-            </SettingsProvider>
-          </BrowserRouter>
+          <QAAuth>
+            <BrowserRouter>
+              <SettingsProvider>
+                <ActivityProvider>
+                  <PlanningSessionsProvider>
+                    <RoadmapItemsProvider>
+                      <ItemInputsProvider>
+                        <App />
+                      </ItemInputsProvider>
+                    </RoadmapItemsProvider>
+                  </PlanningSessionsProvider>
+                </ActivityProvider>
+              </SettingsProvider>
+            </BrowserRouter>
+          </QAAuth>
         </ChakraProvider>
       </ErrorBoundary>
     </React.StrictMode>,
