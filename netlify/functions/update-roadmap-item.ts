@@ -1,5 +1,5 @@
 import { Handler } from '@netlify/functions'
-import { getDatabaseConnection } from './db-connection'
+import { getDatabaseConnectionForWrites } from './db-connection'
 import type { RoadmapItem } from '../../src/domain/types'
 import { 
   type UpdateRoadmapItemRequest, 
@@ -32,8 +32,9 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Get database connection with timeout and retry logic
-    const sql = await getDatabaseConnection()
+    // Get database connection with write-specific timeout and retry logic
+    // Writes need 30s timeout and 5 retries to handle Neon compute wake-up
+    const sql = await getDatabaseConnectionForWrites()
     
     let body: UpdateRoadmapItemRequest
     try {
