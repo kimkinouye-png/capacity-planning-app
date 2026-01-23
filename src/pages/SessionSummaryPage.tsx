@@ -606,7 +606,7 @@ function SessionSummaryPage() {
 
   // Show error state if sessions failed to load AND we have no session
   // Only show error page if we truly can't load data
-  if (sessionsError && !session && !isLoading) {
+  if (sessionsError && !session && !sessionsLoading) {
     // Determine error type for better messaging
     const isTimeout = sessionsError.toLowerCase().includes('timeout')
     const isConnectionError = sessionsError.toLowerCase().includes('cannot connect') || sessionsError.toLowerCase().includes('network')
@@ -675,7 +675,7 @@ function SessionSummaryPage() {
   }
 
   // Handle missing session (only show if not loading and no error)
-  if (!session && !isLoading && !sessionsError) {
+  if (!session && !sessionsLoading && !sessionsError) {
     return (
       <Box minH="100vh" bg="#0a0a0f" p={8}>
         <Box maxW="600px" mx="auto">
@@ -738,8 +738,18 @@ function SessionSummaryPage() {
     return period.replace('-', ' ')
   }
 
+  // At this point, session must be defined (we've handled all null cases above)
+  if (!session) {
+    // This should never happen due to early returns, but TypeScript needs this check
+    return (
+      <Box minH="100vh" bg="#0a0a0f" p={8}>
+        <Text color="gray.300">Loading session...</Text>
+      </Box>
+    )
+  }
+
   // Get planning period (handles both legacy and new field names)
-  const planningPeriod = session?.planning_period || session?.planningPeriod
+  const planningPeriod = session.planning_period || session.planningPeriod
 
   return (
     <Box bg="#0a0a0f" minH="100vh" pb={8}>
