@@ -1,5 +1,6 @@
 import { Box, Flex, HStack, Heading, Text, Button } from '@chakra-ui/react'
 import { Link, useLocation } from 'react-router-dom'
+import QRCodeDisplay from './QRCodeDisplay'
 
 export default function AppHeader() {
   const location = useLocation()
@@ -43,7 +44,10 @@ export default function AppHeader() {
           </Box>
 
           {/* Right side: Navigation */}
-          <HStack spacing={1} align="center">
+          <HStack spacing={2} align="center">
+            {/* QR Code Button */}
+            <QRCodeDisplay />
+            
             {navItems.map((item) => {
               const isActive = location.pathname === item.path
               if (isActive) {

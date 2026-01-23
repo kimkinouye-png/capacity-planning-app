@@ -14,6 +14,7 @@ import {
   useToast,
 } from '@chakra-ui/react'
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons'
+import { QRCodeSVG } from 'qrcode.react'
 import { QA_CODE, isQAAuthenticated, setQAAuthenticated } from '../config/qaConfig'
 
 interface QAAuthProps {
@@ -32,7 +33,13 @@ export default function QAAuth({ children }: QAAuthProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [appUrl, setAppUrl] = useState('')
   const toast = useToast()
+
+  // Get the current app URL for QR code
+  useEffect(() => {
+    setAppUrl(window.location.href)
+  }, [])
 
   // Check authentication on mount
   useEffect(() => {
@@ -176,6 +183,42 @@ export default function QAAuth({ children }: QAAuthProps) {
               </Button>
             </VStack>
           </form>
+
+          {/* QR Code Section */}
+          <Box
+            mt={4}
+            p={4}
+            bg="#1a1a20"
+            borderRadius="md"
+            border="1px solid"
+            borderColor="rgba(255, 255, 255, 0.1)"
+          >
+            <VStack spacing={3}>
+              <Text color="gray.300" fontSize="sm" fontWeight="medium" textAlign="center">
+                Scan QR Code for Mobile Access
+              </Text>
+              {appUrl && (
+                <Box
+                  display="flex"
+                  justifyContent="center"
+                  alignItems="center"
+                  p={3}
+                  bg="white"
+                  borderRadius="md"
+                >
+                  <QRCodeSVG
+                    value={appUrl}
+                    size={200}
+                    level="H"
+                    includeMargin={true}
+                  />
+                </Box>
+              )}
+              <Text color="gray.500" fontSize="xs" textAlign="center">
+                Scan with your phone camera to open this page
+              </Text>
+            </VStack>
+          </Box>
 
           {/* Help Text */}
           <Text color="gray.500" fontSize="xs" textAlign="center" mt={2}>
