@@ -1,5 +1,5 @@
 import { Handler } from '@netlify/functions'
-import { neon } from '@netlify/neon'
+import { getDatabaseConnection } from './db-connection'
 import { errorResponse, isValidUUID } from './types'
 import type { ActivityEvent } from '../../src/domain/types'
 
@@ -28,8 +28,8 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // @netlify/neon automatically uses NETLIFY_DATABASE_URL from environment
-    const sql = neon()
+    // Get database connection with timeout and retry logic
+    const sql = await getDatabaseConnection()
 
     // Get query parameters
     const params = new URLSearchParams(event.queryStringParameters || '')
