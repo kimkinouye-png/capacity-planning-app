@@ -151,7 +151,7 @@ function calculateScenarioMetrics(
 }
 
 function SessionsListPage() {
-  const { sessions, createSession, commitSession, uncommitSession, deleteSession, updateSession, error: sessionsError } = usePlanningSessions()
+  const { sessions, createSession, commitSession, uncommitSession, deleteSession, updateSession, error: sessionsError, loadSessions } = usePlanningSessions()
   const { getItemsForSession } = useRoadmapItems()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure()
@@ -271,12 +271,23 @@ function SessionsListPage() {
   if (sessions.length === 0) {
     return (
       <Box maxW="1200px" mx="auto" px={6} py={20}>
-        {/* Error message for PlanningSessionsContext */}
-        {sessionsError && (
+        {/* Only show error banner if we have sessions loaded (fallback succeeded) */}
+        {/* If no sessions and error, we'll show error page instead */}
+        {sessionsError && sessions.length > 0 && (
           <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
             <AlertIcon color="#f59e0b" />
-            <AlertTitle color="white" mr={2}>Session Error:</AlertTitle>
+            <AlertTitle color="white" mr={2}>Warning:</AlertTitle>
             <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
+            <Button
+              size="sm"
+              colorScheme="cyan"
+              ml={4}
+              onClick={() => {
+                loadSessions()
+              }}
+            >
+              Retry Sync
+            </Button>
           </Alert>
         )}
         <VStack spacing={8} align="center" textAlign="center">
@@ -431,12 +442,23 @@ function SessionsListPage() {
   // Show populated state with cards when scenarios exist
   return (
     <Box maxW="1400px" mx="auto" px={6} py={8}>
-      {/* Error message for PlanningSessionsContext */}
-      {sessionsError && (
+      {/* Only show error banner if we have sessions loaded (fallback succeeded) */}
+      {/* If no sessions and error, we'll show error page instead */}
+      {sessionsError && sessions.length > 0 && (
         <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
           <AlertIcon color="#f59e0b" />
-          <AlertTitle color="white" mr={2}>Session Error:</AlertTitle>
+          <AlertTitle color="white" mr={2}>Warning:</AlertTitle>
           <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
+          <Button
+            size="sm"
+            colorScheme="cyan"
+            ml={4}
+            onClick={() => {
+              loadSessions()
+            }}
+          >
+            Retry Sync
+          </Button>
         </Alert>
       )}
 

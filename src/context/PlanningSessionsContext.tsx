@@ -84,27 +84,67 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
     try {
       const response = await fetch(`${API_BASE_URL}/get-scenarios`)
       if (!response.ok) {
+        // Check for specific error types
+        if (response.status === 404) {
+          throw new Error('NOT_FOUND')
+        }
+        if (response.status >= 500) {
+          throw new Error('SERVER_ERROR')
+        }
+        // Check for timeout
+        const errorText = response.statusText.toLowerCase()
+        if (errorText.includes('timeout') || errorText.includes('timed out')) {
+          throw new Error('TIMEOUT')
+        }
         throw new Error(`Failed to fetch scenarios: ${response.statusText}`)
       }
       const data: PlanningSession[] = await response.json()
       setSessions(data)
       // Also save to localStorage as backup
       saveSessionsToStorage(data)
+      // Clear any previous errors since we successfully loaded
+      setError(null)
     } catch (err) {
       console.warn('⚠️ Scenarios API unavailable, using local data:', err)
-      // In dev mode without Netlify Dev, this is expected - don't show as error
-      // In production, this indicates a real issue
-      const isDevMode = import.meta.env.DEV
-      if (!isDevMode) {
-        // Only show error in production
-        setError('Failed to load scenarios from database. Using local data.')
-      } else {
-        // In dev mode, just log it - this is expected if Netlify Dev isn't running
-        console.info('ℹ️ Running in dev mode without Netlify Dev - using localStorage for scenarios')
-      }
+      
       // Fallback to localStorage
       const localSessions = loadSessionsFromStorage()
       setSessions(localSessions)
+      
+      // Only set error if we have no data at all (both API and localStorage failed)
+      // If localStorage has data, the fallback succeeded, so don't show error
+      if (localSessions.length === 0) {
+        const error = err instanceof Error ? err : new Error(String(err))
+        const isDevMode = import.meta.env.DEV
+        
+        // Differentiate error types
+        if (error.message === 'NOT_FOUND') {
+          setError('Scenarios not found in database.')
+        } else if (error.message === 'TIMEOUT') {
+          setError('Database connection timed out. Please try again.')
+        } else if (error.message === 'SERVER_ERROR') {
+          setError('Database server error. Please try again later.')
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          setError('Cannot connect to database. Check your connection and try again.')
+        } else {
+          // Only show generic error in production
+          if (!isDevMode) {
+            setError('Failed to load scenarios from database.')
+          } else {
+            // In dev mode, just log it - this is expected if Netlify Dev isn't running
+            console.info('ℹ️ Running in dev mode without Netlify Dev - using localStorage for scenarios')
+          }
+        }
+      } else {
+        // We have local data, so fallback succeeded - don't show error
+        // In dev mode, this is expected
+        const isDevMode = import.meta.env.DEV
+        if (isDevMode) {
+          console.info('ℹ️ Using localStorage fallback (API unavailable)')
+        }
+        // Clear error since we have data
+        setError(null)
+      }
     } finally {
       setIsLoading(false)
     }

@@ -604,35 +604,130 @@ function SessionSummaryPage() {
     )
   }
 
-  // Show error state if sessions failed to load
-  if (sessionsError) {
+  // Show error state if sessions failed to load AND we have no session
+  // Only show error page if we truly can't load data
+  if (sessionsError && !session && !isLoading) {
+    // Determine error type for better messaging
+    const isTimeout = sessionsError.toLowerCase().includes('timeout')
+    const isConnectionError = sessionsError.toLowerCase().includes('cannot connect') || sessionsError.toLowerCase().includes('network')
+    const isServerError = sessionsError.toLowerCase().includes('server error')
+    
     return (
       <Box minH="100vh" bg="#0a0a0f" p={8}>
-        <Text color="red.400" mb={4}>Error loading session: {sessionsError}</Text>
-        <Button onClick={() => loadSessions()} colorScheme="cyan" mr={4}>
-          Retry
-        </Button>
-        <Button onClick={() => navigate('/')} variant="outline">
-          Go Home
-        </Button>
+        <Box maxW="600px" mx="auto">
+          <VStack spacing={4} align="stretch">
+            <Box>
+              <Text color="red.400" fontSize="lg" fontWeight="bold" mb={2}>
+                Error Loading Session
+              </Text>
+              <Text color="gray.300" mb={4}>{sessionsError}</Text>
+            </Box>
+            
+            {isTimeout && (
+              <Box bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" p={4}>
+                <Text color="gray.300" fontSize="sm">
+                  The database connection timed out. This may happen when the database is waking up from inactivity. 
+                  Please wait a moment and try again.
+                </Text>
+              </Box>
+            )}
+            
+            {isConnectionError && (
+              <Box bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" p={4}>
+                <Text color="gray.300" fontSize="sm">
+                  Cannot connect to the database. Please check your internet connection and try again.
+                </Text>
+              </Box>
+            )}
+            
+            {isServerError && (
+              <Box bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" p={4}>
+                <Text color="gray.300" fontSize="sm">
+                  The database server is experiencing issues. Please try again in a few moments.
+                </Text>
+              </Box>
+            )}
+            
+            <HStack spacing={3}>
+              <Button 
+                onClick={() => {
+                  // Reload the page to retry
+                  window.location.reload()
+                }} 
+                colorScheme="cyan"
+              >
+                Retry
+              </Button>
+              <Button 
+                onClick={() => navigate('/')} 
+                variant="outline"
+                borderColor="rgba(255, 255, 255, 0.1)"
+                color="gray.300"
+                _hover={{ bg: 'rgba(255, 255, 255, 0.05)' }}
+              >
+                Go to Scenarios List
+              </Button>
+            </HStack>
+          </VStack>
+        </Box>
       </Box>
     )
   }
 
-  // Handle missing session
-  if (!session) {
+  // Handle missing session (only show if not loading and no error)
+  if (!session && !isLoading && !sessionsError) {
     return (
       <Box minH="100vh" bg="#0a0a0f" p={8}>
-        <Text color="gray.300" mb={4}>Session not found</Text>
-        <Text color="gray.500" fontSize="sm" mb={4}>
-          The session with ID "{id}" could not be loaded. It may have been deleted or you may not have access to it.
-        </Text>
-        <Button onClick={() => loadSessions()} colorScheme="cyan" mr={4}>
-          Reload Sessions
-        </Button>
-        <Button onClick={() => navigate('/')} variant="outline">
-          Go Home
-        </Button>
+        <Box maxW="600px" mx="auto">
+          <VStack spacing={4} align="stretch">
+            <Box>
+              <Text color="red.400" fontSize="lg" fontWeight="bold" mb={2}>
+                Session Not Found
+              </Text>
+              <Text color="gray.300" mb={2}>
+                The session with ID "{id}" could not be found.
+              </Text>
+              <Text color="gray.500" fontSize="sm" mb={4}>
+                It may have been deleted, or you may be accessing a session from a different database. 
+                Please check the scenarios list to see available sessions.
+              </Text>
+            </Box>
+            
+            <Box bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" p={4}>
+              <Text color="gray.300" fontSize="sm">
+                💡 <strong>Tip:</strong> If you're switching between different database environments, 
+                make sure you're accessing the correct site URL.
+              </Text>
+            </Box>
+            
+            <HStack spacing={3}>
+              <Button 
+                onClick={() => {
+                  // Reload sessions and then check again
+                  loadSessions().then(() => {
+                    // If still not found after reload, navigate home
+                    const updatedSession = getSessionById(id || '')
+                    if (!updatedSession) {
+                      navigate('/')
+                    }
+                  })
+                }} 
+                colorScheme="cyan"
+              >
+                Reload Sessions
+              </Button>
+              <Button 
+                onClick={() => navigate('/')} 
+                variant="outline"
+                borderColor="rgba(255, 255, 255, 0.1)"
+                color="gray.300"
+                _hover={{ bg: 'rgba(255, 255, 255, 0.05)' }}
+              >
+                Go to Scenarios List
+              </Button>
+            </HStack>
+          </VStack>
+        </Box>
       </Box>
     )
   }
@@ -649,12 +744,23 @@ function SessionSummaryPage() {
   return (
     <Box bg="#0a0a0f" minH="100vh" pb={8}>
       <Box maxW="1400px" mx="auto" px={6} pt={6}>
-        {/* Error message for PlanningSessionsContext */}
-        {sessionsError && (
+        {/* Only show error banner if we have data loaded (not on error page) */}
+        {/* Error banner should only appear when data loads but there was a warning */}
+        {sessionsError && session && (
           <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
             <AlertIcon color="#f59e0b" />
-            <AlertTitle color="white" mr={2}>Session Error:</AlertTitle>
+            <AlertTitle color="white" mr={2}>Warning:</AlertTitle>
             <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
+            <Button
+              size="sm"
+              colorScheme="cyan"
+              ml={4}
+              onClick={() => {
+                loadSessions()
+              }}
+            >
+              Retry Sync
+            </Button>
           </Alert>
         )}
 
