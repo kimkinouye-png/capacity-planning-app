@@ -3,7 +3,6 @@ import { QRCodeSVG } from 'qrcode.react'
 import {
   Box,
   VStack,
-  Heading,
   Text,
   Button,
   useToast,
@@ -20,6 +19,24 @@ import {
   Tooltip,
 } from '@chakra-ui/react'
 import { CopyIcon, ExternalLinkIcon } from '@chakra-ui/icons'
+
+// Simple QR code icon SVG
+const QRIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="3" y="3" width="5" height="5" />
+    <rect x="16" y="3" width="5" height="5" />
+    <rect x="3" y="16" width="5" height="5" />
+    <rect x="10" y="10" width="4" height="4" />
+    <line x1="10" y1="3" x2="14" y2="3" />
+    <line x1="10" y1="7" x2="14" y2="7" />
+    <line x1="3" y1="10" x2="7" y2="10" />
+    <line x1="3" y1="14" x2="7" y2="14" />
+    <line x1="16" y1="10" x2="20" y2="10" />
+    <line x1="16" y1="14" x2="20" y2="14" />
+    <line x1="10" y1="16" x2="14" y2="16" />
+    <line x1="10" y1="20" x2="14" y2="20" />
+  </svg>
+)
 
 /**
  * QR Code Display Component
@@ -68,11 +85,13 @@ export default function QRCodeDisplay() {
       <Tooltip label="Show QR code for mobile access" placement="bottom">
         <IconButton
           aria-label="Show QR code"
-          icon={<QRCodeSVG value={appUrl} size={20} />}
+          icon={<QRIcon />}
           onClick={onOpen}
-          variant="ghost"
+          variant="outline"
+          borderColor="rgba(255, 255, 255, 0.2)"
           color="gray.300"
-          _hover={{ color: '#00d9ff', bg: 'rgba(255, 255, 255, 0.05)' }}
+          _hover={{ color: '#00d9ff', bg: 'rgba(0, 217, 255, 0.1)', borderColor: '#00d9ff' }}
+          size="sm"
         />
       </Tooltip>
 
