@@ -408,6 +408,23 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
     const sessionToUncommit = sessions.find((s) => s.id === id)
     if (!sessionToUncommit) return
 
+    // Optimistic update: update UI immediately for instant feedback
+    const originalSession = { ...sessionToUncommit }
+    setSessions((prev) =>
+      prev.map((session) => {
+        if (session.id === id) {
+          return {
+            ...session,
+            status: 'draft' as const,
+            isCommitted: false,
+            updated_at: new Date().toISOString(),
+          }
+        }
+        return session
+      })
+    )
+
+    // Now sync with API (this may be slow, but UI is already updated)
     try {
       const response = await fetch(`${API_BASE_URL}/update-scenario`, {
         method: 'PUT',
@@ -421,40 +438,32 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
 
       const updatedSession: PlanningSession = await response.json()
 
-      // Log activity
-      await logActivity({
-        type: 'scenario_committed', // Reusing the same type for now
-        scenarioId: sessionToUncommit.id,
-        scenarioName: sessionToUncommit.name,
-        description: `Uncommitted scenario '${sessionToUncommit.name}'.`,
-      })
-
-      setSessions((prev) =>
-        prev.map((session) => (session.id === id ? updatedSession : session))
-      )
-    } catch (err) {
-      console.error('Error uncommitting scenario via API, falling back to localStorage:', err)
-      // Fallback: uncommit in localStorage
-      await logActivity({
+      // Log activity (non-blocking)
+      logActivity({
         type: 'scenario_committed',
         scenarioId: sessionToUncommit.id,
         scenarioName: sessionToUncommit.name,
         description: `Uncommitted scenario '${sessionToUncommit.name}'.`,
+      }).catch((err) => {
+        console.warn('Failed to log activity (non-critical):', err)
       })
 
+      // Update with server response (may have additional fields)
       setSessions((prev) =>
-        prev.map((session) => {
-          if (session.id === id) {
-            return {
-              ...session,
-              status: 'draft',
-              isCommitted: false,
-              updated_at: new Date().toISOString(),
-            }
-          }
-          return session
-        })
+        prev.map((session) => (session.id === id ? updatedSession : session))
       )
+      
+      console.log('✅ [uncommitSession] Scenario uncommitted successfully')
+    } catch (err) {
+      console.error('❌ [uncommitSession] Error uncommitting scenario via API, restoring state:', err)
+      
+      // Restore original state if API call failed
+      setSessions((prev) =>
+        prev.map((session) => (session.id === id ? originalSession : session))
+      )
+      
+      // Re-throw error so caller can show error message
+      throw err
     }
   }, [sessions, logActivity])
 

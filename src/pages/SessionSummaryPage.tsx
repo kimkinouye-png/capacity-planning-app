@@ -423,23 +423,82 @@ function SessionSummaryPage() {
   // Handle remove item
   const handleRemoveClick = (e: React.MouseEvent, itemId: string, itemName: string) => {
     e.stopPropagation()
+    e.preventDefault()
+    console.log('🗑️ [SessionSummaryPage] Delete button clicked:', { itemId, itemName })
     itemToDeleteRef.current = { id: itemId, name: itemName }
     onOpen()
+    console.log('🗑️ [SessionSummaryPage] Delete dialog opened')
   }
 
   // Confirm remove
   const handleConfirmRemove = async () => {
+    console.log('🗑️ [SessionSummaryPage] Confirm delete clicked:', { 
+      itemToDelete: itemToDeleteRef.current, 
+      sessionId: id 
+    })
     if (itemToDeleteRef.current && id) {
-      await removeItem(id, itemToDeleteRef.current.id)
-      toast({
-        title: 'Item deleted',
-        description: `${itemToDeleteRef.current.name} has been removed.`,
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      })
+      const itemToDelete = itemToDeleteRef.current
+      const itemId = itemToDelete.id
+      const itemName = itemToDelete.name
+      
+      // Optimistic UI update: close dialog immediately and show loading toast
       itemToDeleteRef.current = null
       onClose()
+      
+      // Show loading toast with helpful message
+      const loadingToast = toast({
+        title: 'Deleting item...',
+        description: `Removing ${itemName}. This may take a moment if the database is waking up.`,
+        status: 'info',
+        duration: null, // Don't auto-close
+        isClosable: false,
+      })
+      
+      try {
+        console.log('🗑️ [SessionSummaryPage] Calling removeItem...', {
+          sessionId: id,
+          itemId: itemId
+        })
+        
+        // Remove item from database (this may take time if DB is suspended)
+        await removeItem(id, itemId)
+        
+        console.log('✅ [SessionSummaryPage] Item deleted successfully')
+        
+        // Close loading toast and show success
+        toast.close(loadingToast)
+        toast({
+          title: 'Item deleted',
+          description: `${itemName} has been removed.`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        })
+      } catch (error) {
+        console.error('❌ [SessionSummaryPage] Error deleting item:', error)
+        
+        // Close loading toast and show error
+        toast.close(loadingToast)
+        toast({
+          title: 'Failed to delete item',
+          description: error instanceof Error ? error.message : 'An error occurred while deleting the item. Please try again.',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        })
+        
+        // Reload items to restore state
+        if (id) {
+          loadItemsForSession(id).catch(err => {
+            console.error('Failed to reload items after delete error:', err)
+          })
+        }
+      }
+    } else {
+      console.warn('⚠️ [SessionSummaryPage] Cannot delete: missing itemToDelete or sessionId', {
+        hasItemToDelete: !!itemToDeleteRef.current,
+        hasSessionId: !!id
+      })
     }
   }
 
@@ -830,16 +889,54 @@ function SessionSummaryPage() {
               <Button
                 variant="outline"
                 size="md"
-                onClick={async () => {
+                onClick={async (e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                  console.log('🔄 [SessionSummaryPage] Uncommit button clicked:', { sessionId: session.id, sessionName: session.name })
                   if (session.id) {
-                    await uncommitSession(session.id)
-                    toast({
-                      title: 'Scenario uncommitted',
-                      description: `${session.name} has been uncommitted.`,
-                      status: 'success',
-                      duration: 3000,
-                      isClosable: true,
+                    // Show loading toast immediately
+                    const loadingToast = toast({
+                      title: 'Uncommitting scenario...',
+                      description: `Updating ${session.name}. This may take a moment if the database is waking up.`,
+                      status: 'info',
+                      duration: null, // Don't auto-close
+                      isClosable: false,
                     })
+                    
+                    try {
+                      console.log('🔄 [SessionSummaryPage] Calling uncommitSession...')
+                      await uncommitSession(session.id)
+                      console.log('✅ [SessionSummaryPage] Uncommit successful')
+                      
+                      // Close loading toast and show success
+                      toast.close(loadingToast)
+                      toast({
+                        title: 'Scenario uncommitted',
+                        description: `${session.name} has been uncommitted.`,
+                        status: 'success',
+                        duration: 3000,
+                        isClosable: true,
+                      })
+                    } catch (error) {
+                      console.error('❌ [SessionSummaryPage] Error uncommitting scenario:', error)
+                      
+                      // Close loading toast and show error
+                      toast.close(loadingToast)
+                      toast({
+                        title: 'Failed to uncommit',
+                        description: error instanceof Error ? error.message : 'An error occurred while uncommitting the scenario. Please try again.',
+                        status: 'error',
+                        duration: 5000,
+                        isClosable: true,
+                      })
+                      
+                      // Reload sessions to restore state
+                      loadSessions().catch(err => {
+                        console.error('Failed to reload sessions after uncommit error:', err)
+                      })
+                    }
+                  } else {
+                    console.warn('⚠️ [SessionSummaryPage] Cannot uncommit: session.id is missing')
                   }
                 }}
                 borderColor="rgba(255, 255, 255, 0.1)"
@@ -1232,8 +1329,15 @@ function SessionSummaryPage() {
                               ? formatSprintEstimate(contentSprintEstimate)
                               : '—'}
                           </Td>
-                          <Td onClick={(e) => e.stopPropagation()}>
-                            <HStack spacing={2}>
+                          <Td 
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                          >
+                            <HStack 
+                              spacing={2}
+                              onClick={(e) => e.stopPropagation()}
+                              onMouseDown={(e) => e.stopPropagation()}
+                            >
                               <IconButton
                                 aria-label="Save item"
                                 icon={<CheckIcon />}
@@ -1243,6 +1347,7 @@ function SessionSummaryPage() {
                                 _hover={{ bg: '#059669', boxShadow: '0 0 8px rgba(16, 185, 129, 0.5)' }}
                                 onClick={(e) => {
                                   e.stopPropagation()
+                                  e.preventDefault()
                                   toast({
                                     title: 'Item saved',
                                     status: 'success',
@@ -1250,6 +1355,9 @@ function SessionSummaryPage() {
                                     isClosable: true,
                                   })
                                 }}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                zIndex={10}
+                                position="relative"
                               />
                               <IconButton
                                 aria-label="Remove item"
@@ -1258,7 +1366,17 @@ function SessionSummaryPage() {
                                 bg="#ef4444"
                                 color="white"
                                 _hover={{ bg: '#dc2626', boxShadow: '0 0 8px rgba(239, 68, 68, 0.5)' }}
-                                onClick={(e) => handleRemoveClick(e, item.id, item.name)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  e.preventDefault()
+                                  handleRemoveClick(e, item.id, item.name)
+                                }}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation()
+                                  e.preventDefault()
+                                }}
+                                zIndex={10}
+                                position="relative"
                               />
                             </HStack>
                           </Td>

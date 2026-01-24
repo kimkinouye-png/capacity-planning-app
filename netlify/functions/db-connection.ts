@@ -210,10 +210,12 @@ async function getDatabaseConnectionInternal(
       const sql = neon(enhancedConnectionString)
       
       // For WRITE operations, send a wakeup query first to ensure compute is ready
+      // This helps ensure the subsequent write operation will succeed
+      // Note: If database is suspended, this will take time, but it's necessary
       if (operationType === 'WRITE') {
         try {
           // Wakeup query: Simple SELECT to wake up the compute if suspended
-          // This helps ensure the subsequent write operation will succeed
+          // This is a quick operation if DB is active, but may take time if suspended
           await sql`SELECT 1`
           console.log(`🟢 [${operationType}] Database wakeup successful`)
         } catch (wakeupError) {
