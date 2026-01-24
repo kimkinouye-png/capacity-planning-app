@@ -16,9 +16,9 @@ const MAX_RETRIES_READ = 3
 
 /**
  * Maximum number of retry attempts for database connections (WRITE operations)
- * Reduced from 5 to 3 to fail faster when DB is suspended
+ * Increased back to 5 - 3 was too aggressive when DB is suspended
  */
-const MAX_RETRIES_WRITE = 3
+const MAX_RETRIES_WRITE = 5
 
 /**
  * Initial delay in milliseconds before first retry (READ operations)
@@ -27,9 +27,9 @@ const INITIAL_RETRY_DELAY_READ = 1000
 
 /**
  * Initial delay in milliseconds before first retry (WRITE operations)
- * Reduced from 2000ms to 1000ms for faster retries
+ * Increased back to 2000ms - allows more time for DB wake-up
  */
-const INITIAL_RETRY_DELAY_WRITE = 1000
+const INITIAL_RETRY_DELAY_WRITE = 2000
 
 /**
  * Maximum delay in milliseconds between retries (READ operations)
@@ -38,21 +38,22 @@ const MAX_RETRY_DELAY_READ = 5000
 
 /**
  * Maximum delay in milliseconds between retries (WRITE operations)
- * Reduced from 16s to 8s to fail faster
+ * Increased back to 16s - allows more time for DB wake-up
  */
-const MAX_RETRY_DELAY_WRITE = 8000
+const MAX_RETRY_DELAY_WRITE = 16000
 
 /**
  * Connection timeout in seconds for READ operations (allows time for Neon compute to wake up)
+ * Increased back to 15s - 10s was too aggressive and causing failures
  */
-const CONNECTION_TIMEOUT_READ = 10
+const CONNECTION_TIMEOUT_READ = 15
 
 /**
  * Connection timeout in seconds for WRITE operations
- * Reduced from 30s to 20s - if DB takes longer than 20s to wake, fail fast and let user retry
- * This prevents the 30s timeout that was causing all requests to hang
+ * Increased back to 30s - 20s was too aggressive when DB is suspended (takes 20-30s to wake)
+ * The optimistic UI updates make the wait acceptable to users
  */
-const CONNECTION_TIMEOUT_WRITE = 20
+const CONNECTION_TIMEOUT_WRITE = 30
 
 /**
  * Enhance connection string with timeout parameters
@@ -162,13 +163,12 @@ export async function getDatabaseConnection(): Promise<NeonQueryFunction<any>> {
  * 
  * Write operations (INSERT, UPDATE) take longer when Neon compute is waking up,
  * so they need:
- * - Timeout: 20 seconds (reduced from 30s to fail faster)
- * - Retries: 3 attempts (reduced from 5 to fail faster)
- * - Delays: 1s → 2s → 4s (exponential backoff, max 8s)
+ * - Timeout: 30 seconds (allows time for suspended DB to wake up)
+ * - Retries: 5 attempts (gives DB multiple chances to wake)
+ * - Delays: 2s → 4s → 8s → 16s → 16s (exponential backoff, max 16s)
  * - Wakeup query: Pings database before write to ensure compute is ready
  * 
- * Optimization: Reduced timeouts and retries to fail faster when DB is suspended,
- * improving UX by showing errors sooner rather than waiting 30+ seconds.
+ * Note: Optimistic UI updates make the wait acceptable to users while DB wakes up.
  * 
  * This function should be used for:
  * - create-scenario.ts
