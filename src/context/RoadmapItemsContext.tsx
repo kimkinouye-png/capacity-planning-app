@@ -144,7 +144,7 @@ function normalizeRoadmapItems(items: RoadmapItem[]): RoadmapItem[] {
 
 export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
   const { logActivity } = useActivity()
-  const { getSessionById } = usePlanningSessions()
+  const { getSessionById, uncommitSession } = usePlanningSessions()
   
   // Store items as a map: planning_session_id -> RoadmapItem[]
   // Initialize from localStorage for immediate availability
@@ -174,6 +174,26 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveInputsToStorage(inputsByItemId)
   }, [inputsByItemId])
+
+  // Auto-uncommit any committed sessions that have 0 roadmap items
+  // This ensures data consistency: scenarios with no items cannot be committed
+  useEffect(() => {
+    if (isLoading) return // Don't check while loading
+    
+    for (const [sessionId, items] of Object.entries(itemsBySession)) {
+      const itemCount = Array.isArray(items) ? items.length : 0
+      if (itemCount === 0) {
+        const session = getSessionById(sessionId)
+        if (session && session.status === 'committed') {
+          console.log(`🟡 [RoadmapItemsProvider] Auto-uncommitting session '${session.name}' (${sessionId}) - has 0 roadmap items`)
+          // Uncommit asynchronously - don't await to avoid blocking
+          uncommitSession(sessionId).catch((err) => {
+            console.error('Failed to auto-uncommit session with 0 items:', err)
+          })
+        }
+      }
+    }
+  }, [itemsBySession, isLoading, getSessionById, uncommitSession])
 
   // Load items for a session from API, fallback to localStorage on error
   const loadItemsForSession = useCallback(async (sessionId: string) => {
@@ -525,6 +545,19 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
       setItemsBySession((prev) => {
         const sessionItems = prev[sessionId] || []
         const updatedItems = sessionItems.filter((item) => item.id !== itemId)
+        const newItemCount = updatedItems.length
+        
+        // Auto-uncommit if item count becomes 0 and session is committed
+        if (newItemCount === 0) {
+          const session = getSessionById(sessionId)
+          if (session && session.status === 'committed') {
+            // Uncommit asynchronously - don't await to avoid blocking state update
+            uncommitSession(sessionId).catch((err) => {
+              console.error('Failed to auto-uncommit session after removing last item:', err)
+            })
+          }
+        }
+        
         return {
           ...prev,
           [sessionId]: updatedItems,
@@ -542,6 +575,19 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
       setItemsBySession((prev) => {
         const sessionItems = prev[sessionId] || []
         const updatedItems = sessionItems.filter((item) => item.id !== itemId)
+        const newItemCount = updatedItems.length
+        
+        // Auto-uncommit if item count becomes 0 and session is committed
+        if (newItemCount === 0) {
+          const session = getSessionById(sessionId)
+          if (session && session.status === 'committed') {
+            // Uncommit asynchronously - don't await to avoid blocking state update
+            uncommitSession(sessionId).catch((err) => {
+              console.error('Failed to auto-uncommit session after removing last item:', err)
+            })
+          }
+        }
+        
         return {
           ...prev,
           [sessionId]: updatedItems,
@@ -554,7 +600,7 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
         return updated
       })
     }
-  }, [])
+  }, [getSessionById, uncommitSession])
 
   const getInputsForItem = useCallback(
     (itemId: string): ItemInputs | undefined => {

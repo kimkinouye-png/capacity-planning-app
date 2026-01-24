@@ -5,6 +5,9 @@
  * for different environments (dev, staging, production).
  */
 
+// Disable QA auth for testing (set VITE_DISABLE_QA_AUTH=true)
+export const QA_AUTH_DISABLED = import.meta.env.VITE_DISABLE_QA_AUTH === 'true'
+
 // Default QA code (can be overridden via VITE_QA_CODE env var)
 export const QA_CODE = import.meta.env.VITE_QA_CODE || 'QA2026'
 
@@ -18,6 +21,9 @@ export const QA_SESSION_DURATION = 24 * 60 * 60 * 1000 // 24 hours
  * Check if user is authenticated
  */
 export function isQAAuthenticated(): boolean {
+  // If QA auth is disabled, always return true
+  if (QA_AUTH_DISABLED) return true
+  
   if (typeof window === 'undefined') return false
   
   const authData = localStorage.getItem(QA_AUTH_KEY)

@@ -15,7 +15,7 @@ import {
 } from '@chakra-ui/react'
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons'
 import { QRCodeSVG } from 'qrcode.react'
-import { QA_CODE, isQAAuthenticated, setQAAuthenticated } from '../config/qaConfig'
+import { QA_CODE, QA_AUTH_DISABLED, isQAAuthenticated, setQAAuthenticated } from '../config/qaConfig'
 
 interface QAAuthProps {
   children: React.ReactNode
@@ -43,6 +43,12 @@ export default function QAAuth({ children }: QAAuthProps) {
 
   // Check authentication on mount
   useEffect(() => {
+    // If QA auth is disabled, automatically authenticate
+    if (QA_AUTH_DISABLED) {
+      setIsAuthenticated(true)
+      setIsLoading(false)
+      return
+    }
     setIsAuthenticated(isQAAuthenticated())
     setIsLoading(false)
   }, [])

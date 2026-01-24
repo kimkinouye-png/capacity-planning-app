@@ -316,79 +316,95 @@ function ItemDetailPage() {
   // Calculate UX effort when UX factor scores change
   // Factor scores are stored per-item in pdInputs and default to 3 if not set
   // Only uses the 3 visible factors: productRisk, problemAmbiguity, discoveryDepth
+  // Debounced to prevent rapid-fire database updates
   useEffect(() => {
     if (!itemId || sessionId === 'demo') return
 
-    const updateUXEffort = async () => {
-      // Use factor scores from pdInputs, defaulting to 3 if not set
-      const uxScores: FactorScores = {
-        productRisk: pdInputs.productRisk ?? 3,
-        problemAmbiguity: pdInputs.problemAmbiguity ?? 3,
-        discoveryDepth: pdInputs.discoveryDepth ?? 3,
+    // Debounce: Wait 500ms after user stops changing factor scores before updating
+    const timeoutId = setTimeout(async () => {
+      try {
+        // Use factor scores from pdInputs, defaulting to 3 if not set
+        const uxScores: FactorScores = {
+          productRisk: pdInputs.productRisk ?? 3,
+          problemAmbiguity: pdInputs.problemAmbiguity ?? 3,
+          discoveryDepth: pdInputs.discoveryDepth ?? 3,
+        }
+
+        const uxEffort = calculateEffort('ux', uxScores)
+        const session = sessionId ? getSessionById(sessionId) : undefined
+        const sessionName = session?.name || 'Unknown scenario'
+        const itemName = item?.name || 'Unknown item'
+        
+        await updateItem(itemId, {
+          uxSizeBand: uxEffort.sizeBand,
+          uxFocusWeeks: uxEffort.focusWeeks,
+          uxWorkWeeks: uxEffort.workWeeks,
+        })
+        
+        // Log effort update
+        logActivity({
+          type: 'effort_updated',
+          scenarioId: sessionId,
+          scenarioName: sessionName,
+          description: `Updated UX effort for '${itemName}' in scenario '${sessionName}' (${uxEffort.sizeBand}, ${uxEffort.focusWeeks} focus weeks).`,
+        }).catch(() => {
+          // Silently fail - activity logging is non-critical
+        })
+      } catch (error) {
+        console.error('Error updating UX effort:', error)
+        // Error is already handled by updateItem (shows in context error state)
       }
+    }, 500) // 500ms debounce delay
 
-      const uxEffort = calculateEffort('ux', uxScores)
-      const session = sessionId ? getSessionById(sessionId) : undefined
-      const sessionName = session?.name || 'Unknown scenario'
-      const itemName = item?.name || 'Unknown item'
-      
-      await updateItem(itemId, {
-        uxSizeBand: uxEffort.sizeBand,
-        uxFocusWeeks: uxEffort.focusWeeks,
-        uxWorkWeeks: uxEffort.workWeeks,
-      })
-      
-      // Log effort update
-      logActivity({
-        type: 'effort_updated',
-        scenarioId: sessionId,
-        scenarioName: sessionName,
-        description: `Updated UX effort for '${itemName}' in scenario '${sessionName}' (${uxEffort.sizeBand}, ${uxEffort.focusWeeks} focus weeks).`,
-      })
-    }
-
-    updateUXEffort().catch((error) => {
-      console.error('Error updating UX effort:', error)
-    })
+    // Cleanup: Cancel timeout if factor scores change again before delay completes
+    return () => clearTimeout(timeoutId)
   }, [itemId, sessionId, pdInputs.productRisk, pdInputs.problemAmbiguity, pdInputs.discoveryDepth, updateItem, logActivity, getSessionById, item?.name])
 
   // Calculate Content effort when Content factor scores change
   // Factor scores are stored per-item in cdInputs and default to 3 if not set
+  // Debounced to prevent rapid-fire database updates
   useEffect(() => {
     if (!itemId || sessionId === 'demo') return
 
-    const updateContentEffort = async () => {
-      // Use factor scores from cdInputs, defaulting to 3 if not set
-      const contentScores: FactorScores = {
-        contentSurfaceArea: cdInputs.contentSurfaceArea ?? 3,
-        localizationScope: cdInputs.localizationScope ?? 3,
-        regulatoryBrandRisk: cdInputs.regulatoryBrandRisk ?? 3,
-        legalComplianceDependency: cdInputs.legalComplianceDependency ?? 3,
-      }
+    // Debounce: Wait 500ms after user stops changing factor scores before updating
+    const timeoutId = setTimeout(async () => {
+      try {
+        // Use factor scores from cdInputs, defaulting to 3 if not set
+        const contentScores: FactorScores = {
+          contentSurfaceArea: cdInputs.contentSurfaceArea ?? 3,
+          localizationScope: cdInputs.localizationScope ?? 3,
+          regulatoryBrandRisk: cdInputs.regulatoryBrandRisk ?? 3,
+          legalComplianceDependency: cdInputs.legalComplianceDependency ?? 3,
+        }
 
-      const contentEffort = calculateEffort('content', contentScores)
-      const session = sessionId ? getSessionById(sessionId) : undefined
-      const sessionName = session?.name || 'Unknown scenario'
-      const itemName = item?.name || 'Unknown item'
+        const contentEffort = calculateEffort('content', contentScores)
+        const session = sessionId ? getSessionById(sessionId) : undefined
+        const sessionName = session?.name || 'Unknown scenario'
+        const itemName = item?.name || 'Unknown item'
+        
+        await updateItem(itemId, {
+          contentSizeBand: contentEffort.sizeBand,
+          contentFocusWeeks: contentEffort.focusWeeks,
+          contentWorkWeeks: contentEffort.workWeeks,
+        })
       
-      await updateItem(itemId, {
-        contentSizeBand: contentEffort.sizeBand,
-        contentFocusWeeks: contentEffort.focusWeeks,
-        contentWorkWeeks: contentEffort.workWeeks,
-      })
-    
-      // Log effort update
-      logActivity({
-        type: 'effort_updated',
-        scenarioId: sessionId,
-        scenarioName: sessionName,
-        description: `Updated Content effort for '${itemName}' in scenario '${sessionName}' (${contentEffort.sizeBand}, ${contentEffort.focusWeeks} focus weeks).`,
-      })
-    }
+        // Log effort update
+        logActivity({
+          type: 'effort_updated',
+          scenarioId: sessionId,
+          scenarioName: sessionName,
+          description: `Updated Content effort for '${itemName}' in scenario '${sessionName}' (${contentEffort.sizeBand}, ${contentEffort.focusWeeks} focus weeks).`,
+        }).catch(() => {
+          // Silently fail - activity logging is non-critical
+        })
+      } catch (error) {
+        console.error('Error updating Content effort:', error)
+        // Error is already handled by updateItem (shows in context error state)
+      }
+    }, 500) // 500ms debounce delay
 
-    updateContentEffort().catch((error) => {
-      console.error('Error updating Content effort:', error)
-    })
+    // Cleanup: Cancel timeout if factor scores change again before delay completes
+    return () => clearTimeout(timeoutId)
   }, [itemId, sessionId, cdInputs.contentSurfaceArea, cdInputs.localizationScope, cdInputs.regulatoryBrandRisk, cdInputs.legalComplianceDependency, updateItem, logActivity, getSessionById, item?.name])
 
 
