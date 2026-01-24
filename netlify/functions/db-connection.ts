@@ -197,10 +197,38 @@ async function getDatabaseConnectionInternal(
   calculateDelay: (attempt: number) => number,
   operationType: 'READ' | 'WRITE'
 ): Promise<NeonQueryFunction<any>> {
-  const connectionString = process.env.NETLIFY_DATABASE_URL
+  let connectionString = process.env.NETLIFY_DATABASE_URL
   
   if (!connectionString) {
     throw new Error('NETLIFY_DATABASE_URL environment variable is not set')
+  }
+
+  // Clean the connection string - remove any shell command prefixes, quotes, or extra parameters
+  // Sometimes Netlify env vars can have extra characters like "psql '...'&connect_timeout=15"
+  connectionString = connectionString.trim()
+  
+  // Remove "psql" prefix if present (with optional whitespace)
+  connectionString = connectionString.replace(/^psql\s+/, '')
+  
+  // Remove surrounding single or double quotes
+  connectionString = connectionString.replace(/^['"]|['"]$/g, '')
+  
+  // Extract just the URL part (postgresql://... up to first space, quote, or standalone &)
+  // This handles cases like: "postgresql://...'&connect_timeout=15"
+  const urlMatch = connectionString.match(/^(postgresql?:\/\/[^\s&'"]+)/)
+  if (urlMatch) {
+    connectionString = urlMatch[1]
+  }
+  
+  // Validate it's a proper URL
+  try {
+    new URL(connectionString)
+  } catch (error) {
+    console.error('❌ [db-connection] Invalid connection string format:', {
+      original: process.env.NETLIFY_DATABASE_URL?.substring(0, 100),
+      cleaned: connectionString.substring(0, 100)
+    })
+    throw new Error(`Invalid database connection string format. Please check NETLIFY_DATABASE_URL environment variable.`)
   }
 
   // Enhance connection string with timeout parameters
