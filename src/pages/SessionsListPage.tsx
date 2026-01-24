@@ -151,7 +151,7 @@ function calculateScenarioMetrics(
 }
 
 function SessionsListPage() {
-  const { sessions, createSession, commitSession, uncommitSession, deleteSession, updateSession, error: sessionsError } = usePlanningSessions()
+  const { sessions, createSession, commitSession, uncommitSession, deleteSession, updateSession, error: sessionsError, loadSessions } = usePlanningSessions()
   const { getItemsForSession } = useRoadmapItems()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure()
@@ -271,12 +271,23 @@ function SessionsListPage() {
   if (sessions.length === 0) {
     return (
       <Box maxW="1200px" mx="auto" px={6} py={20}>
-        {/* Error message for PlanningSessionsContext */}
-        {sessionsError && (
+        {/* Only show error banner if we have sessions loaded (fallback succeeded) */}
+        {/* If no sessions and error, we'll show error page instead */}
+        {sessionsError && sessions.length > 0 && (
           <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
             <AlertIcon color="#f59e0b" />
-            <AlertTitle color="white" mr={2}>Session Error:</AlertTitle>
+            <AlertTitle color="white" mr={2}>Warning:</AlertTitle>
             <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
+            <Button
+              size="sm"
+              colorScheme="cyan"
+              ml={4}
+              onClick={() => {
+                loadSessions()
+              }}
+            >
+              Retry Sync
+            </Button>
           </Alert>
         )}
         <VStack spacing={8} align="center" textAlign="center">
@@ -431,12 +442,23 @@ function SessionsListPage() {
   // Show populated state with cards when scenarios exist
   return (
     <Box maxW="1400px" mx="auto" px={6} py={8}>
-      {/* Error message for PlanningSessionsContext */}
-      {sessionsError && (
+      {/* Only show error banner if we have sessions loaded (fallback succeeded) */}
+      {/* If no sessions and error, we'll show error page instead */}
+      {sessionsError && sessions.length > 0 && (
         <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
           <AlertIcon color="#f59e0b" />
-          <AlertTitle color="white" mr={2}>Session Error:</AlertTitle>
+          <AlertTitle color="white" mr={2}>Warning:</AlertTitle>
           <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
+          <Button
+            size="sm"
+            colorScheme="cyan"
+            ml={4}
+            onClick={() => {
+              loadSessions()
+            }}
+          >
+            Retry Sync
+          </Button>
         </Alert>
       )}
 
@@ -458,8 +480,9 @@ function SessionsListPage() {
 
       <VStack spacing={4} align="stretch">
         {scenarioMetrics.map(({ session, metrics }) => {
+          // Calculate itemCount more reliably
           const items = getItemsForSession(session.id)
-          const itemCount = items?.length || 0
+          const itemCount = Array.isArray(items) ? items.length : 0
           const planningPeriod = session?.planningPeriod || session?.planning_period || '—'
           
           // Calculate demand (treat null as 0) and surplus/deficit
@@ -602,22 +625,33 @@ function SessionsListPage() {
                           spacing={2}
                           align="center"
                           cursor="pointer"
+                          position="relative"
+                          zIndex={10}
+                          px={2}
+                          py={1}
+                          borderRadius="md"
                           onClick={async (e) => {
                             e.stopPropagation()
-                            if (session?.id && itemCount > 0) {
-                              if (session.status === 'committed') {
-                                // Uncommit if already committed
-                                await uncommitSession(session.id)
-                                toast({
-                                  title: 'Scenario uncommitted',
-                                  description: `${session.name} has been uncommitted.`,
-                                  status: 'success',
-                                  duration: 3000,
-                                  isClosable: true,
-                                })
-                              } else {
-                                // Commit if not committed
-                                await commitSession(session.id, itemCount)
+                            if (!session?.id) return
+                            
+                            // Re-check itemCount in case it wasn't loaded when card rendered
+                            const currentItems = getItemsForSession(session.id)
+                            const currentItemCount = Array.isArray(currentItems) ? currentItems.length : 0
+                            
+                            if (session.status === 'committed') {
+                              // Always allow uncommitting, regardless of item count
+                              await uncommitSession(session.id)
+                              toast({
+                                title: 'Scenario uncommitted',
+                                description: `${session.name} has been uncommitted.`,
+                                status: 'success',
+                                duration: 3000,
+                                isClosable: true,
+                              })
+                            } else {
+                              // Only allow committing if there are items
+                              if (currentItemCount > 0) {
+                                await commitSession(session.id, currentItemCount)
                                 toast({
                                   title: 'Scenario committed',
                                   description: `${session.name} has been set as the committed plan.`,
@@ -625,20 +659,31 @@ function SessionsListPage() {
                                   duration: 3000,
                                   isClosable: true,
                                 })
-                              }
-                              
-                              // Highlight the card briefly
-                              setHighlightedCardId(session.id)
-                              setTimeout(() => setHighlightedCardId(null), 2000)
-                              
-                              // Scroll card into view if needed
-                              const cardElement = cardRefs.current[session.id]
-                              if (cardElement) {
-                                cardElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+                              } else {
+                                // Show helpful message if trying to commit without items
+                                toast({
+                                  title: 'Cannot commit scenario',
+                                  description: 'Add at least one roadmap item before committing this scenario.',
+                                  status: 'warning',
+                                  duration: 3000,
+                                  isClosable: true,
+                                })
+                                return
                               }
                             }
+                            
+                            // Highlight the card briefly
+                            setHighlightedCardId(session.id)
+                            setTimeout(() => setHighlightedCardId(null), 2000)
+                            
+                            // Scroll card into view if needed
+                            const cardElement = cardRefs.current[session.id]
+                            if (cardElement) {
+                              cardElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+                            }
                           }}
-                          _hover={{ opacity: 0.8 }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          _hover={{ opacity: 0.8, bg: 'rgba(255, 255, 255, 0.05)' }}
                         >
                           <Box
                             w={4}
@@ -651,6 +696,9 @@ function SessionsListPage() {
                             alignItems="center"
                             justifyContent="center"
                             boxShadow={session?.status === 'committed' ? '0 0 8px rgba(0, 217, 255, 0.5)' : 'none'}
+                            flexShrink={0}
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
                           >
                             {session?.status === 'committed' && (
                               <Box
@@ -661,7 +709,14 @@ function SessionsListPage() {
                               />
                             )}
                           </Box>
-                          <Text fontSize="sm" color="gray.300" fontWeight="medium">
+                          <Text 
+                            fontSize="sm" 
+                            color="gray.300" 
+                            fontWeight="medium"
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            userSelect="none"
+                          >
                             {session?.status === 'committed' ? 'Committed plan' : 'Commit as plan'}
                           </Text>
                         </HStack>

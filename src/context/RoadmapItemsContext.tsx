@@ -144,7 +144,7 @@ function normalizeRoadmapItems(items: RoadmapItem[]): RoadmapItem[] {
 
 export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
   const { logActivity } = useActivity()
-  const { getSessionById } = usePlanningSessions()
+  const { getSessionById, uncommitSession } = usePlanningSessions()
   
   // Store items as a map: planning_session_id -> RoadmapItem[]
   // Initialize from localStorage for immediate availability
@@ -174,6 +174,26 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveInputsToStorage(inputsByItemId)
   }, [inputsByItemId])
+
+  // Auto-uncommit any committed sessions that have 0 roadmap items
+  // This ensures data consistency: scenarios with no items cannot be committed
+  useEffect(() => {
+    if (isLoading) return // Don't check while loading
+    
+    for (const [sessionId, items] of Object.entries(itemsBySession)) {
+      const itemCount = Array.isArray(items) ? items.length : 0
+      if (itemCount === 0) {
+        const session = getSessionById(sessionId)
+        if (session && session.status === 'committed') {
+          console.log(`🟡 [RoadmapItemsProvider] Auto-uncommitting session '${session.name}' (${sessionId}) - has 0 roadmap items`)
+          // Uncommit asynchronously - don't await to avoid blocking
+          uncommitSession(sessionId).catch((err) => {
+            console.error('Failed to auto-uncommit session with 0 items:', err)
+          })
+        }
+      }
+    }
+  }, [itemsBySession, isLoading, getSessionById, uncommitSession])
 
   // Load items for a session from API, fallback to localStorage on error
   const loadItemsForSession = useCallback(async (sessionId: string) => {
@@ -512,49 +532,102 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
   }, [logActivity, getSessionById])
 
   const removeItem = useCallback(async (sessionId: string, itemId: string): Promise<void> => {
+    const apiStartTime = performance.now()
+    
+    // Optimistic update: remove from state immediately for instant UI feedback
+    let itemToRestore: RoadmapItem | null = null
+    
+    setItemsBySession((prev) => {
+      const sessionItems = prev[sessionId] || []
+      itemToRestore = sessionItems.find((item) => item.id === itemId) || null
+      const updatedItems = sessionItems.filter((item) => item.id !== itemId)
+      const newItemCount = updatedItems.length
+      
+      // Auto-uncommit if item count becomes 0 and session is committed
+      if (newItemCount === 0) {
+        const session = getSessionById(sessionId)
+        if (session && session.status === 'committed') {
+          // Uncommit asynchronously - don't await to avoid blocking state update
+          uncommitSession(sessionId).catch((err) => {
+            console.error('Failed to auto-uncommit session after removing last item:', err)
+          })
+        }
+      }
+      
+      return {
+        ...prev,
+        [sessionId]: updatedItems,
+      }
+    })
+    
+    // Also remove inputs optimistically
+    setInputsByItemId((prev) => {
+      const updated = { ...prev }
+      delete updated[itemId]
+      return updated
+    })
+    
+    // Now sync with API (this may be slow, but UI is already updated)
     try {
+      const fetchStartTime = performance.now()
+      console.log('📡 [removeItem] Starting API call to delete-roadmap-item', {
+        itemId,
+        timestamp: new Date().toISOString()
+      })
+      
       const response = await fetch(`${API_BASE_URL}/delete-roadmap-item?id=${itemId}`, {
         method: 'DELETE',
+      })
+
+      const fetchEndTime = performance.now()
+      const fetchDuration = fetchEndTime - fetchStartTime
+      
+      console.log('📡 [removeItem] API response received', {
+        status: response.status,
+        statusText: response.statusText,
+        fetchDuration: `${fetchDuration.toFixed(2)}ms`,
+        fetchDurationSeconds: `${(fetchDuration / 1000).toFixed(2)}s`
       })
 
       if (!response.ok) {
         throw new Error(`Failed to delete roadmap item: ${response.statusText}`)
       }
-
-      // Remove from state
-      setItemsBySession((prev) => {
-        const sessionItems = prev[sessionId] || []
-        const updatedItems = sessionItems.filter((item) => item.id !== itemId)
-        return {
-          ...prev,
-          [sessionId]: updatedItems,
-        }
-      })
-      // Also remove inputs for this item
-      setInputsByItemId((prev) => {
-        const updated = { ...prev }
-        delete updated[itemId]
-        return updated
+      
+      const apiEndTime = performance.now()
+      const totalDuration = apiEndTime - apiStartTime
+      console.log('✅ [removeItem] Item deleted successfully from database', {
+        totalDuration: `${totalDuration.toFixed(2)}ms`,
+        totalDurationSeconds: `${(totalDuration / 1000).toFixed(2)}s`,
+        fetchDuration: `${fetchDuration.toFixed(2)}ms`
       })
     } catch (err) {
-      console.error('Error deleting roadmap item via API, falling back to localStorage:', err)
-      // Fallback: delete in localStorage
-      setItemsBySession((prev) => {
-        const sessionItems = prev[sessionId] || []
-        const updatedItems = sessionItems.filter((item) => item.id !== itemId)
-        return {
-          ...prev,
-          [sessionId]: updatedItems,
-        }
+      const apiEndTime = performance.now()
+      const totalDuration = apiEndTime - apiStartTime
+      console.error('❌ [removeItem] Error deleting roadmap item via API, restoring state', {
+        error: err,
+        totalDuration: `${totalDuration.toFixed(2)}ms`,
+        totalDurationSeconds: `${(totalDuration / 1000).toFixed(2)}s`
       })
-      // Also remove inputs for this item
-      setInputsByItemId((prev) => {
-        const updated = { ...prev }
-        delete updated[itemId]
-        return updated
-      })
+      
+      // Restore item if API call failed
+      if (itemToRestore) {
+        setItemsBySession((prev) => {
+          const sessionItems = prev[sessionId] || []
+          // Only restore if item doesn't already exist (avoid duplicates)
+          if (!sessionItems.find((item) => item.id === itemId)) {
+            return {
+              ...prev,
+              [sessionId]: [...sessionItems, itemToRestore!],
+            }
+          }
+          return prev
+        })
+      }
+      
+      // Re-throw error so caller can show error message
+      throw err
     }
-  }, [])
+  }, [getSessionById, uncommitSession])
 
   const getInputsForItem = useCallback(
     (itemId: string): ItemInputs | undefined => {

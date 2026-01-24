@@ -1,5 +1,5 @@
 import { Handler } from '@netlify/functions'
-import { neon } from '@netlify/neon'
+import { getDatabaseConnectionForWrites } from './db-connection'
 import { 
   type CreateRoadmapItemRequest, 
   type DatabaseRoadmapItem, 
@@ -35,8 +35,9 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // @netlify/neon automatically uses NETLIFY_DATABASE_URL from environment
-    const sql = neon()
+    // Get database connection with write-specific timeout and retry logic
+    // Writes need 30s timeout and 5 retries to handle Neon compute wake-up
+    const sql = await getDatabaseConnectionForWrites()
     
     let body: CreateRoadmapItemRequest
     try {

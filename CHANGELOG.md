@@ -6,6 +6,54 @@ All notable changes to the Capacity Planning App will be documented in this file
 
 ### Recent Updates (January 2026)
 
+#### January 23-24, 2026: Performance & UX Improvements
+
+##### Editable Team Size Numbers ✅
+- **Made Team Size Editable**: UX Designers and Content Designers team size numbers are now editable inline on the Scenario Summary page
+  - Replaced static text with `EditableNumberCell` components for both capacity cards
+  - Click to edit, Enter/blur to save, Escape to cancel
+  - Immediate UI updates with optimistic state management
+  - Changes persist to database via `update-scenario` API
+  - Automatic capacity recalculation when team size changes
+  - Error handling with toast notifications and automatic state restoration on failure
+- **Optimistic Updates for Session Updates**: Enhanced `updateSession` in `PlanningSessionsContext` to update UI immediately before API sync
+  - Provides instant feedback for better user experience
+  - Automatically restores original state if API call fails
+  - Maintains data consistency between UI and database
+
+##### Database Connection Reliability ✅
+- **Fixed Database Connection String Parsing**: Resolved critical issue where database connections were failing due to malformed connection strings
+  - Problem: `NETLIFY_DATABASE_URL` environment variable contained extraneous characters (`psql` prefix, surrounding quotes, out-of-band parameters)
+  - Solution: Added robust connection string cleaning logic in `db-connection.ts`:
+    - Removes `psql` command prefix if present
+    - Strips surrounding single/double quotes
+    - Extracts clean PostgreSQL URL using regex matching
+    - Validates URL format before passing to `neon()` client
+  - Result: Database connections now work reliably, eliminating "Database connection string provided to `neon()` is not a valid URL" errors
+- **Documentation**: Created `docs/database-connection-troubleshooting.md` with diagnostic steps and quick fix checklist
+
+##### Performance Optimizations ✅
+- **Optimistic UI Updates**: Implemented optimistic updates for delete and uncommit operations
+  - Delete roadmap items: UI updates immediately, API syncs in background
+  - Uncommit scenarios: UI updates immediately, API syncs in background
+  - Automatic state restoration on API failure
+  - Improved perceived performance, especially when database is suspended
+- **Comprehensive Performance Logging**: Added detailed timing logs throughout the application
+  - Frontend: `performance.now()` timing for user interactions (delete, uncommit)
+  - Backend: `Date.now()` timing for API operations (connection, queries, total duration)
+  - Breakdown logs showing time spent in each operation phase
+  - Helps identify bottlenecks and measure improvement impact
+- **Documentation**: Created `docs/latency-testing-guide.md` with testing scenarios and metrics to monitor
+
+##### Error Handling Improvements ✅
+- **Enhanced Error Recovery**: Improved error handling for database operations
+  - Better error messages with context
+  - Automatic state reload on failure to restore consistency
+  - User-friendly toast notifications for all error scenarios
+  - Graceful degradation when database is unavailable
+
+### Recent Updates (January 2026)
+
 #### Inline Editing for Roadmap Items Grid
 - **Added EditableNumberCell Component**: Reusable component for inline editing of numeric fields (UX/Content focus weeks)
   - Click to edit, blur/Enter to commit, Escape to cancel

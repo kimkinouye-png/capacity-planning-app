@@ -84,27 +84,67 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
     try {
       const response = await fetch(`${API_BASE_URL}/get-scenarios`)
       if (!response.ok) {
+        // Check for specific error types
+        if (response.status === 404) {
+          throw new Error('NOT_FOUND')
+        }
+        if (response.status >= 500) {
+          throw new Error('SERVER_ERROR')
+        }
+        // Check for timeout
+        const errorText = response.statusText.toLowerCase()
+        if (errorText.includes('timeout') || errorText.includes('timed out')) {
+          throw new Error('TIMEOUT')
+        }
         throw new Error(`Failed to fetch scenarios: ${response.statusText}`)
       }
       const data: PlanningSession[] = await response.json()
       setSessions(data)
       // Also save to localStorage as backup
       saveSessionsToStorage(data)
+      // Clear any previous errors since we successfully loaded
+      setError(null)
     } catch (err) {
       console.warn('⚠️ Scenarios API unavailable, using local data:', err)
-      // In dev mode without Netlify Dev, this is expected - don't show as error
-      // In production, this indicates a real issue
-      const isDevMode = import.meta.env.DEV
-      if (!isDevMode) {
-        // Only show error in production
-        setError('Failed to load scenarios from database. Using local data.')
-      } else {
-        // In dev mode, just log it - this is expected if Netlify Dev isn't running
-        console.info('ℹ️ Running in dev mode without Netlify Dev - using localStorage for scenarios')
-      }
+      
       // Fallback to localStorage
       const localSessions = loadSessionsFromStorage()
       setSessions(localSessions)
+      
+      // Only set error if we have no data at all (both API and localStorage failed)
+      // If localStorage has data, the fallback succeeded, so don't show error
+      if (localSessions.length === 0) {
+        const error = err instanceof Error ? err : new Error(String(err))
+        const isDevMode = import.meta.env.DEV
+        
+        // Differentiate error types
+        if (error.message === 'NOT_FOUND') {
+          setError('Scenarios not found in database.')
+        } else if (error.message === 'TIMEOUT') {
+          setError('Database connection timed out. Please try again.')
+        } else if (error.message === 'SERVER_ERROR') {
+          setError('Database server error. Please try again later.')
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          setError('Cannot connect to database. Check your connection and try again.')
+        } else {
+          // Only show generic error in production
+          if (!isDevMode) {
+            setError('Failed to load scenarios from database.')
+          } else {
+            // In dev mode, just log it - this is expected if Netlify Dev isn't running
+            console.info('ℹ️ Running in dev mode without Netlify Dev - using localStorage for scenarios')
+          }
+        }
+      } else {
+        // We have local data, so fallback succeeded - don't show error
+        // In dev mode, this is expected
+        const isDevMode = import.meta.env.DEV
+        if (isDevMode) {
+          console.info('ℹ️ Using localStorage fallback (API unavailable)')
+        }
+        // Clear error since we have data
+        setError(null)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -179,6 +219,27 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
   )
 
   const updateSession = useCallback(async (id: string, updates: Partial<PlanningSession>): Promise<void> => {
+    // Optimistic update: update UI immediately for instant feedback
+    const originalSession = sessions.find((s) => s.id === id)
+    if (!originalSession) return
+
+    setSessions((prev) =>
+      prev.map((session) => {
+        if (session.id === id) {
+          const updated = { ...session, ...updates, updated_at: new Date().toISOString() }
+          // Keep status and isCommitted in sync
+          if (updates.status !== undefined) {
+            updated.isCommitted = updates.status === 'committed'
+          } else if (updates.isCommitted !== undefined) {
+            updated.status = updates.isCommitted ? 'committed' : 'draft'
+          }
+          return updated
+        }
+        return session
+      })
+    )
+
+    // Now sync with API (this may be slow, but UI is already updated)
     try {
       const response = await fetch(`${API_BASE_URL}/update-scenario`, {
         method: 'PUT',
@@ -194,54 +255,32 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
 
       const updatedSession: PlanningSession = await response.json()
       
-      // Log activity if name is being changed - use functional setState to get current session
-      // instead of relying on stale closure value
-      setSessions((prev) => {
-        const oldSession = prev.find((s) => s.id === id)
-        // Log activity if name changed, using fresh state value
-        if (oldSession && updates.name !== undefined && updatedSession.name !== oldSession.name) {
-          // Note: logActivity is async but we don't await in setState callback
-          logActivity({
-            type: 'scenario_renamed',
-            scenarioId: oldSession.id,
-            scenarioName: oldSession.name,
-            description: `Renamed scenario from '${oldSession.name}' to '${updatedSession.name}'.`,
-          }).catch((err) => console.error('Failed to log activity:', err))
-        }
-        return prev.map((session) => (session.id === id ? updatedSession : session))
-      })
-    } catch (err) {
-      console.error('Error updating scenario via API, falling back to localStorage:', err)
-      // Fallback: update in localStorage
-      // Use functional setState to avoid stale closure
-      setSessions((prev) =>
-        prev.map((session) => {
-          if (session.id === id) {
-            // Log activity if name is being changed, using fresh state value
-            if (updates.name !== undefined && updates.name !== session.name) {
-              // Note: logActivity is async but we don't await in setState callback
-              logActivity({
-                type: 'scenario_renamed',
-                scenarioId: session.id,
-                scenarioName: session.name,
-                description: `Renamed scenario from '${session.name}' to '${updates.name}'.`,
-              }).catch((err) => console.error('Failed to log activity:', err))
-            }
+      // Log activity if name is being changed
+      if (updates.name !== undefined && updatedSession.name !== originalSession.name) {
+        logActivity({
+          type: 'scenario_renamed',
+          scenarioId: originalSession.id,
+          scenarioName: originalSession.name,
+          description: `Renamed scenario from '${originalSession.name}' to '${updatedSession.name}'.`,
+        }).catch((err) => console.warn('Failed to log activity (non-critical):', err))
+      }
 
-            const updated = { ...session, ...updates, updated_at: new Date().toISOString() }
-            // Keep status and isCommitted in sync
-            if (updates.status !== undefined) {
-              updated.isCommitted = updates.status === 'committed'
-            } else if (updates.isCommitted !== undefined) {
-              updated.status = updates.isCommitted ? 'committed' : 'draft'
-            }
-            return updated
-          }
-          return session
-        })
+      // Update with server response (may have additional fields)
+      setSessions((prev) =>
+        prev.map((session) => (session.id === id ? updatedSession : session))
       )
+    } catch (err) {
+      console.error('Error updating scenario via API, restoring state:', err)
+      
+      // Restore original state if API call failed
+      setSessions((prev) =>
+        prev.map((session) => (session.id === id ? originalSession : session))
+      )
+      
+      // Re-throw error so caller can show error message
+      throw err
     }
-  }, [logActivity])
+  }, [sessions, logActivity])
 
   const commitSession = useCallback(async (id: string, itemCount?: number): Promise<void> => {
     const sessionToCommit = sessions.find((s) => s.id === id)
@@ -368,11 +407,45 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
     const sessionToUncommit = sessions.find((s) => s.id === id)
     if (!sessionToUncommit) return
 
+    // Optimistic update: update UI immediately for instant feedback
+    const originalSession = { ...sessionToUncommit }
+    setSessions((prev) =>
+      prev.map((session) => {
+        if (session.id === id) {
+          return {
+            ...session,
+            status: 'draft' as const,
+            isCommitted: false,
+            updated_at: new Date().toISOString(),
+          }
+        }
+        return session
+      })
+    )
+
+    // Now sync with API (this may be slow, but UI is already updated)
+    const apiStartTime = performance.now()
     try {
+      const fetchStartTime = performance.now()
+      console.log('📡 [uncommitSession] Starting API call to update-scenario', {
+        sessionId: id,
+        timestamp: new Date().toISOString()
+      })
+      
       const response = await fetch(`${API_BASE_URL}/update-scenario`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, status: 'draft' }),
+      })
+
+      const fetchEndTime = performance.now()
+      const fetchDuration = fetchEndTime - fetchStartTime
+      
+      console.log('📡 [uncommitSession] API response received', {
+        status: response.status,
+        statusText: response.statusText,
+        fetchDuration: `${fetchDuration.toFixed(2)}ms`,
+        fetchDurationSeconds: `${(fetchDuration / 1000).toFixed(2)}s`
       })
 
       if (!response.ok) {
@@ -381,40 +454,44 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
 
       const updatedSession: PlanningSession = await response.json()
 
-      // Log activity
-      await logActivity({
-        type: 'scenario_committed', // Reusing the same type for now
-        scenarioId: sessionToUncommit.id,
-        scenarioName: sessionToUncommit.name,
-        description: `Uncommitted scenario '${sessionToUncommit.name}'.`,
-      })
-
-      setSessions((prev) =>
-        prev.map((session) => (session.id === id ? updatedSession : session))
-      )
-    } catch (err) {
-      console.error('Error uncommitting scenario via API, falling back to localStorage:', err)
-      // Fallback: uncommit in localStorage
-      await logActivity({
+      // Log activity (non-blocking)
+      logActivity({
         type: 'scenario_committed',
         scenarioId: sessionToUncommit.id,
         scenarioName: sessionToUncommit.name,
         description: `Uncommitted scenario '${sessionToUncommit.name}'.`,
+      }).catch((err) => {
+        console.warn('Failed to log activity (non-critical):', err)
       })
 
+      // Update with server response (may have additional fields)
       setSessions((prev) =>
-        prev.map((session) => {
-          if (session.id === id) {
-            return {
-              ...session,
-              status: 'draft',
-              isCommitted: false,
-              updated_at: new Date().toISOString(),
-            }
-          }
-          return session
-        })
+        prev.map((session) => (session.id === id ? updatedSession : session))
       )
+      
+      const apiEndTime = performance.now()
+      const totalDuration = apiEndTime - apiStartTime
+      console.log('✅ [uncommitSession] Scenario uncommitted successfully', {
+        totalDuration: `${totalDuration.toFixed(2)}ms`,
+        totalDurationSeconds: `${(totalDuration / 1000).toFixed(2)}s`,
+        fetchDuration: `${fetchDuration.toFixed(2)}ms`
+      })
+    } catch (err) {
+      const apiEndTime = performance.now()
+      const totalDuration = apiEndTime - apiStartTime
+      console.error('❌ [uncommitSession] Error uncommitting scenario via API, restoring state', {
+        error: err,
+        totalDuration: `${totalDuration.toFixed(2)}ms`,
+        totalDurationSeconds: `${(totalDuration / 1000).toFixed(2)}s`
+      })
+      
+      // Restore original state if API call failed
+      setSessions((prev) =>
+        prev.map((session) => (session.id === id ? originalSession : session))
+      )
+      
+      // Re-throw error so caller can show error message
+      throw err
     }
   }, [sessions, logActivity])
 

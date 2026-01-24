@@ -423,23 +423,89 @@ function SessionSummaryPage() {
   // Handle remove item
   const handleRemoveClick = (e: React.MouseEvent, itemId: string, itemName: string) => {
     e.stopPropagation()
+    e.preventDefault()
+    console.log('🗑️ [SessionSummaryPage] Delete button clicked:', { itemId, itemName })
     itemToDeleteRef.current = { id: itemId, name: itemName }
     onOpen()
+    console.log('🗑️ [SessionSummaryPage] Delete dialog opened')
   }
 
   // Confirm remove
   const handleConfirmRemove = async () => {
+    console.log('🗑️ [SessionSummaryPage] Confirm delete clicked:', { 
+      itemToDelete: itemToDeleteRef.current, 
+      sessionId: id 
+    })
     if (itemToDeleteRef.current && id) {
-      await removeItem(id, itemToDeleteRef.current.id)
-      toast({
-        title: 'Item deleted',
-        description: `${itemToDeleteRef.current.name} has been removed.`,
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      })
+      const itemToDelete = itemToDeleteRef.current
+      const itemId = itemToDelete.id
+      const itemName = itemToDelete.name
+      
+      // Optimistic UI update: close dialog immediately and show loading toast
       itemToDeleteRef.current = null
       onClose()
+      
+      // Show loading toast with helpful message
+      const loadingToast = toast({
+        title: 'Deleting item...',
+        description: `Removing ${itemName}. This may take a moment if the database is waking up.`,
+        status: 'info',
+        duration: null, // Don't auto-close
+        isClosable: false,
+      })
+      
+      try {
+        const startTime = performance.now()
+        console.log('🗑️ [SessionSummaryPage] Calling removeItem...', {
+          sessionId: id,
+          itemId: itemId,
+          timestamp: new Date().toISOString()
+        })
+        
+        // Remove item from database (this may take time if DB is suspended)
+        await removeItem(id, itemId)
+        
+        const endTime = performance.now()
+        const duration = endTime - startTime
+        console.log('✅ [SessionSummaryPage] Item deleted successfully', {
+          duration: `${duration.toFixed(2)}ms`,
+          durationSeconds: `${(duration / 1000).toFixed(2)}s`
+        })
+        
+        // Close loading toast and show success
+        toast.close(loadingToast)
+        toast({
+          title: 'Item deleted',
+          description: `${itemName} has been removed.`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        })
+      } catch (error) {
+        console.error('❌ [SessionSummaryPage] Error deleting item:', error)
+        
+        // Close loading toast and show error
+        toast.close(loadingToast)
+        toast({
+          title: 'Failed to delete item',
+          description: error instanceof Error ? error.message : 'An error occurred while deleting the item. Please try again.',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        })
+        
+        // Reload items to restore state
+        if (id) {
+          loadItemsForSession(id).catch(err => {
+            console.error('Failed to reload items after delete error:', err)
+          })
+        }
+      }
+    } else {
+      console.warn('⚠️ [SessionSummaryPage] Cannot delete: missing itemToDelete or sessionId', {
+        hasItemToDelete: !!itemToDeleteRef.current,
+        hasSessionId: !!id
+      })
     }
   }
 
@@ -604,35 +670,130 @@ function SessionSummaryPage() {
     )
   }
 
-  // Show error state if sessions failed to load
-  if (sessionsError) {
+  // Show error state if sessions failed to load AND we have no session
+  // Only show error page if we truly can't load data
+  if (sessionsError && !session && !sessionsLoading) {
+    // Determine error type for better messaging
+    const isTimeout = sessionsError.toLowerCase().includes('timeout')
+    const isConnectionError = sessionsError.toLowerCase().includes('cannot connect') || sessionsError.toLowerCase().includes('network')
+    const isServerError = sessionsError.toLowerCase().includes('server error')
+    
     return (
       <Box minH="100vh" bg="#0a0a0f" p={8}>
-        <Text color="red.400" mb={4}>Error loading session: {sessionsError}</Text>
-        <Button onClick={() => loadSessions()} colorScheme="cyan" mr={4}>
-          Retry
-        </Button>
-        <Button onClick={() => navigate('/')} variant="outline">
-          Go Home
-        </Button>
+        <Box maxW="600px" mx="auto">
+          <VStack spacing={4} align="stretch">
+            <Box>
+              <Text color="red.400" fontSize="lg" fontWeight="bold" mb={2}>
+                Error Loading Session
+              </Text>
+              <Text color="gray.300" mb={4}>{sessionsError}</Text>
+            </Box>
+            
+            {isTimeout && (
+              <Box bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" p={4}>
+                <Text color="gray.300" fontSize="sm">
+                  The database connection timed out. This may happen when the database is waking up from inactivity. 
+                  Please wait a moment and try again.
+                </Text>
+              </Box>
+            )}
+            
+            {isConnectionError && (
+              <Box bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" p={4}>
+                <Text color="gray.300" fontSize="sm">
+                  Cannot connect to the database. Please check your internet connection and try again.
+                </Text>
+              </Box>
+            )}
+            
+            {isServerError && (
+              <Box bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" p={4}>
+                <Text color="gray.300" fontSize="sm">
+                  The database server is experiencing issues. Please try again in a few moments.
+                </Text>
+              </Box>
+            )}
+            
+            <HStack spacing={3}>
+              <Button 
+                onClick={() => {
+                  // Reload the page to retry
+                  window.location.reload()
+                }} 
+                colorScheme="cyan"
+              >
+                Retry
+              </Button>
+              <Button 
+                onClick={() => navigate('/')} 
+                variant="outline"
+                borderColor="rgba(255, 255, 255, 0.1)"
+                color="gray.300"
+                _hover={{ bg: 'rgba(255, 255, 255, 0.05)' }}
+              >
+                Go to Scenarios List
+              </Button>
+            </HStack>
+          </VStack>
+        </Box>
       </Box>
     )
   }
 
-  // Handle missing session
-  if (!session) {
+  // Handle missing session (only show if not loading and no error)
+  if (!session && !sessionsLoading && !sessionsError) {
     return (
       <Box minH="100vh" bg="#0a0a0f" p={8}>
-        <Text color="gray.300" mb={4}>Session not found</Text>
-        <Text color="gray.500" fontSize="sm" mb={4}>
-          The session with ID "{id}" could not be loaded. It may have been deleted or you may not have access to it.
-        </Text>
-        <Button onClick={() => loadSessions()} colorScheme="cyan" mr={4}>
-          Reload Sessions
-        </Button>
-        <Button onClick={() => navigate('/')} variant="outline">
-          Go Home
-        </Button>
+        <Box maxW="600px" mx="auto">
+          <VStack spacing={4} align="stretch">
+            <Box>
+              <Text color="red.400" fontSize="lg" fontWeight="bold" mb={2}>
+                Session Not Found
+              </Text>
+              <Text color="gray.300" mb={2}>
+                The session with ID "{id}" could not be found.
+              </Text>
+              <Text color="gray.500" fontSize="sm" mb={4}>
+                It may have been deleted, or you may be accessing a session from a different database. 
+                Please check the scenarios list to see available sessions.
+              </Text>
+            </Box>
+            
+            <Box bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" p={4}>
+              <Text color="gray.300" fontSize="sm">
+                💡 <strong>Tip:</strong> If you're switching between different database environments, 
+                make sure you're accessing the correct site URL.
+              </Text>
+            </Box>
+            
+            <HStack spacing={3}>
+              <Button 
+                onClick={() => {
+                  // Reload sessions and then check again
+                  loadSessions().then(() => {
+                    // If still not found after reload, navigate home
+                    const updatedSession = getSessionById(id || '')
+                    if (!updatedSession) {
+                      navigate('/')
+                    }
+                  })
+                }} 
+                colorScheme="cyan"
+              >
+                Reload Sessions
+              </Button>
+              <Button 
+                onClick={() => navigate('/')} 
+                variant="outline"
+                borderColor="rgba(255, 255, 255, 0.1)"
+                color="gray.300"
+                _hover={{ bg: 'rgba(255, 255, 255, 0.05)' }}
+              >
+                Go to Scenarios List
+              </Button>
+            </HStack>
+          </VStack>
+        </Box>
       </Box>
     )
   }
@@ -643,18 +804,39 @@ function SessionSummaryPage() {
     return period.replace('-', ' ')
   }
 
+  // At this point, session must be defined (we've handled all null cases above)
+  if (!session) {
+    // This should never happen due to early returns, but TypeScript needs this check
+    return (
+      <Box minH="100vh" bg="#0a0a0f" p={8}>
+        <Text color="gray.300">Loading session...</Text>
+      </Box>
+    )
+  }
+
   // Get planning period (handles both legacy and new field names)
-  const planningPeriod = session?.planning_period || session?.planningPeriod
+  const planningPeriod = session.planning_period || session.planningPeriod
 
   return (
     <Box bg="#0a0a0f" minH="100vh" pb={8}>
       <Box maxW="1400px" mx="auto" px={6} pt={6}>
-        {/* Error message for PlanningSessionsContext */}
-        {sessionsError && (
+        {/* Only show error banner if we have data loaded (not on error page) */}
+        {/* Error banner should only appear when data loads but there was a warning */}
+        {sessionsError && session && (
           <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
             <AlertIcon color="#f59e0b" />
-            <AlertTitle color="white" mr={2}>Session Error:</AlertTitle>
+            <AlertTitle color="white" mr={2}>Warning:</AlertTitle>
             <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
+            <Button
+              size="sm"
+              colorScheme="cyan"
+              ml={4}
+              onClick={() => {
+                loadSessions()
+              }}
+            >
+              Retry Sync
+            </Button>
           </Alert>
         )}
 
@@ -714,16 +896,64 @@ function SessionSummaryPage() {
               <Button
                 variant="outline"
                 size="md"
-                onClick={async () => {
+                onClick={async (e) => {
+                  e.stopPropagation()
+                  e.preventDefault()
+                  console.log('🔄 [SessionSummaryPage] Uncommit button clicked:', { sessionId: session.id, sessionName: session.name })
                   if (session.id) {
-                    await uncommitSession(session.id)
-                    toast({
-                      title: 'Scenario uncommitted',
-                      description: `${session.name} has been uncommitted.`,
-                      status: 'success',
-                      duration: 3000,
-                      isClosable: true,
+                    // Show loading toast immediately
+                    const loadingToast = toast({
+                      title: 'Uncommitting scenario...',
+                      description: `Updating ${session.name}. This may take a moment if the database is waking up.`,
+                      status: 'info',
+                      duration: null, // Don't auto-close
+                      isClosable: false,
                     })
+                    
+                    try {
+                      const startTime = performance.now()
+                      console.log('🔄 [SessionSummaryPage] Calling uncommitSession...', {
+                        sessionId: session.id,
+                        timestamp: new Date().toISOString()
+                      })
+                      await uncommitSession(session.id)
+                      
+                      const endTime = performance.now()
+                      const duration = endTime - startTime
+                      console.log('✅ [SessionSummaryPage] Uncommit successful', {
+                        duration: `${duration.toFixed(2)}ms`,
+                        durationSeconds: `${(duration / 1000).toFixed(2)}s`
+                      })
+                      
+                      // Close loading toast and show success
+                      toast.close(loadingToast)
+                      toast({
+                        title: 'Scenario uncommitted',
+                        description: `${session.name} has been uncommitted.`,
+                        status: 'success',
+                        duration: 3000,
+                        isClosable: true,
+                      })
+                    } catch (error) {
+                      console.error('❌ [SessionSummaryPage] Error uncommitting scenario:', error)
+                      
+                      // Close loading toast and show error
+                      toast.close(loadingToast)
+                      toast({
+                        title: 'Failed to uncommit',
+                        description: error instanceof Error ? error.message : 'An error occurred while uncommitting the scenario. Please try again.',
+                        status: 'error',
+                        duration: 5000,
+                        isClosable: true,
+                      })
+                      
+                      // Reload sessions to restore state
+                      loadSessions().catch(err => {
+                        console.error('Failed to reload sessions after uncommit error:', err)
+                      })
+                    }
+                  } else {
+                    console.warn('⚠️ [SessionSummaryPage] Cannot uncommit: session.id is missing')
                   }
                 }}
                 borderColor="rgba(255, 255, 255, 0.1)"
@@ -787,9 +1017,38 @@ function SessionSummaryPage() {
                   <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
                     Team Size
                   </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="white">
-                    {capacityMetrics.ux.teamSize}
-                  </Text>
+                  <Box fontSize="24px" fontWeight="bold" color="white">
+                    <EditableNumberCell
+                      value={session.ux_designers}
+                      onChange={() => {
+                        // onChange is called immediately - optimistic update happens in context
+                      }}
+                      onUpdate={async (newValue) => {
+                        // Update via API - context does optimistic update, then syncs
+                        if (session.id && newValue !== undefined) {
+                          try {
+                            await updateSession(session.id, { ux_designers: newValue })
+                            // Success toast is optional - optimistic update already shows change
+                          } catch (error) {
+                            console.error('Failed to update UX designers:', error)
+                            toast({
+                              title: 'Update failed',
+                              description: 'Failed to update team size. Please try again.',
+                              status: 'error',
+                              duration: 3000,
+                              isClosable: true,
+                            })
+                            // Context will restore original value on error
+                          }
+                        }
+                      }}
+                      min={0}
+                      max={100}
+                      step={1}
+                      precision={0}
+                      color="white"
+                    />
+                  </Box>
                 </Box>
                 <Box>
                   <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
@@ -849,9 +1108,38 @@ function SessionSummaryPage() {
                   <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
                     Team Size
                   </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="white">
-                    {capacityMetrics.content.teamSize}
-                  </Text>
+                  <Box fontSize="24px" fontWeight="bold" color="white">
+                    <EditableNumberCell
+                      value={session.content_designers}
+                      onChange={() => {
+                        // onChange is called immediately - optimistic update happens in context
+                      }}
+                      onUpdate={async (newValue) => {
+                        // Update via API - context does optimistic update, then syncs
+                        if (session.id && newValue !== undefined) {
+                          try {
+                            await updateSession(session.id, { content_designers: newValue })
+                            // Success toast is optional - optimistic update already shows change
+                          } catch (error) {
+                            console.error('Failed to update content designers:', error)
+                            toast({
+                              title: 'Update failed',
+                              description: 'Failed to update team size. Please try again.',
+                              status: 'error',
+                              duration: 3000,
+                              isClosable: true,
+                            })
+                            // Context will restore original value on error
+                          }
+                        }
+                      }}
+                      min={0}
+                      max={100}
+                      step={1}
+                      precision={0}
+                      color="white"
+                    />
+                  </Box>
                 </Box>
                 <Box>
                   <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
@@ -1116,8 +1404,15 @@ function SessionSummaryPage() {
                               ? formatSprintEstimate(contentSprintEstimate)
                               : '—'}
                           </Td>
-                          <Td onClick={(e) => e.stopPropagation()}>
-                            <HStack spacing={2}>
+                          <Td 
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                          >
+                            <HStack 
+                              spacing={2}
+                              onClick={(e) => e.stopPropagation()}
+                              onMouseDown={(e) => e.stopPropagation()}
+                            >
                               <IconButton
                                 aria-label="Save item"
                                 icon={<CheckIcon />}
@@ -1127,6 +1422,7 @@ function SessionSummaryPage() {
                                 _hover={{ bg: '#059669', boxShadow: '0 0 8px rgba(16, 185, 129, 0.5)' }}
                                 onClick={(e) => {
                                   e.stopPropagation()
+                                  e.preventDefault()
                                   toast({
                                     title: 'Item saved',
                                     status: 'success',
@@ -1134,6 +1430,9 @@ function SessionSummaryPage() {
                                     isClosable: true,
                                   })
                                 }}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                zIndex={10}
+                                position="relative"
                               />
                               <IconButton
                                 aria-label="Remove item"
@@ -1142,7 +1441,17 @@ function SessionSummaryPage() {
                                 bg="#ef4444"
                                 color="white"
                                 _hover={{ bg: '#dc2626', boxShadow: '0 0 8px rgba(239, 68, 68, 0.5)' }}
-                                onClick={(e) => handleRemoveClick(e, item.id, item.name)}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  e.preventDefault()
+                                  handleRemoveClick(e, item.id, item.name)
+                                }}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation()
+                                  e.preventDefault()
+                                }}
+                                zIndex={10}
+                                position="relative"
                               />
                             </HStack>
                           </Td>

@@ -107,10 +107,11 @@ function HomePage() {
   return (
     <Box maxW="1400px" mx="auto" px={6} py={8}>
       {/* Error message for PlanningSessionsContext */}
-      {sessionsError && (
+      {/* Only show error banner if we have sessions loaded (fallback succeeded) */}
+      {sessionsError && sessions.length > 0 && (
         <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
           <AlertIcon color="#f59e0b" />
-          <AlertTitle color="white" mr={2}>Session Error:</AlertTitle>
+          <AlertTitle color="white" mr={2}>Warning:</AlertTitle>
           <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
         </Alert>
       )}
