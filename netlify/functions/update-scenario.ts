@@ -17,6 +17,8 @@ const corsHeaders = {
 }
 
 export const handler: Handler = async (event, context) => {
+  const functionStartTime = Date.now()
+  
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -33,7 +35,19 @@ export const handler: Handler = async (event, context) => {
   try {
     // Get database connection with write-specific timeout and retry logic
     // Writes need 30s timeout and 5 retries to handle Neon compute wake-up
+    const connectionStartTime = Date.now()
+    console.log('🔌 [update-scenario] Starting database connection...', {
+      timestamp: new Date().toISOString()
+    })
+    
     const sql = await getDatabaseConnectionForWrites()
+    
+    const connectionEndTime = Date.now()
+    const connectionDuration = connectionEndTime - connectionStartTime
+    console.log('✅ [update-scenario] Database connection established', {
+      connectionDuration: `${connectionDuration}ms`,
+      connectionDurationSeconds: `${(connectionDuration / 1000).toFixed(2)}s`
+    })
     
     let body: UpdateScenarioRequest
     try {
@@ -77,9 +91,16 @@ export const handler: Handler = async (event, context) => {
     }
 
     // Get current scenario (parameterized query)
+    const selectStartTime = Date.now()
     const current = await sql<DatabaseScenario>`
       SELECT * FROM scenarios WHERE id = ${body.id}
     `
+    const selectEndTime = Date.now()
+    const selectDuration = selectEndTime - selectStartTime
+    console.log('🔍 [update-scenario] Select query completed', {
+      found: current.length > 0,
+      selectDuration: `${selectDuration}ms`
+    })
     
     if (current.length === 0) {
       return errorResponse(404, 'Scenario not found')
@@ -103,6 +124,7 @@ export const handler: Handler = async (event, context) => {
     }
 
     // Update scenario (parameterized query - Neon handles SQL injection prevention)
+    const updateStartTime = Date.now()
     const result = await sql<DatabaseScenario>`
       UPDATE scenarios
       SET 
@@ -118,6 +140,11 @@ export const handler: Handler = async (event, context) => {
       WHERE id = ${body.id}
       RETURNING *
     `
+    const updateEndTime = Date.now()
+    const updateDuration = updateEndTime - updateStartTime
+    console.log('✏️ [update-scenario] Update query completed', {
+      updateDuration: `${updateDuration}ms`
+    })
 
     if (result.length === 0) {
       return errorResponse(404, 'Scenario not found after update')
@@ -125,6 +152,18 @@ export const handler: Handler = async (event, context) => {
 
     // Transform database format to PlanningSession format
     const scenario: ScenarioResponse = dbScenarioToPlanningSession(result[0])
+
+    const functionEndTime = Date.now()
+    const totalDuration = functionEndTime - functionStartTime
+    console.log('✅ [update-scenario] Function completed successfully', {
+      totalDuration: `${totalDuration}ms`,
+      totalDurationSeconds: `${(totalDuration / 1000).toFixed(2)}s`,
+      breakdown: {
+        connection: `${connectionDuration}ms`,
+        select: `${selectDuration}ms`,
+        update: `${updateDuration}ms`
+      }
+    })
 
     return {
       statusCode: 200,
@@ -135,7 +174,13 @@ export const handler: Handler = async (event, context) => {
       body: JSON.stringify(scenario),
     }
   } catch (error) {
-    console.error('Error updating scenario:', error)
+    const functionEndTime = Date.now()
+    const totalDuration = functionEndTime - functionStartTime
+    console.error('❌ [update-scenario] Error updating scenario', {
+      error: error instanceof Error ? error.message : String(error),
+      totalDuration: `${totalDuration}ms`,
+      totalDurationSeconds: `${(totalDuration / 1000).toFixed(2)}s`
+    })
     return errorResponse(500, 'Failed to update scenario', error instanceof Error ? error.message : 'Unknown error')
   }
 }

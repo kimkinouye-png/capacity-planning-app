@@ -425,11 +425,28 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
     )
 
     // Now sync with API (this may be slow, but UI is already updated)
+    const apiStartTime = performance.now()
     try {
+      const fetchStartTime = performance.now()
+      console.log('📡 [uncommitSession] Starting API call to update-scenario', {
+        sessionId: id,
+        timestamp: new Date().toISOString()
+      })
+      
       const response = await fetch(`${API_BASE_URL}/update-scenario`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, status: 'draft' }),
+      })
+
+      const fetchEndTime = performance.now()
+      const fetchDuration = fetchEndTime - fetchStartTime
+      
+      console.log('📡 [uncommitSession] API response received', {
+        status: response.status,
+        statusText: response.statusText,
+        fetchDuration: `${fetchDuration.toFixed(2)}ms`,
+        fetchDurationSeconds: `${(fetchDuration / 1000).toFixed(2)}s`
       })
 
       if (!response.ok) {
@@ -453,9 +470,21 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
         prev.map((session) => (session.id === id ? updatedSession : session))
       )
       
-      console.log('✅ [uncommitSession] Scenario uncommitted successfully')
+      const apiEndTime = performance.now()
+      const totalDuration = apiEndTime - apiStartTime
+      console.log('✅ [uncommitSession] Scenario uncommitted successfully', {
+        totalDuration: `${totalDuration.toFixed(2)}ms`,
+        totalDurationSeconds: `${(totalDuration / 1000).toFixed(2)}s`,
+        fetchDuration: `${fetchDuration.toFixed(2)}ms`
+      })
     } catch (err) {
-      console.error('❌ [uncommitSession] Error uncommitting scenario via API, restoring state:', err)
+      const apiEndTime = performance.now()
+      const totalDuration = apiEndTime - apiStartTime
+      console.error('❌ [uncommitSession] Error uncommitting scenario via API, restoring state', {
+        error: err,
+        totalDuration: `${totalDuration.toFixed(2)}ms`,
+        totalDurationSeconds: `${(totalDuration / 1000).toFixed(2)}s`
+      })
       
       // Restore original state if API call failed
       setSessions((prev) =>

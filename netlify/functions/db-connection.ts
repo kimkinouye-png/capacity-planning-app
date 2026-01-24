@@ -204,6 +204,7 @@ async function getDatabaseConnectionInternal(
   
   // Retry loop
   for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const attemptStartTime = Date.now()
     try {
       // Use @neondatabase/serverless with enhanced connection string
       // The enhanced connection string includes connect_timeout parameter
@@ -214,10 +215,17 @@ async function getDatabaseConnectionInternal(
       // Note: If database is suspended, this will take time, but it's necessary
       if (operationType === 'WRITE') {
         try {
+          const wakeupStartTime = Date.now()
           // Wakeup query: Simple SELECT to wake up the compute if suspended
           // This is a quick operation if DB is active, but may take time if suspended
           await sql`SELECT 1`
-          console.log(`🟢 [${operationType}] Database wakeup successful`)
+          const wakeupEndTime = Date.now()
+          const wakeupDuration = wakeupEndTime - wakeupStartTime
+          console.log(`🟢 [${operationType}] Database wakeup successful`, {
+            attempt: attempt + 1,
+            wakeupDuration: `${wakeupDuration}ms`,
+            wakeupDurationSeconds: `${(wakeupDuration / 1000).toFixed(2)}s`
+          })
         } catch (wakeupError) {
           // If wakeup fails, we'll retry the whole connection
           throw wakeupError
@@ -227,21 +235,41 @@ async function getDatabaseConnectionInternal(
         await sql`SELECT 1`
       }
       
-      console.log(`✅ [${operationType}] Database connection established (attempt ${attempt + 1}/${maxRetries})`)
+      const attemptEndTime = Date.now()
+      const attemptDuration = attemptEndTime - attemptStartTime
+      console.log(`✅ [${operationType}] Database connection established`, {
+        attempt: attempt + 1,
+        totalAttempts: maxRetries,
+        attemptDuration: `${attemptDuration}ms`,
+        attemptDurationSeconds: `${(attemptDuration / 1000).toFixed(2)}s`
+      })
       return sql
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error))
       
+      const attemptEndTime = Date.now()
+      const attemptDuration = attemptEndTime - attemptStartTime
+      
       // Check if error is retryable
       if (!isRetryableError(error) || attempt === maxRetries - 1) {
         // Not retryable or last attempt, throw immediately
-        console.error(`❌ [${operationType}] Database connection failed after ${attempt + 1} attempts: ${lastError.message}`)
+        console.error(`❌ [${operationType}] Database connection failed after ${attempt + 1} attempts`, {
+          error: lastError.message,
+          totalAttempts: attempt + 1,
+          totalDuration: `${attemptDuration}ms`,
+          totalDurationSeconds: `${(attemptDuration / 1000).toFixed(2)}s`
+        })
         throw lastError
       }
       
       // Calculate delay for next retry
       const delay = calculateDelay(attempt)
-      console.log(`⏳ [${operationType}] Database connection attempt ${attempt + 1}/${maxRetries} failed: ${lastError.message}. Retrying in ${delay}ms...`)
+      console.log(`⏳ [${operationType}] Database connection attempt ${attempt + 1}/${maxRetries} failed`, {
+        error: lastError.message,
+        attemptDuration: `${attemptDuration}ms`,
+        retryDelay: `${delay}ms`,
+        nextAttempt: attempt + 2
+      })
       
       // Wait before retrying
       await sleep(delay)

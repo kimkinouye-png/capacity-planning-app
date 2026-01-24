@@ -532,6 +532,8 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
   }, [logActivity, getSessionById])
 
   const removeItem = useCallback(async (sessionId: string, itemId: string): Promise<void> => {
+    const apiStartTime = performance.now()
+    
     // Optimistic update: remove from state immediately for instant UI feedback
     let itemToRestore: RoadmapItem | null = null
     
@@ -567,17 +569,45 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
     
     // Now sync with API (this may be slow, but UI is already updated)
     try {
+      const fetchStartTime = performance.now()
+      console.log('📡 [removeItem] Starting API call to delete-roadmap-item', {
+        itemId,
+        timestamp: new Date().toISOString()
+      })
+      
       const response = await fetch(`${API_BASE_URL}/delete-roadmap-item?id=${itemId}`, {
         method: 'DELETE',
+      })
+
+      const fetchEndTime = performance.now()
+      const fetchDuration = fetchEndTime - fetchStartTime
+      
+      console.log('📡 [removeItem] API response received', {
+        status: response.status,
+        statusText: response.statusText,
+        fetchDuration: `${fetchDuration.toFixed(2)}ms`,
+        fetchDurationSeconds: `${(fetchDuration / 1000).toFixed(2)}s`
       })
 
       if (!response.ok) {
         throw new Error(`Failed to delete roadmap item: ${response.statusText}`)
       }
       
-      console.log('✅ [removeItem] Item deleted successfully from database')
+      const apiEndTime = performance.now()
+      const totalDuration = apiEndTime - apiStartTime
+      console.log('✅ [removeItem] Item deleted successfully from database', {
+        totalDuration: `${totalDuration.toFixed(2)}ms`,
+        totalDurationSeconds: `${(totalDuration / 1000).toFixed(2)}s`,
+        fetchDuration: `${fetchDuration.toFixed(2)}ms`
+      })
     } catch (err) {
-      console.error('❌ [removeItem] Error deleting roadmap item via API, restoring state:', err)
+      const apiEndTime = performance.now()
+      const totalDuration = apiEndTime - apiStartTime
+      console.error('❌ [removeItem] Error deleting roadmap item via API, restoring state', {
+        error: err,
+        totalDuration: `${totalDuration.toFixed(2)}ms`,
+        totalDurationSeconds: `${(totalDuration / 1000).toFixed(2)}s`
+      })
       
       // Restore item if API call failed
       if (itemToRestore) {

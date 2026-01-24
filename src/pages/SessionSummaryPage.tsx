@@ -455,15 +455,22 @@ function SessionSummaryPage() {
       })
       
       try {
+        const startTime = performance.now()
         console.log('🗑️ [SessionSummaryPage] Calling removeItem...', {
           sessionId: id,
-          itemId: itemId
+          itemId: itemId,
+          timestamp: new Date().toISOString()
         })
         
         // Remove item from database (this may take time if DB is suspended)
         await removeItem(id, itemId)
         
-        console.log('✅ [SessionSummaryPage] Item deleted successfully')
+        const endTime = performance.now()
+        const duration = endTime - startTime
+        console.log('✅ [SessionSummaryPage] Item deleted successfully', {
+          duration: `${duration.toFixed(2)}ms`,
+          durationSeconds: `${(duration / 1000).toFixed(2)}s`
+        })
         
         // Close loading toast and show success
         toast.close(loadingToast)
@@ -904,9 +911,19 @@ function SessionSummaryPage() {
                     })
                     
                     try {
-                      console.log('🔄 [SessionSummaryPage] Calling uncommitSession...')
+                      const startTime = performance.now()
+                      console.log('🔄 [SessionSummaryPage] Calling uncommitSession...', {
+                        sessionId: session.id,
+                        timestamp: new Date().toISOString()
+                      })
                       await uncommitSession(session.id)
-                      console.log('✅ [SessionSummaryPage] Uncommit successful')
+                      
+                      const endTime = performance.now()
+                      const duration = endTime - startTime
+                      console.log('✅ [SessionSummaryPage] Uncommit successful', {
+                        duration: `${duration.toFixed(2)}ms`,
+                        durationSeconds: `${(duration / 1000).toFixed(2)}s`
+                      })
                       
                       // Close loading toast and show success
                       toast.close(loadingToast)
