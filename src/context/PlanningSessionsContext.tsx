@@ -219,6 +219,27 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
   )
 
   const updateSession = useCallback(async (id: string, updates: Partial<PlanningSession>): Promise<void> => {
+    // Optimistic update: update UI immediately for instant feedback
+    const originalSession = sessions.find((s) => s.id === id)
+    if (!originalSession) return
+
+    setSessions((prev) =>
+      prev.map((session) => {
+        if (session.id === id) {
+          const updated = { ...session, ...updates, updated_at: new Date().toISOString() }
+          // Keep status and isCommitted in sync
+          if (updates.status !== undefined) {
+            updated.isCommitted = updates.status === 'committed'
+          } else if (updates.isCommitted !== undefined) {
+            updated.status = updates.isCommitted ? 'committed' : 'draft'
+          }
+          return updated
+        }
+        return session
+      })
+    )
+
+    // Now sync with API (this may be slow, but UI is already updated)
     try {
       const response = await fetch(`${API_BASE_URL}/update-scenario`, {
         method: 'PUT',
@@ -234,54 +255,32 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
 
       const updatedSession: PlanningSession = await response.json()
       
-      // Log activity if name is being changed - use functional setState to get current session
-      // instead of relying on stale closure value
-      setSessions((prev) => {
-        const oldSession = prev.find((s) => s.id === id)
-        // Log activity if name changed, using fresh state value
-        if (oldSession && updates.name !== undefined && updatedSession.name !== oldSession.name) {
-          // Note: logActivity is async but we don't await in setState callback
-          logActivity({
-            type: 'scenario_renamed',
-            scenarioId: oldSession.id,
-            scenarioName: oldSession.name,
-            description: `Renamed scenario from '${oldSession.name}' to '${updatedSession.name}'.`,
-          }).catch((err) => console.error('Failed to log activity:', err))
-        }
-        return prev.map((session) => (session.id === id ? updatedSession : session))
-      })
-    } catch (err) {
-      console.error('Error updating scenario via API, falling back to localStorage:', err)
-      // Fallback: update in localStorage
-      // Use functional setState to avoid stale closure
-      setSessions((prev) =>
-        prev.map((session) => {
-          if (session.id === id) {
-            // Log activity if name is being changed, using fresh state value
-            if (updates.name !== undefined && updates.name !== session.name) {
-              // Note: logActivity is async but we don't await in setState callback
-              logActivity({
-                type: 'scenario_renamed',
-                scenarioId: session.id,
-                scenarioName: session.name,
-                description: `Renamed scenario from '${session.name}' to '${updates.name}'.`,
-              }).catch((err) => console.error('Failed to log activity:', err))
-            }
+      // Log activity if name is being changed
+      if (updates.name !== undefined && updatedSession.name !== originalSession.name) {
+        logActivity({
+          type: 'scenario_renamed',
+          scenarioId: originalSession.id,
+          scenarioName: originalSession.name,
+          description: `Renamed scenario from '${originalSession.name}' to '${updatedSession.name}'.`,
+        }).catch((err) => console.warn('Failed to log activity (non-critical):', err))
+      }
 
-            const updated = { ...session, ...updates, updated_at: new Date().toISOString() }
-            // Keep status and isCommitted in sync
-            if (updates.status !== undefined) {
-              updated.isCommitted = updates.status === 'committed'
-            } else if (updates.isCommitted !== undefined) {
-              updated.status = updates.isCommitted ? 'committed' : 'draft'
-            }
-            return updated
-          }
-          return session
-        })
+      // Update with server response (may have additional fields)
+      setSessions((prev) =>
+        prev.map((session) => (session.id === id ? updatedSession : session))
       )
+    } catch (err) {
+      console.error('Error updating scenario via API, restoring state:', err)
+      
+      // Restore original state if API call failed
+      setSessions((prev) =>
+        prev.map((session) => (session.id === id ? originalSession : session))
+      )
+      
+      // Re-throw error so caller can show error message
+      throw err
     }
-  }, [logActivity])
+  }, [sessions, logActivity])
 
   const commitSession = useCallback(async (id: string, itemCount?: number): Promise<void> => {
     const sessionToCommit = sessions.find((s) => s.id === id)

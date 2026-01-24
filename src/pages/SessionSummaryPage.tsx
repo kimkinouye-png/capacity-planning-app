@@ -1017,9 +1017,38 @@ function SessionSummaryPage() {
                   <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
                     Team Size
                   </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="white">
-                    {capacityMetrics.ux.teamSize}
-                  </Text>
+                  <Box fontSize="24px" fontWeight="bold" color="white">
+                    <EditableNumberCell
+                      value={session.ux_designers}
+                      onChange={() => {
+                        // onChange is called immediately - optimistic update happens in context
+                      }}
+                      onUpdate={async (newValue) => {
+                        // Update via API - context does optimistic update, then syncs
+                        if (session.id && newValue !== undefined) {
+                          try {
+                            await updateSession(session.id, { ux_designers: newValue })
+                            // Success toast is optional - optimistic update already shows change
+                          } catch (error) {
+                            console.error('Failed to update UX designers:', error)
+                            toast({
+                              title: 'Update failed',
+                              description: 'Failed to update team size. Please try again.',
+                              status: 'error',
+                              duration: 3000,
+                              isClosable: true,
+                            })
+                            // Context will restore original value on error
+                          }
+                        }
+                      }}
+                      min={0}
+                      max={100}
+                      step={1}
+                      precision={0}
+                      color="white"
+                    />
+                  </Box>
                 </Box>
                 <Box>
                   <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
@@ -1079,9 +1108,38 @@ function SessionSummaryPage() {
                   <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
                     Team Size
                   </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="white">
-                    {capacityMetrics.content.teamSize}
-                  </Text>
+                  <Box fontSize="24px" fontWeight="bold" color="white">
+                    <EditableNumberCell
+                      value={session.content_designers}
+                      onChange={() => {
+                        // onChange is called immediately - optimistic update happens in context
+                      }}
+                      onUpdate={async (newValue) => {
+                        // Update via API - context does optimistic update, then syncs
+                        if (session.id && newValue !== undefined) {
+                          try {
+                            await updateSession(session.id, { content_designers: newValue })
+                            // Success toast is optional - optimistic update already shows change
+                          } catch (error) {
+                            console.error('Failed to update content designers:', error)
+                            toast({
+                              title: 'Update failed',
+                              description: 'Failed to update team size. Please try again.',
+                              status: 'error',
+                              duration: 3000,
+                              isClosable: true,
+                            })
+                            // Context will restore original value on error
+                          }
+                        }
+                      }}
+                      min={0}
+                      max={100}
+                      step={1}
+                      precision={0}
+                      color="white"
+                    />
+                  </Box>
                 </Box>
                 <Box>
                   <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
