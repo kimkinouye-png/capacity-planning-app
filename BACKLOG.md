@@ -1,9 +1,32 @@
 # Capacity Planning App - Development Backlog
 
-Last Updated: 2026-01-19
+Last Updated: 2026-01-24
 
 ## In Progress
 (Items currently being worked on)
+
+## Recent Accomplishments (January 2026)
+
+### January 23-24, 2026: Performance & UX Improvements ✅
+
+#### Editable Team Size Numbers ✅
+- [x] **Made UX Designers team size editable**: Replaced static text with `EditableNumberCell` on Scenario Summary page
+- [x] **Made Content Designers team size editable**: Replaced static text with `EditableNumberCell` on Scenario Summary page
+- [x] **Optimistic UI updates**: Team size changes update immediately, then sync with database
+- [x] **Automatic capacity recalculation**: Capacity metrics update automatically when team size changes
+- [x] **Error handling**: Toast notifications and automatic state restoration on failure
+
+#### Database Connection Reliability ✅
+- [x] **Fixed connection string parsing**: Added robust cleaning logic to handle malformed `NETLIFY_DATABASE_URL`
+- [x] **Connection string validation**: Validates URL format before passing to `neon()` client
+- [x] **Error diagnostics**: Created troubleshooting documentation for database connection issues
+
+#### Performance Optimizations ✅
+- [x] **Optimistic UI for delete operations**: Roadmap item deletion updates UI immediately
+- [x] **Optimistic UI for uncommit operations**: Scenario uncommit updates UI immediately
+- [x] **Performance logging**: Added comprehensive timing logs for frontend and backend operations
+- [x] **State restoration**: Automatic rollback to original state if API calls fail
+- [x] **Documentation**: Created latency testing guide with metrics and testing scenarios
 
 ## Phase 4: Database Integration & Global Settings ✅ PARTIALLY COMPLETE (2026-01-19)
 
@@ -38,6 +61,15 @@ Last Updated: 2026-01-19
 - [ ] Create and integrate activity log functions
 - [ ] Data migration from localStorage to database
 - [ ] Update scenarios Netlify Functions (update, delete)
+
+### Performance & Reliability (Ongoing)
+- [x] Optimistic UI updates for delete/uncommit operations (2026-01-23)
+- [x] Database connection string cleaning and validation (2026-01-23)
+- [x] Comprehensive performance logging (2026-01-23)
+- [x] Editable team size numbers with optimistic updates (2026-01-24)
+- [ ] Connection pooling optimization (if needed)
+- [ ] Database query optimization (if needed)
+- [ ] Caching strategy for frequently accessed data
 
 ## Phase 2: Post-Figma Implementation ✅ COMPLETE (2026-01-13)
 
