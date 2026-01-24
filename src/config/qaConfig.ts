@@ -6,7 +6,8 @@
  */
 
 // Disable QA auth for testing (set VITE_DISABLE_QA_AUTH=true)
-export const QA_AUTH_DISABLED = import.meta.env.VITE_DISABLE_QA_AUTH === 'true'
+// Currently disabled for both sites - set to true to always disable
+export const QA_AUTH_DISABLED = true // Always disabled - both sites are fully accessible
 
 // Default QA code (can be overridden via VITE_QA_CODE env var)
 export const QA_CODE = import.meta.env.VITE_QA_CODE || 'QA2026'
