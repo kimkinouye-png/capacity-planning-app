@@ -16,9 +16,9 @@ const MAX_RETRIES_READ = 3
 
 /**
  * Maximum number of retry attempts for database connections (WRITE operations)
- * Writes need more retries because they take longer when compute is waking up
+ * Reduced from 5 to 3 to fail faster when DB is suspended
  */
-const MAX_RETRIES_WRITE = 5
+const MAX_RETRIES_WRITE = 3
 
 /**
  * Initial delay in milliseconds before first retry (READ operations)
@@ -27,9 +27,9 @@ const INITIAL_RETRY_DELAY_READ = 1000
 
 /**
  * Initial delay in milliseconds before first retry (WRITE operations)
- * Writes use longer delays to allow more time for compute wake-up
+ * Reduced from 2000ms to 1000ms for faster retries
  */
-const INITIAL_RETRY_DELAY_WRITE = 2000
+const INITIAL_RETRY_DELAY_WRITE = 1000
 
 /**
  * Maximum delay in milliseconds between retries (READ operations)
@@ -38,19 +38,21 @@ const MAX_RETRY_DELAY_READ = 5000
 
 /**
  * Maximum delay in milliseconds between retries (WRITE operations)
+ * Reduced from 16s to 8s to fail faster
  */
-const MAX_RETRY_DELAY_WRITE = 16000
+const MAX_RETRY_DELAY_WRITE = 8000
 
 /**
  * Connection timeout in seconds for READ operations (allows time for Neon compute to wake up)
  */
-const CONNECTION_TIMEOUT_READ = 15
+const CONNECTION_TIMEOUT_READ = 10
 
 /**
  * Connection timeout in seconds for WRITE operations
- * Writes take longer when compute is waking up, so we need more time
+ * Reduced from 30s to 20s - if DB takes longer than 20s to wake, fail fast and let user retry
+ * This prevents the 30s timeout that was causing all requests to hang
  */
-const CONNECTION_TIMEOUT_WRITE = 30
+const CONNECTION_TIMEOUT_WRITE = 20
 
 /**
  * Enhance connection string with timeout parameters
@@ -103,7 +105,8 @@ function calculateRetryDelayRead(attempt: number): number {
 
 /**
  * Calculate exponential backoff delay for WRITE operations
- * Uses longer delays: 2s → 4s → 8s → 16s → 16s (capped)
+ * Reduced delays: 1s → 2s → 4s → 4s (capped at 8s)
+ * This fails faster when DB is truly unavailable
  */
 function calculateRetryDelayWrite(attempt: number): number {
   const delay = INITIAL_RETRY_DELAY_WRITE * Math.pow(2, attempt)
@@ -159,10 +162,13 @@ export async function getDatabaseConnection(): Promise<NeonQueryFunction<any>> {
  * 
  * Write operations (INSERT, UPDATE) take longer when Neon compute is waking up,
  * so they need:
- * - Longer timeout: 30 seconds
- * - More retries: 5 attempts
- * - Longer delays: 2s → 4s → 8s → 16s → 16s (exponential backoff, max 16s)
+ * - Timeout: 20 seconds (reduced from 30s to fail faster)
+ * - Retries: 3 attempts (reduced from 5 to fail faster)
+ * - Delays: 1s → 2s → 4s (exponential backoff, max 8s)
  * - Wakeup query: Pings database before write to ensure compute is ready
+ * 
+ * Optimization: Reduced timeouts and retries to fail faster when DB is suspended,
+ * improving UX by showing errors sooner rather than waiting 30+ seconds.
  * 
  * This function should be used for:
  * - create-scenario.ts
