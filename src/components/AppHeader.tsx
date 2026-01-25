@@ -7,10 +7,10 @@ export default function AppHeader() {
 
   const navItems = [
     { path: '/scenarios', label: 'Scenarios' },
-    // Hidden: Committed Plan, Guide, Settings
+    // Hidden: Committed Plan
     // { path: '/committed-plan', label: 'Committed Plan' },
-    // { path: '/guide', label: 'Guide' },
-    // { path: '/settings', label: 'Settings' },
+    { path: '/guide', label: 'Guide' },
+    { path: '/settings', label: 'Settings' },
   ]
 
   return (
