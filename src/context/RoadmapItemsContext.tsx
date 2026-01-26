@@ -23,6 +23,8 @@ interface RoadmapItemsContextType {
   getInputsForItem: (itemId: string) => ItemInputs | undefined
   setInputsForItem: (itemId: string, inputs: ItemInputs) => void
   loadItemsForSession: (sessionId: string) => Promise<void>
+  clearSessionData: (sessionId: string) => Promise<void>
+  forceReloadSession: (sessionId: string) => Promise<void>
 }
 
 const RoadmapItemsContext = createContext<RoadmapItemsContextType | undefined>(undefined)
@@ -643,9 +645,147 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
     }))
   }, [])
 
+  /**
+   * Clear all data for a session: delete all roadmap items and their inputs
+   * This removes items from the database and clears localStorage cache
+   */
+  const clearSessionData = useCallback(async (sessionId: string): Promise<void> => {
+    const sessionItems = itemsBySession[sessionId] || []
+    
+    if (sessionItems.length === 0) {
+      // Nothing to clear, but still clear any cached inputs
+      const allInputs = loadInputsFromStorage()
+      const itemIds = Object.keys(allInputs).filter((itemId) => {
+        // Check if this item belongs to the session (we need to check stored items)
+        const storedItems = loadItemsFromStorage()
+        return storedItems[sessionId]?.some((item) => item.id === itemId)
+      })
+      
+      // Clear inputs from state
+      setInputsByItemId((prev) => {
+        const updated = { ...prev }
+        itemIds.forEach((itemId) => delete updated[itemId])
+        return updated
+      })
+      
+      // Clear from localStorage
+      const updatedInputs = { ...allInputs }
+      itemIds.forEach((itemId) => delete updatedInputs[itemId])
+      saveInputsToStorage(updatedInputs)
+      
+      return
+    }
+
+    // Delete all items one by one (this will also clear their inputs)
+    // We do this sequentially to avoid overwhelming the API
+    for (const item of sessionItems) {
+      try {
+        await removeItem(sessionId, item.id)
+      } catch (err) {
+        console.error(`Failed to delete item ${item.id} during clear:`, err)
+        // Continue with other items even if one fails
+      }
+    }
+
+    // Clear items from state (in case any weren't deleted)
+    setItemsBySession((prev) => {
+      const updated = { ...prev }
+      delete updated[sessionId]
+      return updated
+    })
+
+    // Clear items from localStorage
+    const storedItems = loadItemsFromStorage()
+    delete storedItems[sessionId]
+    saveItemsToStorage(storedItems)
+
+    // Clear all inputs for items in this session
+    const allInputs = loadInputsFromStorage()
+    const itemIds = sessionItems.map((item) => item.id)
+    const updatedInputs = { ...allInputs }
+    itemIds.forEach((itemId) => delete updatedInputs[itemId])
+    saveInputsToStorage(updatedInputs)
+    
+    // Also clear ItemInputsContext storage (different key: 'designCapacity.itemInputs')
+    if (typeof window !== 'undefined') {
+      try {
+        const itemInputsStorage = localStorage.getItem('designCapacity.itemInputs')
+        if (itemInputsStorage) {
+          const parsed = JSON.parse(itemInputsStorage)
+          if (parsed && typeof parsed === 'object') {
+            const updated = { ...parsed }
+            itemIds.forEach((itemId) => delete updated[itemId])
+            localStorage.setItem('designCapacity.itemInputs', JSON.stringify(updated))
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to clear ItemInputsContext storage:', err)
+      }
+    }
+    
+    // Clear inputs from state
+    setInputsByItemId((prev) => {
+      const updated = { ...prev }
+      itemIds.forEach((itemId) => delete updated[itemId])
+      return updated
+    })
+  }, [itemsBySession, removeItem])
+
+  /**
+   * Force reload session data from API, clearing localStorage cache first
+   * This is useful when you suspect cached data is stale
+   */
+  const forceReloadSession = useCallback(async (sessionId: string): Promise<void> => {
+    // Clear items from state and localStorage
+    setItemsBySession((prev) => {
+      const updated = { ...prev }
+      delete updated[sessionId]
+      return updated
+    })
+
+    const storedItems = loadItemsFromStorage()
+    delete storedItems[sessionId]
+    saveItemsToStorage(storedItems)
+
+    // Clear inputs for all items in this session
+    const sessionItems = itemsBySession[sessionId] || []
+    const itemIds = sessionItems.map((item) => item.id)
+    
+    const allInputs = loadInputsFromStorage()
+    const updatedInputs = { ...allInputs }
+    itemIds.forEach((itemId) => delete updatedInputs[itemId])
+    saveInputsToStorage(updatedInputs)
+    
+    // Also clear ItemInputsContext storage (different key: 'designCapacity.itemInputs')
+    if (typeof window !== 'undefined') {
+      try {
+        const itemInputsStorage = localStorage.getItem('designCapacity.itemInputs')
+        if (itemInputsStorage) {
+          const parsed = JSON.parse(itemInputsStorage)
+          if (parsed && typeof parsed === 'object') {
+            const updated = { ...parsed }
+            itemIds.forEach((itemId) => delete updated[itemId])
+            localStorage.setItem('designCapacity.itemInputs', JSON.stringify(updated))
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to clear ItemInputsContext storage:', err)
+      }
+    }
+    
+    setInputsByItemId((prev) => {
+      const updated = { ...prev }
+      itemIds.forEach((itemId) => delete updated[itemId])
+      return updated
+    })
+
+    // Now reload from API
+    await loadItemsForSession(sessionId)
+  }, [itemsBySession, loadItemsForSession])
+
   return (
     <RoadmapItemsContext.Provider
-      value={{ getItemsForSession, isLoading, error, createItem, updateItem, removeItem, getInputsForItem, setInputsForItem, loadItemsForSession }}
+      value={{ getItemsForSession, isLoading, error, createItem, updateItem, removeItem, getInputsForItem, setInputsForItem, loadItemsForSession, clearSessionData, forceReloadSession }}
     >
       {children}
     </RoadmapItemsContext.Provider>

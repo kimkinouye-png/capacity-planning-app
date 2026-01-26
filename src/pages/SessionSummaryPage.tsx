@@ -64,11 +64,12 @@ function SessionSummaryPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const { sessions, getSessionById, commitSession, uncommitSession, updateSession, isLoading: sessionsLoading, error: sessionsError, loadSessions } = usePlanningSessions()
-  const { getItemsForSession, removeItem, createItem, updateItem, loadItemsForSession, error: roadmapError } = useRoadmapItems()
+  const { getItemsForSession, removeItem, createItem, updateItem, loadItemsForSession, clearSessionData, forceReloadSession, error: roadmapError } = useRoadmapItems()
   const { settings } = useSettings()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isCreateModalOpen, onOpen: onCreateModalOpen, onClose: onCreateModalClose } = useDisclosure()
   const { isOpen: isPasteModalOpen, onOpen: onPasteModalOpen, onClose: onPasteModalClose } = useDisclosure()
+  const { isOpen: isClearDataOpen, onOpen: onClearDataOpen, onClose: onClearDataClose } = useDisclosure()
   const cancelRef = useRef<HTMLButtonElement>(null)
   const itemToDeleteRef = useRef<{ id: string; name: string } | null>(null)
 
@@ -539,6 +540,77 @@ function SessionSummaryPage() {
     }
   }
 
+  // Handle clear session data
+  const handleClearSessionData = async () => {
+    if (!id) return
+    
+    const loadingToast = toast({
+      title: 'Clearing session data...',
+      description: 'Removing all roadmap items and inputs. This may take a moment.',
+      status: 'info',
+      duration: null,
+      isClosable: false,
+    })
+    
+    try {
+      await clearSessionData(id)
+      toast.close(loadingToast)
+      toast({
+        title: 'Session data cleared',
+        description: 'All roadmap items and inputs have been removed.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      })
+      onClearDataClose()
+    } catch (error) {
+      console.error('Error clearing session data:', error)
+      toast.close(loadingToast)
+      toast({
+        title: 'Failed to clear data',
+        description: error instanceof Error ? error.message : 'An error occurred while clearing session data.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    }
+  }
+
+  // Handle force reload
+  const handleForceReload = async () => {
+    if (!id) return
+    
+    const loadingToast = toast({
+      title: 'Reloading session...',
+      description: 'Clearing cache and fetching fresh data from the database.',
+      status: 'info',
+      duration: null,
+      isClosable: false,
+    })
+    
+    try {
+      await forceReloadSession(id)
+      toast.close(loadingToast)
+      toast({
+        title: 'Session reloaded',
+        description: 'Fresh data has been loaded from the database.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      })
+    } catch (error) {
+      console.error('Error force reloading session:', error)
+      toast.close(loadingToast)
+      toast({
+        title: 'Failed to reload',
+        description: error instanceof Error ? error.message : 'An error occurred while reloading the session.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    }
+  }
+
   // Handle paste import
   const handlePasteImport = async (
     items: Array<{ 
@@ -993,6 +1065,38 @@ function SessionSummaryPage() {
                 }}
               >
                 Commit this scenario
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleForceReload}
+              borderColor="rgba(255, 255, 255, 0.1)"
+              color="gray.400"
+              _hover={{
+                borderColor: 'rgba(255, 255, 255, 0.3)',
+                color: 'white',
+                bg: 'rgba(255, 255, 255, 0.05)',
+              }}
+              title="Clear cache and reload fresh data from database"
+            >
+              Force Reload
+            </Button>
+            {items.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClearDataOpen}
+                borderColor="rgba(239, 68, 68, 0.3)"
+                color="rgba(239, 68, 68, 0.8)"
+                _hover={{
+                  borderColor: 'rgba(239, 68, 68, 0.5)',
+                  color: '#ef4444',
+                  bg: 'rgba(239, 68, 68, 0.1)',
+                }}
+                title="Delete all roadmap items and inputs for this session"
+              >
+                Clear Data
               </Button>
             )}
           </HStack>
@@ -1522,6 +1626,42 @@ function SessionSummaryPage() {
                 ml={3}
               >
                 Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+
+      {/* Clear Session Data Confirmation Dialog */}
+      <AlertDialog isOpen={isClearDataOpen} leastDestructiveRef={cancelRef} onClose={onClearDataClose}>
+        <AlertDialogOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)">
+          <AlertDialogContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(239, 68, 68, 0.3)">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white" borderBottom="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
+              Clear All Session Data?
+            </AlertDialogHeader>
+            <AlertDialogBody color="gray.300">
+              This will permanently delete all roadmap items and their inputs for <strong>{session.name}</strong>. This cannot be undone.
+              <Box mt={3} fontSize="sm" color="gray.400">
+                The scenario itself will remain, but all items and data will be removed.
+              </Box>
+            </AlertDialogBody>
+            <AlertDialogFooter borderTop="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
+              <Button ref={cancelRef} onClick={onClearDataClose} variant="outline">
+                Cancel
+              </Button>
+              <Button
+                bg="rgba(239, 68, 68, 0.1)"
+                border="1px solid"
+                borderColor="rgba(239, 68, 68, 0.5)"
+                color="#ef4444"
+                _hover={{
+                  bg: 'rgba(239, 68, 68, 0.2)',
+                  borderColor: '#ef4444',
+                }}
+                onClick={handleClearSessionData}
+                ml={3}
+              >
+                Clear All Data
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
