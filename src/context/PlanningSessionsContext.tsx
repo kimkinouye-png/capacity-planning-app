@@ -87,18 +87,22 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch(`${API_BASE_URL}/get-scenarios`, {
-        headers: { 'x-session-id': getOrCreateSessionId() },
+      const sessionId = getOrCreateSessionId()
+      const response = await fetch(`${API_BASE_URL}/get-scenarios?sessionId=${encodeURIComponent(sessionId)}`, {
+        headers: { 'x-session-id': sessionId },
       })
       if (!response.ok) {
-        // Check for specific error types
+        if (response.status === 400) {
+          const errBody = await response.json().catch(() => ({}))
+          const msg = errBody?.error ?? 'Session ID required'
+          throw new Error(`BAD_REQUEST: ${msg}`)
+        }
         if (response.status === 404) {
           throw new Error('NOT_FOUND')
         }
         if (response.status >= 500) {
           throw new Error('SERVER_ERROR')
         }
-        // Check for timeout
         const errorText = response.statusText.toLowerCase()
         if (errorText.includes('timeout') || errorText.includes('timed out')) {
           throw new Error('TIMEOUT')
@@ -125,7 +129,9 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
         const isDevMode = import.meta.env.DEV
         
         // Differentiate error types
-        if (error.message === 'NOT_FOUND') {
+        if (error.message.startsWith('BAD_REQUEST:')) {
+          setError(error.message.replace('BAD_REQUEST: ', ''))
+        } else if (error.message === 'NOT_FOUND') {
           setError('Scenarios not found in database.')
         } else if (error.message === 'TIMEOUT') {
           setError('Database connection timed out. Please try again.')

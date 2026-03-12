@@ -70,11 +70,12 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
 
       // Try to load from API first
       try {
+        const visitorSessionId = getOrCreateSessionId()
         const url = scenarioId
-          ? `${API_BASE_URL}/get-activity-log?scenarioId=${encodeURIComponent(scenarioId)}`
-          : `${API_BASE_URL}/get-activity-log`
+          ? `${API_BASE_URL}/get-activity-log?scenarioId=${encodeURIComponent(scenarioId)}&sessionId=${encodeURIComponent(visitorSessionId)}`
+          : `${API_BASE_URL}/get-activity-log?sessionId=${encodeURIComponent(visitorSessionId)}`
         const response = await fetch(url, {
-          headers: { 'x-session-id': getOrCreateSessionId() },
+          headers: { 'x-session-id': visitorSessionId },
         })
 
         if (response.ok) {

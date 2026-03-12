@@ -212,9 +212,11 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch(`${API_BASE_URL}/get-roadmap-items?scenarioId=${sessionId}`, {
-        headers: { 'x-session-id': getOrCreateSessionId() },
-      })
+      const visitorSessionId = getOrCreateSessionId()
+      const response = await fetch(
+        `${API_BASE_URL}/get-roadmap-items?scenarioId=${sessionId}&sessionId=${encodeURIComponent(visitorSessionId)}`,
+        { headers: { 'x-session-id': visitorSessionId } }
+      )
       if (!response.ok) {
         throw new Error(`Failed to fetch roadmap items: ${response.statusText}`)
       }

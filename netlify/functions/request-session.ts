@@ -12,6 +12,10 @@ export function getSessionIdFromRequest(event: HandlerEvent): string | null {
   if (header && typeof header === 'string' && header.trim()) {
     return header.trim()
   }
+  const queryId = event.queryStringParameters?.sessionId ?? event.queryStringParameters?.['session_id']
+  if (queryId && typeof queryId === 'string' && queryId.trim()) {
+    return queryId.trim()
+  }
   try {
     const body = event.body ? JSON.parse(event.body) : {}
     const id = body.sessionId ?? body.session_id
