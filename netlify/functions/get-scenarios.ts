@@ -30,12 +30,14 @@ export const handler: Handler = async (event, context) => {
 
   try {
     const sessionId = getSessionIdFromRequest(event)
-    if (!sessionId) {
-      return errorResponse(400, 'Missing session ID. Send x-session-id header or sessionId in body.')
+    if (!sessionId || typeof sessionId !== 'string' || sessionId.trim().length === 0) {
+      return errorResponse(400, 'Missing session ID. Send x-session-id header or sessionId in query/body.')
     }
+    const trimmedSessionId = sessionId.trim()
 
     const sql = await getDatabaseConnection()
 
+    // Only return rows for this visitor; exclude NULL session_id (legacy rows)
     const dbScenarios = await sql<DatabaseScenario>`
       SELECT 
         id,
@@ -51,7 +53,7 @@ export const handler: Handler = async (event, context) => {
         created_at,
         updated_at
       FROM scenarios
-      WHERE session_id = ${sessionId}
+      WHERE session_id IS NOT NULL AND session_id = ${trimmedSessionId}
       ORDER BY updated_at DESC
     `
 
@@ -63,6 +65,7 @@ export const handler: Handler = async (event, context) => {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
       },
       body: JSON.stringify(scenarios),
     }
