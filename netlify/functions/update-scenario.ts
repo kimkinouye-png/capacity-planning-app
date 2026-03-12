@@ -1,5 +1,11 @@
+/**
+ * update-scenario — PUT update scenario by id (must belong to visitor session).
+ * NEON: getDatabaseConnectionForWrites() → NETLIFY_DATABASE_URL, @neondatabase/serverless.
+ * DATA: Requires sessionId; updates only if id and session_id match.
+ */
 import { Handler } from '@netlify/functions'
 import { getDatabaseConnectionForWrites } from './db-connection'
+import { getSessionIdFromRequest } from './request-session'
 import { 
   type UpdateScenarioRequest, 
   type DatabaseScenario, 
@@ -12,7 +18,7 @@ import {
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, x-session-id',
   'Access-Control-Allow-Methods': 'PUT, OPTIONS',
 }
 
@@ -33,8 +39,11 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Get database connection with write-specific timeout and retry logic
-    // Writes need 30s timeout and 5 retries to handle Neon compute wake-up
+    const sessionId = getSessionIdFromRequest(event)
+    if (!sessionId) {
+      return errorResponse(400, 'Missing session ID. Send x-session-id header or sessionId in body.')
+    }
+
     const connectionStartTime = Date.now()
     console.log('🔌 [update-scenario] Starting database connection...', {
       timestamp: new Date().toISOString()
@@ -90,10 +99,9 @@ export const handler: Handler = async (event, context) => {
       }
     }
 
-    // Get current scenario (parameterized query)
     const selectStartTime = Date.now()
     const current = await sql<DatabaseScenario>`
-      SELECT * FROM scenarios WHERE id = ${body.id}
+      SELECT * FROM scenarios WHERE id = ${body.id} AND session_id = ${sessionId}
     `
     const selectEndTime = Date.now()
     const selectDuration = selectEndTime - selectStartTime
@@ -137,7 +145,7 @@ export const handler: Handler = async (event, context) => {
         content_designers = ${finalUpdates.content_designers ?? currentScenario.content_designers},
         committed = ${finalUpdates.committed ?? currentScenario.committed},
         updated_at = NOW()
-      WHERE id = ${body.id}
+      WHERE id = ${body.id} AND session_id = ${sessionId}
       RETURNING *
     `
     const updateEndTime = Date.now()

@@ -1,5 +1,14 @@
+/**
+ * RoadmapItemsContext — Loads/saves roadmap items via Netlify Functions. sessionId here = scenario id
+ * (planning scenario), not visitor session. API: get-roadmap-items?scenarioId=, create-roadmap-item,
+ * update-roadmap-item, delete-roadmap-item. No visitor session_id sent; any scenario’s items can be
+ * requested if client knows scenarioId. Initial load: loadItemsForSession(scenarioId) when user opens a scenario.
+ * For per-visitor isolation: send visitor sessionId with every request; backend should only return/allow
+ * items for scenarios that belong to that session_id.
+ */
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { RoadmapItem, PMIntake, ProductDesignInputs, ContentDesignInputs } from '../domain/types'
+import { getOrCreateSessionId } from '../utils/session'
 import { useActivity } from './ActivityContext'
 import { usePlanningSessions } from './PlanningSessionsContext'
 import { mapSizeBandToFocusWeeks, mapSizeBandToContentFocusWeeks, calculateWorkWeeks } from '../config/effortModel'
@@ -203,7 +212,9 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch(`${API_BASE_URL}/get-roadmap-items?scenarioId=${sessionId}`)
+      const response = await fetch(`${API_BASE_URL}/get-roadmap-items?scenarioId=${sessionId}`, {
+        headers: { 'x-session-id': getOrCreateSessionId() },
+      })
       if (!response.ok) {
         throw new Error(`Failed to fetch roadmap items: ${response.statusText}`)
       }
@@ -297,6 +308,7 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'x-session-id': getOrCreateSessionId(),
           },
           body: JSON.stringify({
             scenario_id: sessionId,
@@ -363,6 +375,7 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'x-session-id': getOrCreateSessionId(),
         },
         body: JSON.stringify(requestPayload),
       })
@@ -579,6 +592,7 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
       
       const response = await fetch(`${API_BASE_URL}/delete-roadmap-item?id=${itemId}`, {
         method: 'DELETE',
+        headers: { 'x-session-id': getOrCreateSessionId() },
       })
 
       const fetchEndTime = performance.now()

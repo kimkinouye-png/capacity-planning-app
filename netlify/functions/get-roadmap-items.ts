@@ -1,10 +1,16 @@
+/**
+ * get-roadmap-items — GET roadmap items for a scenario (must belong to visitor session).
+ * NEON: getDatabaseConnection() → NETLIFY_DATABASE_URL, @neondatabase/serverless.
+ * DATA: Requires sessionId; returns items only if scenario.session_id matches.
+ */
 import { Handler } from '@netlify/functions'
 import { getDatabaseConnection } from './db-connection'
+import { getSessionIdFromRequest } from './request-session'
 import { dbRoadmapItemToRoadmapItemResponse, type DatabaseRoadmapItem, type RoadmapItemResponse, errorResponse, isValidUUID } from './types'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, x-session-id',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 }
 
@@ -23,22 +29,31 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Get database connection with timeout and retry logic
+    const sessionId = getSessionIdFromRequest(event)
+    if (!sessionId) {
+      return errorResponse(400, 'Missing session ID. Send x-session-id header.')
+    }
+
     const sql = await getDatabaseConnection()
 
-    // Get scenarioId from query string
     const scenarioId = event.queryStringParameters?.scenarioId
 
     if (!scenarioId) {
       return errorResponse(400, 'Missing required parameter: scenarioId')
     }
 
-    // Validate UUID format
     if (!isValidUUID(scenarioId)) {
       return errorResponse(400, 'Invalid scenarioId format')
     }
 
-    // Get all roadmap items for the scenario (parameterized query)
+    // Ensure scenario belongs to this session
+    const scenarioCheck = await sql<{ id: string }>`
+      SELECT id FROM scenarios WHERE id = ${scenarioId} AND session_id = ${sessionId}
+    `
+    if (scenarioCheck.length === 0) {
+      return errorResponse(404, 'Scenario not found')
+    }
+
     const dbItems = await sql<DatabaseRoadmapItem>`
       SELECT 
         id,

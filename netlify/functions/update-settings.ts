@@ -1,3 +1,9 @@
+/**
+ * update-settings — PUT update global settings.
+ * NEON: getDatabaseConnectionForWrites() → NETLIFY_DATABASE_URL, @neondatabase/serverless.
+ * DATA: Updates the single settings row by fixed id. No session_id; all visitors share one
+ * settings row. For per-visitor isolation, add session_id to settings and filter/update by it.
+ */
 import { Handler } from '@netlify/functions'
 import { getDatabaseConnectionForWrites } from './db-connection'
 import { errorResponse } from './types'

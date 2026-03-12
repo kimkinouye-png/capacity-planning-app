@@ -1,11 +1,17 @@
+/**
+ * create-activity-log-entry — POST new activity log entry (scenarioId must belong to visitor session).
+ * NEON: getDatabaseConnectionForWrites() → NETLIFY_DATABASE_URL, @neondatabase/serverless.
+ * DATA: Requires sessionId; if scenarioId provided, verifies scenario belongs to session.
+ */
 import { Handler } from '@netlify/functions'
 import { getDatabaseConnectionForWrites } from './db-connection'
+import { getSessionIdFromRequest } from './request-session'
 import { errorResponse, isValidUUID } from './types'
 import type { ActivityEventType } from '../../src/domain/types'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, x-session-id',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
@@ -50,18 +56,20 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Get database connection with write-specific timeout and retry logic
-    // Writes need 30s timeout and 5 retries to handle Neon compute wake-up
+    const sessionId = getSessionIdFromRequest(event)
+    if (!sessionId) {
+      return errorResponse(400, 'Missing session ID. Send x-session-id header or sessionId in body.')
+    }
+
     const sql = await getDatabaseConnectionForWrites()
 
-    let body: CreateActivityLogEntryRequest
+    let body: CreateActivityLogEntryRequest & { sessionId?: string }
     try {
       body = JSON.parse(event.body || '{}')
     } catch (parseError) {
       return errorResponse(400, 'Invalid JSON in request body')
     }
 
-    // Validate required fields
     if (!body.type) {
       return errorResponse(400, 'Missing required field: type')
     }
@@ -74,9 +82,17 @@ export const handler: Handler = async (event, context) => {
       return errorResponse(400, 'Missing or invalid required field: description')
     }
 
-    // Validate scenarioId if provided
     if (body.scenarioId && !isValidUUID(body.scenarioId)) {
       return errorResponse(400, 'Invalid scenario ID format')
+    }
+
+    if (body.scenarioId) {
+      const scenarioCheck = await sql<{ id: string }>`
+        SELECT id FROM scenarios WHERE id = ${body.scenarioId} AND session_id = ${sessionId}
+      `
+      if (scenarioCheck.length === 0) {
+        return errorResponse(404, 'Scenario not found')
+      }
     }
 
     // Validate timestamp if provided

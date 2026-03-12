@@ -1,5 +1,18 @@
 -- Capacity Planner Database Schema
 -- Run this against your Neon Postgres database
+--
+-- NEON / NETLIFY DB: Used via NETLIFY_DATABASE_URL; all tables are queried by Netlify Functions
+--   using @neondatabase/serverless (see netlify/functions/db-connection.ts).
+--
+-- DATA IDENTIFICATION (current, no per-visitor isolation):
+--   - settings: single row (id = 00000000-0000-0000-0000-000000000000); global, no user/session.
+--   - scenarios: identified by id (UUID); no session_id / visitor_id — all visitors see the same list.
+--   - roadmap_items: identified by id and scenario_id (FK); no visitor/session isolation.
+--   - activity_log: identified by id; optional scenario_id for filtering; no visitor/session isolation.
+--
+-- For per-visitor session isolation: add session_id (e.g. UUID or TEXT) to scenarios (and optionally
+-- settings if per-visitor settings are desired); filter roadmap_items via scenario.session_id;
+-- filter activity_log by scenario_id -> scenario.session_id or add session_id to activity_log.
 
 -- Settings table: stores global configuration
 CREATE TABLE IF NOT EXISTS settings (
@@ -41,8 +54,10 @@ VALUES ('00000000-0000-0000-0000-000000000000')
 ON CONFLICT (id) DO NOTHING;
 
 -- Scenarios table: stores planning scenarios
+-- session_id: per-visitor isolation; each visitor has a UUID in localStorage, sent with every request
 CREATE TABLE IF NOT EXISTS scenarios (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id TEXT,
   title TEXT NOT NULL,
   quarter TEXT NOT NULL, -- e.g., "2026-Q1"
   year INT NOT NULL,
@@ -96,6 +111,7 @@ CREATE TABLE IF NOT EXISTS activity_log (
 );
 
 -- Indexes for better query performance
+CREATE INDEX IF NOT EXISTS idx_scenarios_session_id ON scenarios(session_id);
 CREATE INDEX IF NOT EXISTS idx_scenarios_quarter ON scenarios(quarter);
 CREATE INDEX IF NOT EXISTS idx_scenarios_committed ON scenarios(committed);
 CREATE INDEX IF NOT EXISTS idx_roadmap_items_scenario_id ON roadmap_items(scenario_id);

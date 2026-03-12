@@ -1,10 +1,17 @@
+/**
+ * delete-roadmap-item — DELETE roadmap item by id.
+ * NEON: getDatabaseConnectionForWrites() → NETLIFY_DATABASE_URL, @neondatabase/serverless.
+ * DATA: Identified by query param id only. No session_id check; any client can delete any item.
+ * For per-visitor isolation, require sessionId and verify item’s scenario.session_id matches.
+ */
 import { Handler } from '@netlify/functions'
 import { getDatabaseConnectionForWrites } from './db-connection'
+import { getSessionIdFromRequest } from './request-session'
 import { errorResponse, isValidUUID } from './types'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, x-session-id',
   'Access-Control-Allow-Methods': 'DELETE, OPTIONS',
 }
 
@@ -30,8 +37,11 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Get database connection with write-specific timeout and retry logic
-    // Writes need 30s timeout and 5 retries to handle Neon compute wake-up
+    const sessionId = getSessionIdFromRequest(event)
+    if (!sessionId) {
+      return errorResponse(400, 'Missing session ID. Send x-session-id header or sessionId in body.')
+    }
+
     const connectionStartTime = Date.now()
     console.log('🔌 [delete-roadmap-item] Starting database connection...', {
       timestamp: new Date().toISOString()
@@ -58,10 +68,11 @@ export const handler: Handler = async (event, context) => {
       return errorResponse(400, 'Invalid id format')
     }
 
-    // Check if roadmap item exists (parameterized query)
     const checkStartTime = Date.now()
     const itemCheck = await sql<{ id: string }>`
-      SELECT id FROM roadmap_items WHERE id = ${id}
+      SELECT ri.id FROM roadmap_items ri
+      JOIN scenarios s ON s.id = ri.scenario_id AND s.session_id = ${sessionId}
+      WHERE ri.id = ${id}
     `
     const checkEndTime = Date.now()
     const checkDuration = checkEndTime - checkStartTime
@@ -74,11 +85,11 @@ export const handler: Handler = async (event, context) => {
       return errorResponse(404, 'Roadmap item not found')
     }
 
-    // Delete the roadmap item (parameterized query)
     const deleteStartTime = Date.now()
     await sql`
       DELETE FROM roadmap_items
       WHERE id = ${id}
+        AND scenario_id IN (SELECT id FROM scenarios WHERE session_id = ${sessionId})
     `
     const deleteEndTime = Date.now()
     const deleteDuration = deleteEndTime - deleteStartTime

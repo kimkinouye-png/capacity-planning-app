@@ -1,5 +1,11 @@
+/**
+ * create-scenario — POST new scenario for the current visitor session.
+ * NEON: getDatabaseConnectionForWrites() → NETLIFY_DATABASE_URL, @neondatabase/serverless.
+ * DATA: Requires sessionId (x-session-id or body.sessionId); sets session_id on INSERT.
+ */
 import { Handler } from '@netlify/functions'
 import { getDatabaseConnectionForWrites } from './db-connection'
+import { getSessionIdFromRequest } from './request-session'
 import type { PlanningPeriod } from '../../src/domain/types'
 import { 
   type CreateScenarioRequest, 
@@ -13,7 +19,7 @@ import {
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, x-session-id',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
@@ -36,11 +42,14 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Get database connection with write-specific timeout and retry logic
-    // Writes need 30s timeout and 5 retries to handle Neon compute wake-up
+    const sessionId = getSessionIdFromRequest(event)
+    if (!sessionId) {
+      return errorResponse(400, 'Missing session ID. Send x-session-id header or sessionId in body.')
+    }
+
     const sql = await getDatabaseConnectionForWrites()
     
-    let body: CreateScenarioRequest
+    let body: CreateScenarioRequest & { sessionId?: string }
     try {
       body = JSON.parse(event.body || '{}')
     } catch (parseError) {
@@ -99,9 +108,9 @@ export const handler: Handler = async (event, context) => {
       return errorResponse(400, 'Invalid planning period format')
     }
 
-    // Insert new scenario (parameterized query - Neon handles SQL injection prevention)
     const result = await sql<DatabaseScenario>`
       INSERT INTO scenarios (
+        session_id,
         title,
         quarter,
         year,
@@ -112,6 +121,7 @@ export const handler: Handler = async (event, context) => {
         committed
       )
       VALUES (
+        ${sessionId},
         ${dbFormat.title},
         ${dbFormat.quarter},
         ${dbFormat.year},

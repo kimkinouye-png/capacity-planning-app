@@ -1,5 +1,10 @@
+/**
+ * PlanningSessionsContext — Loads/saves scenarios (planning sessions) via Netlify Functions.
+ * Sends visitor session ID (x-session-id) with every request; backend filters by session_id.
+ */
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { PlanningSession } from '../domain/types'
+import { getOrCreateSessionId } from '../utils/session'
 import { useActivity } from './ActivityContext'
 
 interface PlanningSessionsContextType {
@@ -82,7 +87,9 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch(`${API_BASE_URL}/get-scenarios`)
+      const response = await fetch(`${API_BASE_URL}/get-scenarios`, {
+        headers: { 'x-session-id': getOrCreateSessionId() },
+      })
       if (!response.ok) {
         // Check for specific error types
         if (response.status === 404) {
@@ -169,6 +176,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'x-session-id': getOrCreateSessionId(),
           },
           body: JSON.stringify(sessionData),
         })
@@ -245,6 +253,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'x-session-id': getOrCreateSessionId(),
         },
         body: JSON.stringify({ id, ...updates }),
       })
@@ -319,7 +328,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
         try {
           const response = await fetch(`${API_BASE_URL}/update-scenario`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-session-id': getOrCreateSessionId() },
             body: JSON.stringify({ id: otherSession.id, status: 'draft' }),
           })
           if (!response.ok) {
@@ -339,7 +348,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
       // Commit this session
       const response = await fetch(`${API_BASE_URL}/update-scenario`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-session-id': getOrCreateSessionId() },
         body: JSON.stringify({ id, status: 'committed' }),
       })
 
@@ -434,7 +443,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
       
       const response = await fetch(`${API_BASE_URL}/update-scenario`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-session-id': getOrCreateSessionId() },
         body: JSON.stringify({ id, status: 'draft' }),
       })
 
@@ -509,6 +518,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
     try {
       const response = await fetch(`${API_BASE_URL}/delete-scenario?id=${id}`, {
         method: 'DELETE',
+        headers: { 'x-session-id': getOrCreateSessionId() },
       })
 
       if (!response.ok) {

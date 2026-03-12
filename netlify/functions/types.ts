@@ -10,6 +10,7 @@ import type { PlanningSession, PlanningPeriod, RoadmapItem, PMIntake, ProductDes
  */
 export interface DatabaseScenario {
   id: string
+  session_id: string | null
   title: string
   quarter: string // e.g., "2026-Q1"
   year: number

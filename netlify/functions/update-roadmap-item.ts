@@ -1,5 +1,13 @@
+/**
+ * update-roadmap-item — PUT update roadmap item by id.
+ * NEON: getDatabaseConnectionForWrites() → NETLIFY_DATABASE_URL, @neondatabase/serverless.
+ * DATA: Identified by body.id only. No session_id; any client can update any roadmap item.
+ * For per-visitor isolation, require sessionId and verify item’s scenario belongs to that
+ * session_id before updating.
+ */
 import { Handler } from '@netlify/functions'
 import { getDatabaseConnectionForWrites } from './db-connection'
+import { getSessionIdFromRequest } from './request-session'
 import type { RoadmapItem } from '../../src/domain/types'
 import { 
   type UpdateRoadmapItemRequest, 
@@ -13,7 +21,7 @@ import {
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, x-session-id',
   'Access-Control-Allow-Methods': 'PUT, OPTIONS',
 }
 
@@ -32,8 +40,11 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Get database connection with write-specific timeout and retry logic
-    // Writes need 30s timeout and 5 retries to handle Neon compute wake-up
+    const sessionId = getSessionIdFromRequest(event)
+    if (!sessionId) {
+      return errorResponse(400, 'Missing session ID. Send x-session-id header or sessionId in body.')
+    }
+
     const sql = await getDatabaseConnectionForWrites()
     
     let body: UpdateRoadmapItemRequest
@@ -108,9 +119,10 @@ export const handler: Handler = async (event, context) => {
       return errorResponse(400, `Invalid content_size: must be one of ${validSizes.join(', ')}`)
     }
 
-    // Get current roadmap item (parameterized query)
     const current = await sql<DatabaseRoadmapItem>`
-      SELECT * FROM roadmap_items WHERE id = ${body.id}
+      SELECT ri.* FROM roadmap_items ri
+      JOIN scenarios s ON s.id = ri.scenario_id AND s.session_id = ${sessionId}
+      WHERE ri.id = ${body.id}
     `
     
     if (current.length === 0) {

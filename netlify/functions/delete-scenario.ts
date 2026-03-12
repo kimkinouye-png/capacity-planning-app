@@ -1,10 +1,16 @@
+/**
+ * delete-scenario — DELETE scenario by id (must belong to visitor session).
+ * NEON: getDatabaseConnectionForWrites() → NETLIFY_DATABASE_URL, @neondatabase/serverless.
+ * DATA: Requires sessionId; deletes only if id and session_id match.
+ */
 import { Handler } from '@netlify/functions'
 import { getDatabaseConnectionForWrites } from './db-connection'
+import { getSessionIdFromRequest } from './request-session'
 import { errorResponse, isValidUUID } from './types'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, x-session-id',
   'Access-Control-Allow-Methods': 'DELETE, OPTIONS',
 }
 
@@ -28,11 +34,13 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Get database connection with write-specific timeout and retry logic
-    // Writes need 30s timeout and 5 retries to handle Neon compute wake-up
+    const sessionId = getSessionIdFromRequest(event)
+    if (!sessionId) {
+      return errorResponse(400, 'Missing session ID. Send x-session-id header or sessionId in body.')
+    }
+
     const sql = await getDatabaseConnectionForWrites()
     
-    // Get id from query string (preferred) or path
     const id = event.queryStringParameters?.id
 
     if (!id) {
@@ -44,12 +52,11 @@ export const handler: Handler = async (event, context) => {
       return errorResponse(400, 'Invalid id format')
     }
 
-    // Check if scenario exists and has no roadmap items (parameterized query)
     const scenarioCheck = await sql<{ id: string; item_count: number }>`
       SELECT s.id, COUNT(ri.id)::int as item_count
       FROM scenarios s
       LEFT JOIN roadmap_items ri ON ri.scenario_id = s.id
-      WHERE s.id = ${id}
+      WHERE s.id = ${id} AND s.session_id = ${sessionId}
       GROUP BY s.id
     `
 
@@ -61,10 +68,9 @@ export const handler: Handler = async (event, context) => {
       return errorResponse(400, 'Cannot delete scenario with roadmap items')
     }
 
-    // Delete the scenario (parameterized query)
     await sql`
       DELETE FROM scenarios
-      WHERE id = ${id}
+      WHERE id = ${id} AND session_id = ${sessionId}
     `
 
     const response: DeleteScenarioResponse = { success: true, id }

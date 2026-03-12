@@ -1,3 +1,9 @@
+/**
+ * SettingsContext — Loads/saves global settings via Netlify Functions (get-settings, update-settings).
+ * No sessionId or visitor id sent; single shared settings row for all visitors. Initial load: loadSettings()
+ * in provider. For per-visitor isolation: either keep global settings or add sessionId to API and
+ * backend settings table and filter by it.
+ */
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 
 export interface EffortModelSettings {

@@ -1,5 +1,12 @@
+/**
+ * ActivityContext — Loads activity log via get-activity-log (optional scenarioId), creates entries via
+ * create-activity-log-entry. No visitor session_id sent; activity is keyed by scenarioId only.
+ * For per-visitor isolation: send sessionId and have backend filter activity by scenario.session_id
+ * (or store session_id on activity_log).
+ */
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 import type { ActivityEvent } from '../domain/types'
+import { getOrCreateSessionId } from '../utils/session'
 
 interface ActivityContextType {
   activity: ActivityEvent[]
@@ -66,7 +73,9 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
         const url = scenarioId
           ? `${API_BASE_URL}/get-activity-log?scenarioId=${encodeURIComponent(scenarioId)}`
           : `${API_BASE_URL}/get-activity-log`
-        const response = await fetch(url)
+        const response = await fetch(url, {
+          headers: { 'x-session-id': getOrCreateSessionId() },
+        })
 
         if (response.ok) {
           const data = await response.json()
@@ -128,6 +137,7 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-session-id': getOrCreateSessionId(),
         },
         body: JSON.stringify({
           type: newEvent.type,

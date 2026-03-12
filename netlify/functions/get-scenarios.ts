@@ -1,10 +1,16 @@
+/**
+ * get-scenarios — GET scenarios for the current visitor session.
+ * NEON: getDatabaseConnection() → NETLIFY_DATABASE_URL, @neondatabase/serverless.
+ * DATA: Filtered by session_id from x-session-id header or body.sessionId.
+ */
 import { Handler } from '@netlify/functions'
 import { getDatabaseConnection } from './db-connection'
+import { getSessionIdFromRequest } from './request-session'
 import { dbScenarioToPlanningSession, type DatabaseScenario, type ScenarioResponse, errorResponse } from './types'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, x-session-id',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 }
 
@@ -23,13 +29,17 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Get database connection with timeout and retry logic
+    const sessionId = getSessionIdFromRequest(event)
+    if (!sessionId) {
+      return errorResponse(400, 'Missing session ID. Send x-session-id header or sessionId in body.')
+    }
+
     const sql = await getDatabaseConnection()
 
-    // Get all scenarios from database (parameterized query - Neon handles SQL injection prevention)
     const dbScenarios = await sql<DatabaseScenario>`
       SELECT 
         id,
+        session_id,
         title,
         quarter,
         year,
@@ -41,6 +51,7 @@ export const handler: Handler = async (event, context) => {
         created_at,
         updated_at
       FROM scenarios
+      WHERE session_id = ${sessionId}
       ORDER BY updated_at DESC
     `
 

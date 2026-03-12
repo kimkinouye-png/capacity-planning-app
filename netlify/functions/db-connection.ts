@@ -1,6 +1,11 @@
 /**
  * Database Connection Utility
- * 
+ *
+ * NEON / NETLIFY DB: Uses process.env.NETLIFY_DATABASE_URL and @neondatabase/serverless (neon())
+ * to obtain a serverless SQL client. No session_id or visitor context here; callers pass
+ * scenario_id / id. For per-visitor isolation, functions that read/write scenarios and
+ * roadmap_items must receive sessionId from the request and filter by it.
+ *
  * Handles Neon database connections with:
  * - Connection timeout configuration (for suspended compute wake-up)
  * - Retry logic with exponential backoff

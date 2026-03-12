@@ -1,11 +1,17 @@
+/**
+ * get-activity-log — GET activity log for visitor session (optionally by scenarioId).
+ * NEON: getDatabaseConnection() → NETLIFY_DATABASE_URL, @neondatabase/serverless.
+ * DATA: Requires sessionId; returns only entries for scenarios in that session.
+ */
 import { Handler } from '@netlify/functions'
 import { getDatabaseConnection } from './db-connection'
+import { getSessionIdFromRequest } from './request-session'
 import { errorResponse, isValidUUID } from './types'
 import type { ActivityEvent } from '../../src/domain/types'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, x-session-id',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 }
 
@@ -28,46 +34,48 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Get database connection with timeout and retry logic
+    const sessionId = getSessionIdFromRequest(event)
+    if (!sessionId) {
+      return errorResponse(400, 'Missing session ID. Send x-session-id header.')
+    }
+
     const sql = await getDatabaseConnection()
 
-    // Get query parameters
     const params = new URLSearchParams(event.queryStringParameters || '')
     const scenarioId = params.get('scenarioId') || params.get('sessionId')
 
-    // Validate scenarioId if provided
     if (scenarioId && !isValidUUID(scenarioId)) {
       return errorResponse(400, 'Invalid scenario ID format')
     }
 
-    // Build query
     let query
     if (scenarioId) {
       query = sql`
         SELECT 
-          id,
-          timestamp,
-          type,
-          scenario_id as "scenarioId",
-          scenario_name as "scenarioName",
-          description
-        FROM activity_log
-        WHERE scenario_id = ${scenarioId}
-        ORDER BY timestamp DESC
+          a.id,
+          a.timestamp,
+          a.type,
+          a.scenario_id as "scenarioId",
+          a.scenario_name as "scenarioName",
+          a.description
+        FROM activity_log a
+        JOIN scenarios s ON s.id = a.scenario_id AND s.session_id = ${sessionId}
+        WHERE a.scenario_id = ${scenarioId}
+        ORDER BY a.timestamp DESC
         LIMIT 100
       `
     } else {
-      // Get all recent activity (last 100 entries)
       query = sql`
         SELECT 
-          id,
-          timestamp,
-          type,
-          scenario_id as "scenarioId",
-          scenario_name as "scenarioName",
-          description
-        FROM activity_log
-        ORDER BY timestamp DESC
+          a.id,
+          a.timestamp,
+          a.type,
+          a.scenario_id as "scenarioId",
+          a.scenario_name as "scenarioName",
+          a.description
+        FROM activity_log a
+        JOIN scenarios s ON s.id = a.scenario_id AND s.session_id = ${sessionId}
+        ORDER BY a.timestamp DESC
         LIMIT 100
       `
     }

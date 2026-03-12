@@ -1,3 +1,10 @@
+/**
+ * get-settings — GET global settings (single row).
+ * NEON: getDatabaseConnection() → NETLIFY_DATABASE_URL, @neondatabase/serverless.
+ * DATA: Single row by fixed id (00000000-0000-0000-0000-000000000000). No user/session;
+ * all visitors share the same settings. For per-visitor isolation, either keep global
+ * settings or add session_id to settings and filter by it.
+ */
 import { Handler } from '@netlify/functions'
 import { getDatabaseConnection } from './db-connection'
 import { errorResponse } from './types'
