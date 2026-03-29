@@ -405,13 +405,24 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
       })
       
       // Ensure numeric fields are numbers (Postgres NUMERIC can return as strings)
+      const priorityMap: Record<number, 'P0' | 'P1' | 'P2' | 'P3'> = { 0: 'P0', 1: 'P1', 2: 'P2', 3: 'P3' }
+      const rawPriority = updatedItem.priority as unknown
+      let priority: RoadmapItem['priority']
+      if (rawPriority === 'P0' || rawPriority === 'P1' || rawPriority === 'P2' || rawPriority === 'P3') {
+        priority = rawPriority
+      } else {
+        const n = typeof rawPriority === 'string' ? Number(rawPriority) : rawPriority
+        priority =
+          typeof n === 'number' && n >= 0 && n <= 3 && Number.isFinite(n) ? priorityMap[n] : 'P2'
+      }
+
       const normalizedResponse: RoadmapItem = {
         ...updatedItem,
         uxFocusWeeks: typeof updatedItem.uxFocusWeeks === 'string' ? Number(updatedItem.uxFocusWeeks) : updatedItem.uxFocusWeeks,
         uxWorkWeeks: typeof updatedItem.uxWorkWeeks === 'string' ? Number(updatedItem.uxWorkWeeks) : updatedItem.uxWorkWeeks,
         contentFocusWeeks: typeof updatedItem.contentFocusWeeks === 'string' ? Number(updatedItem.contentFocusWeeks) : updatedItem.contentFocusWeeks,
         contentWorkWeeks: typeof updatedItem.contentWorkWeeks === 'string' ? Number(updatedItem.contentWorkWeeks) : updatedItem.contentWorkWeeks,
-        priority: typeof updatedItem.priority === 'string' ? Number(updatedItem.priority) : updatedItem.priority,
+        priority,
       }
       
       console.log('🟡 [updateItem] Normalized response:', { 

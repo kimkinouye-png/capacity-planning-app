@@ -2,7 +2,8 @@
  * update-settings — PUT update global settings.
  * NEON: getDatabaseConnectionForWrites() → NETLIFY_DATABASE_URL, @neondatabase/serverless.
  * DATA: Updates the single settings row by fixed id. No session_id; all visitors share one
- * settings row. For per-visitor isolation, add session_id to settings and filter/update by it.
+ * settings row.
+ * Updated to match validated data model v2 (March 2026).
  */
 import { Handler } from '@netlify/functions'
 import { getDatabaseConnectionForWrites } from './db-connection'
@@ -16,30 +17,40 @@ const corsHeaders = {
 
 interface UpdateSettingsRequest {
   effort_model?: {
-    ux?: Record<string, number>
-    content?: Record<string, number>
-    pmIntakeMultiplier?: number
+    effortWeights?: {
+      productRisk?: number        // 1-10
+      problemAmbiguity?: number   // 1-10
+      contentSurface?: number     // 1-10
+      localizationScope?: number  // 1-10
+    }
+    effortModelEnabled?: boolean
+    projectTypeDemand?: Record<string, {
+      uxBaseWeeks: number
+      contentBaseWeeks: number
+    }>
   }
   time_model?: {
-    focusTimeRatio?: number
+    focusTimeRatio?: number       // 0-1
+    planningPeriods?: Record<string, {
+      baseWeeks: number
+      holidays: number
+      pto: number
+    }>
   }
   size_bands?: {
-    xs?: number
-    s?: number
-    m?: number
-    l?: number
-    xl?: number
+    xs?: { min: number; max: number }
+    s?:  { min: number; max: number }
+    m?:  { min: number; max: number }
+    l?:  { min: number; max: number }
+    xl?: { min: number }
   }
 }
 
-export const handler: Handler = async (event, context) => {
-  // Handle CORS preflight
+const VALID_PROJECT_TYPES = ['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish']
+
+export const handler: Handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: '',
-    }
+    return { statusCode: 200, headers: corsHeaders, body: '' }
   }
 
   if (event.httpMethod !== 'PUT') {
@@ -47,58 +58,60 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Get database connection with write-specific timeout and retry logic
-    // Writes need 30s timeout and 5 retries to handle Neon compute wake-up
     const sql = await getDatabaseConnectionForWrites()
-    
+
     let body: UpdateSettingsRequest
     try {
       body = JSON.parse(event.body || '{}')
-    } catch (parseError) {
+    } catch {
       return errorResponse(400, 'Invalid JSON in request body')
     }
 
-    // Validate input
+    // Validate focusTimeRatio
     if (body.time_model?.focusTimeRatio !== undefined) {
       const ratio = body.time_model.focusTimeRatio
       if (typeof ratio !== 'number' || ratio < 0.4 || ratio > 0.9) {
-        return errorResponse(400, 'Focus-time ratio must be between 0.4 and 0.9')
+        return errorResponse(400, 'focusTimeRatio must be between 0.4 and 0.9')
       }
     }
 
-    // Validate effort_model structure if provided
-    if (body.effort_model) {
-      if (body.effort_model.ux && typeof body.effort_model.ux !== 'object') {
-        return errorResponse(400, 'Invalid effort_model.ux: must be an object')
-      }
-      if (body.effort_model.content && typeof body.effort_model.content !== 'object') {
-        return errorResponse(400, 'Invalid effort_model.content: must be an object')
-      }
-      if (body.effort_model.pmIntakeMultiplier !== undefined && 
-          (typeof body.effort_model.pmIntakeMultiplier !== 'number' || 
-           body.effort_model.pmIntakeMultiplier < 0 || 
-           body.effort_model.pmIntakeMultiplier > 10)) {
-        return errorResponse(400, 'Invalid effort_model.pmIntakeMultiplier: must be a number between 0 and 10')
-      }
-    }
-
-    // Validate size_bands structure if provided
-    if (body.size_bands) {
-      const validKeys = ['xs', 's', 'm', 'l', 'xl']
-      for (const key of Object.keys(body.size_bands)) {
-        if (!validKeys.includes(key)) {
-          return errorResponse(400, `Invalid size_bands key: ${key}. Must be one of ${validKeys.join(', ')}`)
+    // Validate effortWeights (1-10 scale)
+    if (body.effort_model?.effortWeights) {
+      const weights = body.effort_model.effortWeights
+      for (const [key, val] of Object.entries(weights)) {
+        if (val !== undefined && (typeof val !== 'number' || val < 1 || val > 10)) {
+          return errorResponse(400, `effortWeights.${key} must be a number between 1 and 10`)
         }
-        const value = (body.size_bands as any)[key]
-        if (typeof value !== 'number' || value < 0) {
-          return errorResponse(400, `Invalid size_bands.${key}: must be a non-negative number`)
+      }
+    }
+
+    // Validate projectTypeDemand keys
+    if (body.effort_model?.projectTypeDemand) {
+      for (const key of Object.keys(body.effort_model.projectTypeDemand)) {
+        if (!VALID_PROJECT_TYPES.includes(key)) {
+          return errorResponse(400, `Invalid projectTypeDemand key: ${key}. Must be one of: ${VALID_PROJECT_TYPES.join(', ')}`)
+        }
+      }
+    }
+
+    // Validate planningPeriods entries
+    if (body.time_model?.planningPeriods) {
+      for (const [key, period] of Object.entries(body.time_model.planningPeriods)) {
+        if (typeof period.baseWeeks !== 'number' || period.baseWeeks < 1) {
+          return errorResponse(400, `planningPeriods.${key}.baseWeeks must be a positive number`)
+        }
+        if (typeof period.holidays !== 'number' || period.holidays < 0) {
+          return errorResponse(400, `planningPeriods.${key}.holidays must be a non-negative number`)
+        }
+        if (typeof period.pto !== 'number' || period.pto < 0) {
+          return errorResponse(400, `planningPeriods.${key}.pto must be a non-negative number`)
         }
       }
     }
 
     // Get current settings
     const current = await sql`
-      SELECT * FROM settings 
+      SELECT * FROM settings
       WHERE id = '00000000-0000-0000-0000-000000000000'
       LIMIT 1
     `
@@ -109,23 +122,37 @@ export const handler: Handler = async (event, context) => {
 
     const currentSettings = current[0] as any
 
-    // Merge updates with current settings
-    const updatedEffortModel = body.effort_model
-      ? { ...currentSettings.effort_model, ...body.effort_model }
-      : currentSettings.effort_model
+    // Deep merge — preserve existing nested keys, only overwrite what's provided
+    const updatedEffortModel = body.effort_model ? {
+      ...currentSettings.effort_model,
+      ...body.effort_model,
+      effortWeights: body.effort_model.effortWeights ? {
+        ...currentSettings.effort_model?.effortWeights,
+        ...body.effort_model.effortWeights,
+      } : currentSettings.effort_model?.effortWeights,
+      projectTypeDemand: body.effort_model.projectTypeDemand ? {
+        ...currentSettings.effort_model?.projectTypeDemand,
+        ...body.effort_model.projectTypeDemand,
+      } : currentSettings.effort_model?.projectTypeDemand,
+    } : currentSettings.effort_model
 
-    const updatedTimeModel = body.time_model
-      ? { ...currentSettings.time_model, ...body.time_model }
-      : currentSettings.time_model
+    const updatedTimeModel = body.time_model ? {
+      ...currentSettings.time_model,
+      ...body.time_model,
+      planningPeriods: body.time_model.planningPeriods ? {
+        ...currentSettings.time_model?.planningPeriods,
+        ...body.time_model.planningPeriods,
+      } : currentSettings.time_model?.planningPeriods,
+    } : currentSettings.time_model
 
-    const updatedSizeBands = body.size_bands
-      ? { ...currentSettings.size_bands, ...body.size_bands }
-      : currentSettings.size_bands
+    const updatedSizeBands = body.size_bands ? {
+      ...currentSettings.size_bands,
+      ...body.size_bands,
+    } : currentSettings.size_bands
 
-    // Update settings
     const result = await sql`
       UPDATE settings
-      SET 
+      SET
         effort_model = ${JSON.stringify(updatedEffortModel)}::jsonb,
         time_model = ${JSON.stringify(updatedTimeModel)}::jsonb,
         size_bands = ${JSON.stringify(updatedSizeBands)}::jsonb,
@@ -136,10 +163,7 @@ export const handler: Handler = async (event, context) => {
 
     return {
       statusCode: 200,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify(result[0]),
     }
   } catch (error) {

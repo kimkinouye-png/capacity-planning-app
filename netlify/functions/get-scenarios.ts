@@ -6,7 +6,12 @@
 import { Handler } from '@netlify/functions'
 import { getDatabaseConnection } from './db-connection'
 import { getSessionIdFromRequest } from './request-session'
-import { dbScenarioToPlanningSession, type DatabaseScenario, type ScenarioResponse, errorResponse } from './types'
+import {
+  dbScenarioToPlanningSession,
+  type DatabaseScenario,
+  type ScenarioResponse,
+  errorResponse
+} from './types'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,14 +19,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 }
 
-export const handler: Handler = async (event, context) => {
-  // Handle CORS preflight
+export const handler: Handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: '',
-    }
+    return { statusCode: 200, headers: corsHeaders, body: '' }
   }
 
   if (event.httpMethod !== 'GET') {
@@ -37,19 +37,29 @@ export const handler: Handler = async (event, context) => {
 
     const sql = await getDatabaseConnection()
 
-    // Only return rows for this visitor; exclude NULL session_id (legacy rows)
+    // Return all new fields; exclude NULL session_id (legacy rows)
     const dbScenarios = await sql<DatabaseScenario>`
-      SELECT 
+      SELECT
         id,
         session_id,
-        title,
+        name,
+        description,
         quarter,
         year,
-        committed,
+        status,
         ux_designers,
         content_designers,
         weeks_per_period,
         sprint_length_weeks,
+        capacity_ux_design,
+        capacity_content_design,
+        demand_ux_design,
+        demand_content_design,
+        roadmap_items_count,
+        capacity_override_ux,
+        capacity_override_content,
+        capacity_override_reason,
+        capacity_is_manual,
         created_at,
         updated_at
       FROM scenarios
@@ -57,7 +67,6 @@ export const handler: Handler = async (event, context) => {
       ORDER BY updated_at DESC
     `
 
-    // Transform database format to PlanningSession format
     const scenarios: ScenarioResponse[] = dbScenarios.map(dbScenarioToPlanningSession)
 
     return {

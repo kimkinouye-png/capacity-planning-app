@@ -72,12 +72,21 @@ For production, set `NETLIFY_DATABASE_URL` in your Netlify dashboard.
 └── public/            # Static assets
 ```
 
+## Data model (backend)
+
+- **Scenarios** are stored in Postgres with a `session_id` (TEXT) for per-visitor isolation. Each visitor has a UUID in `localStorage`; all scenario queries are scoped by `session_id`. See [docs/architecture/database-and-settings.md](./docs/architecture/database-and-settings.md) for full schema.
+- **Roadmap items** and **activity log** are tied to scenarios; access is enforced by verifying the scenario belongs to the requesting session.
+
+## Security / isolation
+
+All scenario and scenario-derived data is scoped by visitor session. The app sends a visitor session ID (from `localStorage`) with every request. Backend functions require this ID and filter all queries by `session_id`; rows with `session_id IS NULL` are never returned. The planner is anonymous, tied to the browser only, and not shared across visitors or devices.
+
 ## API Endpoints
 
 - `GET /.netlify/functions/get-settings` - Get global settings
 - `PUT /.netlify/functions/update-settings` - Update global settings
-- `GET /.netlify/functions/get-scenarios` - Get all scenarios
-- `POST /.netlify/functions/create-scenario` - Create a new scenario
+- `GET /.netlify/functions/get-scenarios` - Get scenarios for the current visitor (requires `sessionId` in query or `x-session-id` header)
+- `POST /.netlify/functions/create-scenario` - Create a scenario for the current visitor (requires session ID)
 
 ## License
 

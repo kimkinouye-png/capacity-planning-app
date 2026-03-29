@@ -1,6 +1,8 @@
-import { Box, Flex, HStack, Heading, Text, Button } from '@chakra-ui/react'
+import { Box, Flex, HStack, Heading, Text, Button, Tooltip } from '@chakra-ui/react'
 import { Link, useLocation } from 'react-router-dom'
+import { InfoIcon } from '@chakra-ui/icons'
 import QRCodeDisplay from './QRCodeDisplay'
+import { resetWorkspace } from '../utils/session'
 
 export default function AppHeader() {
   const location = useLocation()
@@ -28,17 +30,30 @@ export default function AppHeader() {
         <Flex direction="row" justify="space-between" align="center">
           {/* Left side: Title and subtitle */}
           <Box>
-            <Heading
-              as={Link}
-              to="/"
-              size="lg"
-              fontWeight="bold"
-              color="white"
-              _hover={{ color: '#00d9ff' }}
-              transition="color 0.3s ease"
-            >
-              Capacity Planner
-            </Heading>
+            <Flex align="center" gap={2}>
+              <Heading
+                as={Link}
+                to="/"
+                size="lg"
+                fontWeight="bold"
+                color="white"
+                _hover={{ color: '#00d9ff' }}
+                transition="color 0.3s ease"
+              >
+                Capacity Planner
+              </Heading>
+              <Tooltip
+                label="The planner is anonymous, tied to this browser only, and not shared."
+                hasArrow
+                placement="bottom"
+                fontSize="xs"
+                maxW="240px"
+              >
+                <Box as="span" display="inline-flex" color="gray.500" _hover={{ color: 'gray.400' }} cursor="help">
+                  <InfoIcon boxSize={3.5} />
+                </Box>
+              </Tooltip>
+            </Flex>
             <Text fontSize="xs" color="gray.400" mt={0.5}>
               Plan smarter, deliver better
             </Text>
@@ -46,9 +61,26 @@ export default function AppHeader() {
 
           {/* Right side: Navigation */}
           <HStack spacing={2} align="center">
-            {/* QR Code Button */}
+            <Tooltip
+              label="Clear your workspace and start fresh. Your data is anonymous and stored only in this browser."
+              hasArrow
+              placement="bottom"
+              fontSize="xs"
+              maxW="260px"
+            >
+              <Button
+                size="sm"
+                variant="outline"
+                colorScheme="gray"
+                color="gray.400"
+                borderColor="rgba(255,255,255,0.2)"
+                _hover={{ color: 'white', borderColor: 'rgba(255,255,255,0.4)' }}
+                onClick={resetWorkspace}
+              >
+                Reset my workspace
+              </Button>
+            </Tooltip>
             <QRCodeDisplay />
-            
             {navItems.map((item) => {
               const isActive = location.pathname === item.path
               if (isActive) {

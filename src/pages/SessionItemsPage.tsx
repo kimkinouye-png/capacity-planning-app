@@ -20,11 +20,7 @@ import {
   FormControl,
   FormLabel,
   Input,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
+  Select,
   Stack,
   Text,
   HStack,
@@ -53,7 +49,7 @@ function SessionItemsPage() {
     short_key: '',
     name: '',
     initiative: '',
-    priority: 1,
+    priority: 'P1' as 'P0' | 'P1' | 'P2' | 'P3',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,7 +63,7 @@ function SessionItemsPage() {
         short_key: '',
         name: '',
         initiative: '',
-        priority: 1,
+        priority: 'P1',
       })
     } catch (error) {
       console.error('Error creating item:', error)
@@ -156,7 +152,7 @@ function SessionItemsPage() {
                       <Td color="gray.300">{item.priority}</Td>
                       <Td>
                         <Badge
-                          colorScheme={item.status === 'draft' ? 'gray' : item.status === 'sized' ? 'green' : 'blue'}
+                          colorScheme={item.status === 'draft' ? 'gray' : item.status === 'committed' ? 'green' : 'blue'}
                           px={2}
                           py={1}
                           borderRadius="full"
@@ -211,19 +207,20 @@ function SessionItemsPage() {
 
                 <FormControl isRequired>
                   <FormLabel>Priority</FormLabel>
-                  <NumberInput
+                  <Select
                     value={formData.priority}
-                    onChange={(_, valueAsNumber) =>
-                      setFormData({ ...formData, priority: valueAsNumber || 1 })
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        priority: e.target.value as 'P0' | 'P1' | 'P2' | 'P3',
+                      })
                     }
-                    min={1}
                   >
-                    <NumberInputField />
-                    <NumberInputStepper>
-                      <NumberIncrementStepper />
-                      <NumberDecrementStepper />
-                    </NumberInputStepper>
-                  </NumberInput>
+                    <option value="P0">P0</option>
+                    <option value="P1">P1</option>
+                    <option value="P2">P2</option>
+                    <option value="P3">P3</option>
+                  </Select>
                 </FormControl>
               </Stack>
             </ModalBody>

@@ -33,11 +33,7 @@ import {
   FormControl,
   FormLabel,
   Input,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
+  Select,
   SimpleGrid,
   Alert,
   AlertIcon,
@@ -78,7 +74,7 @@ function SessionSummaryPage() {
     short_key: '',
     name: '',
     initiative: '',
-    priority: 1,
+    priority: 'P1' as 'P0' | 'P1' | 'P2' | 'P3',
   })
 
   // Ensure sessions are loaded when navigating to this page
@@ -531,7 +527,7 @@ function SessionSummaryPage() {
         short_key: '',
         name: '',
         initiative: '',
-        priority: 1,
+        priority: 'P1',
       })
       onCreateModalClose()
     } catch (error) {
@@ -629,14 +625,24 @@ function SessionSummaryPage() {
 
     try {
       const focusTimeRatio = 0.75 // Default ratio
-      
+      const priorityMap: Record<number, 'P0' | 'P1' | 'P2' | 'P3'> = {
+        0: 'P0',
+        1: 'P1',
+        2: 'P2',
+        3: 'P3',
+      }
+
       // Import items sequentially
       for (const item of items) {
+        const p = item.priority
+        const priority =
+          typeof p === 'number' && p >= 0 && p <= 3 && Number.isFinite(p) ? priorityMap[p] : 'P2'
+
         const newItem = await createItem(id, {
           short_key: item.short_key,
           name: item.name,
           initiative: item.initiative,
-          priority: item.priority,
+          priority,
         })
 
         // Map start/end dates from paste into the item
@@ -1721,24 +1727,24 @@ function SessionSummaryPage() {
 
                 <FormControl isRequired>
                   <FormLabel color="gray.300">Priority</FormLabel>
-                  <NumberInput
+                  <Select
+                    bg="#1a1a20"
+                    borderColor="rgba(255, 255, 255, 0.1)"
+                    color="white"
+                    _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
                     value={formData.priority}
-                    onChange={(_, valueAsNumber) =>
-                      setFormData({ ...formData, priority: valueAsNumber || 1 })
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        priority: e.target.value as 'P0' | 'P1' | 'P2' | 'P3',
+                      })
                     }
-                    min={1}
                   >
-                    <NumberInputField
-                      bg="#1a1a20"
-                      borderColor="rgba(255, 255, 255, 0.1)"
-                      color="white"
-                      _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
-                    />
-                    <NumberInputStepper>
-                      <NumberIncrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
-                      <NumberDecrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
-                    </NumberInputStepper>
-                  </NumberInput>
+                    <option value="P0">P0</option>
+                    <option value="P1">P1</option>
+                    <option value="P2">P2</option>
+                    <option value="P3">P3</option>
+                  </Select>
                 </FormControl>
               </Stack>
             </ModalBody>

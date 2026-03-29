@@ -88,6 +88,7 @@ The Capacity Planning App uses **Neon Postgres** (via **Netlify DB**) as its per
 
 **Structure:**
 - `id` (UUID, PRIMARY KEY)
+- `session_id` (TEXT, nullable) - Visitor session ID for per-visitor isolation; all queries are scoped by this
 - `title` (TEXT) - Scenario name
 - `quarter` (TEXT) - Planning period (e.g., "2026-Q1")
 - `year` (INT) - Year
@@ -100,6 +101,8 @@ The Capacity Planning App uses **Neon Postgres** (via **Netlify DB**) as its per
 - `updated_at` (TIMESTAMPTZ)
 
 **Relationships:** `roadmap_items.scenario_id → scenarios.id`
+
+**Index:** `idx_scenarios_session_id` on `session_id` for fast filtering.
 
 #### `roadmap_items`
 **Purpose:** Individual roadmap items within scenarios
@@ -276,6 +279,15 @@ Database triggers maintain `updated_at`:
 - Activity Log: Recent events query (indexed by timestamp)
 
 ## Security
+
+### Security / isolation
+
+All scenario and scenario-derived data is **scoped by visitor session**:
+
+- The frontend generates a visitor session ID (UUID), stores it in `localStorage` (`designCapacity.visitorSessionId`), and sends it with every API request (header `x-session-id` or query `sessionId`).
+- **All queries that read or write scenarios** require a valid session ID and filter by `session_id`: `get-scenarios`, `create-scenario`, `update-scenario`, `delete-scenario` only return or modify rows for that session.
+- **Roadmap items and activity log** are scoped indirectly: functions verify that the scenario (e.g. by `scenario_id`) belongs to the requesting session before returning or updating items or activity.
+- Rows with `session_id IS NULL` are never returned. The planner is anonymous and tied to the browser; data is not shared across visitors or devices.
 
 ### Environment Variables
 

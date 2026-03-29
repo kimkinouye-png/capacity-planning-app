@@ -30,3 +30,20 @@ export function getSessionId(): string | null {
     return null
   }
 }
+
+/**
+ * Clear the stored visitor session ID (and workspace backup data) and reload the app
+ * so a fresh, empty workspace is created. Used by "Reset my workspace" in the UI.
+ */
+export function resetWorkspace(): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem('designCapacity.sessions')
+    localStorage.removeItem('designCapacity.items')
+    localStorage.removeItem('designCapacity.activity')
+    window.location.reload()
+  } catch {
+    window.location.reload()
+  }
+}

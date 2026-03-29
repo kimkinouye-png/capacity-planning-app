@@ -220,12 +220,15 @@ export function summarizeSession(
     cd: ContentDesignInputs
   }>
 ): SessionSummary {
+  const priorityOrder: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 }
   // Sort items by initiative then priority
   const sortedItems = [...itemsWithInputs].sort((a, b) => {
     if (a.item.initiative !== b.item.initiative) {
       return a.item.initiative.localeCompare(b.item.initiative)
     }
-    return a.item.priority - b.item.priority
+    return (
+      (priorityOrder[a.item.priority] ?? 0) - (priorityOrder[b.item.priority] ?? 0)
+    )
   })
 
   // Compute UX and Content designer-weeks per item

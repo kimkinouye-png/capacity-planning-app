@@ -2,13 +2,14 @@
  * create-roadmap-item — POST new roadmap item (scenario must belong to visitor session).
  * NEON: getDatabaseConnectionForWrites() → NETLIFY_DATABASE_URL, @neondatabase/serverless.
  * DATA: Requires sessionId; verifies scenario.session_id before inserting.
+ * Updated to match validated data model v2 (March 2026).
  */
 import { Handler } from '@netlify/functions'
 import { getDatabaseConnectionForWrites } from './db-connection'
 import { getSessionIdFromRequest } from './request-session'
-import { 
-  type CreateRoadmapItemRequest, 
-  type DatabaseRoadmapItem, 
+import {
+  type CreateRoadmapItemRequest,
+  type DatabaseRoadmapItem,
   type RoadmapItemResponse,
   createRoadmapItemRequestToDbFormat,
   dbRoadmapItemToRoadmapItemResponse,
@@ -22,14 +23,13 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-export const handler: Handler = async (event, context) => {
-  // Handle CORS preflight
+const VALID_PRIORITIES = ['P0', 'P1', 'P2', 'P3']
+const VALID_STATUSES = ['draft', 'in-review', 'committed', 'archived']
+const VALID_PROJECT_TYPES = ['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish']
+
+export const handler: Handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: '',
-    }
+    return { statusCode: 200, headers: corsHeaders, body: '' }
   }
 
   if (event.httpMethod !== 'POST') {
@@ -47,11 +47,11 @@ export const handler: Handler = async (event, context) => {
     }
 
     const sql = await getDatabaseConnectionForWrites()
-    
+
     let body: CreateRoadmapItemRequest & { sessionId?: string }
     try {
       body = JSON.parse(event.body || '{}')
-    } catch (parseError) {
+    } catch {
       return errorResponse(400, 'Invalid JSON in request body')
     }
 
@@ -63,20 +63,39 @@ export const handler: Handler = async (event, context) => {
       return errorResponse(400, 'Invalid scenario_id format')
     }
 
-    const dbFormat = createRoadmapItemRequestToDbFormat(body)
-
-    if (!dbFormat.scenario_id || !dbFormat.key || !dbFormat.name) {
-      return errorResponse(400, 'Missing required fields after transformation')
+    // Validate optional enum fields
+    if (body.priority !== undefined && !VALID_PRIORITIES.includes(body.priority)) {
+      return errorResponse(400, `Invalid priority. Must be one of: ${VALID_PRIORITIES.join(', ')}`)
     }
 
-    const scenarioCheck = await sql<{ id: string }>`
-      SELECT id FROM scenarios WHERE id = ${dbFormat.scenario_id} AND session_id = ${sessionId}
+    if (body.status !== undefined && !VALID_STATUSES.includes(body.status)) {
+      return errorResponse(400, `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}`)
+    }
+
+    if (body.project_type !== undefined && !VALID_PROJECT_TYPES.includes(body.project_type)) {
+      return errorResponse(400, `Invalid project_type. Must be one of: ${VALID_PROJECT_TYPES.join(', ')}`)
+    }
+
+    // Verify scenario belongs to this session and get its quarter
+    const scenarioCheck = await sql<{ id: string; quarter: string }>`
+      SELECT id, quarter FROM scenarios WHERE id = ${body.scenario_id} AND session_id = ${sessionId}
     `
     if (scenarioCheck.length === 0) {
       return errorResponse(404, 'Scenario not found')
     }
 
-    // Insert new roadmap item (parameterized query)
+    // Lock quarter to scenario quarter
+    const scenarioQuarter = scenarioCheck[0].quarter
+
+    const dbFormat = createRoadmapItemRequestToDbFormat({
+      ...body,
+      quarter: scenarioQuarter,
+    })
+
+    if (!dbFormat.scenario_id || !dbFormat.key || !dbFormat.name) {
+      return errorResponse(400, 'Missing required fields after transformation')
+    }
+
     const result = await sql<DatabaseRoadmapItem>`
       INSERT INTO roadmap_items (
         scenario_id,
@@ -84,7 +103,10 @@ export const handler: Handler = async (event, context) => {
         name,
         initiative,
         priority,
+        quarter,
         status,
+        project_type,
+        notes,
         pm_intake,
         ux_factors,
         content_factors
@@ -94,8 +116,11 @@ export const handler: Handler = async (event, context) => {
         ${dbFormat.key},
         ${dbFormat.name},
         ${dbFormat.initiative ?? null},
-        ${dbFormat.priority ?? null},
+        ${dbFormat.priority ?? 'P2'},
+        ${dbFormat.quarter ?? null},
         ${dbFormat.status || 'draft'},
+        ${dbFormat.project_type ?? null},
+        ${dbFormat.notes ?? null},
         ${dbFormat.pm_intake ? JSON.stringify(dbFormat.pm_intake) : null}::jsonb,
         ${dbFormat.ux_factors ? JSON.stringify(dbFormat.ux_factors) : null}::jsonb,
         ${dbFormat.content_factors ? JSON.stringify(dbFormat.content_factors) : null}::jsonb
@@ -103,15 +128,20 @@ export const handler: Handler = async (event, context) => {
       RETURNING *
     `
 
-    // Transform database format to RoadmapItem format
+    // Update scenario roadmap_items_count
+    await sql`
+      UPDATE scenarios
+      SET roadmap_items_count = (
+        SELECT COUNT(*) FROM roadmap_items WHERE scenario_id = ${body.scenario_id}
+      )
+      WHERE id = ${body.scenario_id}
+    `
+
     const item: RoadmapItemResponse = dbRoadmapItemToRoadmapItemResponse(result[0])
 
     return {
       statusCode: 201,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify(item),
     }
   } catch (error) {

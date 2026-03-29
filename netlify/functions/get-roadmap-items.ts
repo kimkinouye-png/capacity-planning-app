@@ -2,11 +2,18 @@
  * get-roadmap-items — GET roadmap items for a scenario (must belong to visitor session).
  * NEON: getDatabaseConnection() → NETLIFY_DATABASE_URL, @neondatabase/serverless.
  * DATA: Requires sessionId; returns items only if scenario.session_id matches.
+ * Updated to match validated data model v2 (March 2026).
  */
 import { Handler } from '@netlify/functions'
 import { getDatabaseConnection } from './db-connection'
 import { getSessionIdFromRequest } from './request-session'
-import { dbRoadmapItemToRoadmapItemResponse, type DatabaseRoadmapItem, type RoadmapItemResponse, errorResponse, isValidUUID } from './types'
+import {
+  dbRoadmapItemToRoadmapItemResponse,
+  type DatabaseRoadmapItem,
+  type RoadmapItemResponse,
+  errorResponse,
+  isValidUUID
+} from './types'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,14 +21,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 }
 
-export const handler: Handler = async (event, context) => {
-  // Handle CORS preflight
+export const handler: Handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: '',
-    }
+    return { statusCode: 200, headers: corsHeaders, body: '' }
   }
 
   if (event.httpMethod !== 'GET') {
@@ -55,14 +57,17 @@ export const handler: Handler = async (event, context) => {
     }
 
     const dbItems = await sql<DatabaseRoadmapItem>`
-      SELECT 
+      SELECT
         id,
         scenario_id,
         key,
         name,
         initiative,
         priority,
+        quarter,
         status,
+        project_type,
+        notes,
         pm_intake,
         ux_factors,
         content_factors,
@@ -83,15 +88,11 @@ export const handler: Handler = async (event, context) => {
       ORDER BY created_at ASC
     `
 
-    // Transform database format to RoadmapItem format
     const items: RoadmapItemResponse[] = dbItems.map(dbRoadmapItemToRoadmapItemResponse)
 
     return {
       statusCode: 200,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify(items),
     }
   } catch (error) {

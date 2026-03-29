@@ -9,8 +9,7 @@ export interface PlanningSession {
   sprint_length_weeks: number
   ux_designers: number
   content_designers: number
-  status: 'draft' | 'committed'
-  isCommitted: boolean // Mirrors status === 'committed'
+  status: 'draft' | 'in-review' | 'committed' | 'archived'
   created_by?: string
   created_at: string
   updated_at: string
@@ -22,8 +21,8 @@ export interface RoadmapItem {
   short_key: string
   name: string
   initiative: string
-  priority: number
-  status: 'draft' | 'ready_for_sizing' | 'sized' | 'locked'
+  priority: 'P0' | 'P1' | 'P2' | 'P3'
+  status: 'draft' | 'in-review' | 'committed' | 'archived'
   uxSizeBand: 'XS' | 'S' | 'M' | 'L' | 'XL'
   uxFocusWeeks: number
   uxWorkWeeks: number
@@ -32,6 +31,8 @@ export interface RoadmapItem {
   contentWorkWeeks: number
   startDate?: string | null
   endDate?: string | null
+  projectType?: 'net-new' | 'new-feature' | 'enhancement' | 'optimization' | 'fix-polish'
+  notes?: string
 }
 
 export type ActivityEventType = 

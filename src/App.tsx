@@ -11,6 +11,7 @@ import HomePage from './pages/HomePage'
 import CommittedPlanPage from './pages/CommittedPlanPage'
 import GuidePage from './pages/GuidePage'
 import SettingsPage from './pages/SettingsPage'
+import CapacityCalculatorPage from './pages/CapacityCalculatorPage'
 import AppHeader from './components/AppHeader'
 
 function App() {
@@ -82,6 +83,7 @@ function App() {
           <Route path="/guide" element={<GuidePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/quarterly-capacity" element={<QuarterlyCapacityPage />} />
+          <Route path="/calculator" element={<CapacityCalculatorPage />} />
           <Route path="/sessions/:id" element={<SessionSummaryPage />} />
           <Route path="/sessions/:id/items" element={<SessionItemsPage />} />
           <Route path="/sessions/:id/items/:itemId" element={<ItemDetailPage />} />

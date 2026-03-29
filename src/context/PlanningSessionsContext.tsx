@@ -11,7 +11,7 @@ interface PlanningSessionsContextType {
   sessions: PlanningSession[]
   isLoading: boolean
   error: string | null
-  createSession: (session: Omit<PlanningSession, 'id' | 'created_at' | 'updated_at' | 'status' | 'isCommitted'>) => Promise<PlanningSession>
+  createSession: (session: Omit<PlanningSession, 'id' | 'created_at' | 'updated_at' | 'status'>) => Promise<PlanningSession>
   updateSession: (id: string, updates: Partial<PlanningSession>) => Promise<void>
   commitSession: (id: string, itemCount?: number) => Promise<void>
   uncommitSession: (id: string) => Promise<void>
@@ -41,20 +41,12 @@ function loadSessionsFromStorage(): PlanningSession[] {
     if (!Array.isArray(parsed)) {
       return []
     }
-    // Migrate existing sessions that don't have status/isCommitted
+    // Migrate existing sessions that don't have status
     return parsed.map((session: PlanningSession) => {
       if (!session.status) {
         return {
           ...session,
           status: 'draft',
-          isCommitted: false,
-        }
-      }
-      // Ensure isCommitted is in sync with status
-      if (session.isCommitted === undefined) {
-        return {
-          ...session,
-          isCommitted: session.status === 'committed',
         }
       }
       return session
@@ -176,7 +168,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
   }, [sessions, isLoading])
 
   const createSession = useCallback(
-    async (sessionData: Omit<PlanningSession, 'id' | 'created_at' | 'updated_at' | 'status' | 'isCommitted'>): Promise<PlanningSession> => {
+    async (sessionData: Omit<PlanningSession, 'id' | 'created_at' | 'updated_at' | 'status'>): Promise<PlanningSession> => {
       try {
         const response = await fetch(`${API_BASE_URL}/create-scenario`, {
           method: 'POST',
@@ -210,7 +202,6 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
         const newSession: PlanningSession = {
           ...sessionData,
           status: 'draft',
-          isCommitted: false,
           id: crypto.randomUUID(),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -241,12 +232,6 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
       prev.map((session) => {
         if (session.id === id) {
           const updated = { ...session, ...updates, updated_at: new Date().toISOString() }
-          // Keep status and isCommitted in sync
-          if (updates.status !== undefined) {
-            updated.isCommitted = updates.status === 'committed'
-          } else if (updates.isCommitted !== undefined) {
-            updated.status = updates.isCommitted ? 'committed' : 'draft'
-          }
           return updated
         }
         return session
@@ -314,9 +299,9 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
     setSessions((prev) =>
       prev.map((session) => {
         if (session.id === id) {
-          return { ...session, status: 'committed' as const, isCommitted: true, updated_at: new Date().toISOString() }
+          return { ...session, status: 'committed' as const, updated_at: new Date().toISOString() }
         } else if ((session.planningPeriod || session.planning_period) === quarter && session.status === 'committed') {
-          return { ...session, status: 'draft' as const, isCommitted: false, updated_at: new Date().toISOString() }
+          return { ...session, status: 'draft' as const, updated_at: new Date().toISOString() }
         }
         return session
       })
@@ -378,7 +363,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
           if (session.id === id) {
             return updatedSession
           } else if ((session.planningPeriod || session.planning_period) === quarter && session.status === 'committed') {
-            return { ...session, status: 'draft' as const, isCommitted: false, updated_at: new Date().toISOString() }
+            return { ...session, status: 'draft' as const, updated_at: new Date().toISOString() }
           }
           return session
         })
@@ -401,14 +386,12 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
             return {
               ...session,
               status: 'committed',
-              isCommitted: true,
               updated_at: new Date().toISOString(),
             }
           } else if (sessionQuarter === quarter && session.status === 'committed') {
             return {
               ...session,
               status: 'draft',
-              isCommitted: false,
               updated_at: new Date().toISOString(),
             }
           }
@@ -430,7 +413,6 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
           return {
             ...session,
             status: 'draft' as const,
-            isCommitted: false,
             updated_at: new Date().toISOString(),
           }
         }

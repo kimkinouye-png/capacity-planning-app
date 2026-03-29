@@ -50,7 +50,7 @@ export default function CommittedPlanPage() {
 
   // Get only committed scenarios
   const committedSessions = useMemo(() => {
-    return sessions.filter((s) => s.status === 'committed' || s.isCommitted)
+    return sessions.filter((s) => s.status === 'committed')
   }, [sessions])
 
   // Load items for all committed sessions when page loads, sessions change, or navigating back

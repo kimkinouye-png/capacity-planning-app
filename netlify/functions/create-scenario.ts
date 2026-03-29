@@ -7,9 +7,9 @@ import { Handler } from '@netlify/functions'
 import { getDatabaseConnectionForWrites } from './db-connection'
 import { getSessionIdFromRequest } from './request-session'
 import type { PlanningPeriod } from '../../src/domain/types'
-import { 
-  type CreateScenarioRequest, 
-  type DatabaseScenario, 
+import {
+  type CreateScenarioRequest,
+  type DatabaseScenario,
   type ScenarioResponse,
   planningSessionToDbFormat,
   dbScenarioToPlanningSession,
@@ -23,14 +23,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-export const handler: Handler = async (event, context) => {
-  // Handle CORS preflight
+export const handler: Handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: '',
-    }
+    return { statusCode: 200, headers: corsHeaders, body: '' }
   }
 
   if (event.httpMethod !== 'POST') {
@@ -48,11 +43,11 @@ export const handler: Handler = async (event, context) => {
     }
 
     const sql = await getDatabaseConnectionForWrites()
-    
+
     let body: CreateScenarioRequest & { sessionId?: string }
     try {
       body = JSON.parse(event.body || '{}')
-    } catch (parseError) {
+    } catch {
       return errorResponse(400, 'Invalid JSON in request body')
     }
 
@@ -92,9 +87,10 @@ export const handler: Handler = async (event, context) => {
       }
     }
 
-    // Map PlanningSession format to database format
+    // Map to database format
     const dbFormat = planningSessionToDbFormat({
       name: body.name,
+      description: body.description,
       planningPeriod: planningPeriodStr as PlanningPeriod,
       weeks_per_period: body.weeks_per_period ?? 13,
       sprint_length_weeks: body.sprint_length_weeks ?? 2,
@@ -103,46 +99,55 @@ export const handler: Handler = async (event, context) => {
       status: 'draft',
     })
 
-    // Validate required database fields
-    if (!dbFormat.title || !dbFormat.quarter || dbFormat.year === undefined) {
+    if (!dbFormat.name || !dbFormat.quarter || dbFormat.year === undefined) {
       return errorResponse(400, 'Invalid planning period format')
     }
 
     const result = await sql<DatabaseScenario>`
       INSERT INTO scenarios (
         session_id,
-        title,
+        name,
+        description,
         quarter,
         year,
+        status,
         ux_designers,
         content_designers,
         weeks_per_period,
         sprint_length_weeks,
-        committed
+        capacity_ux_design,
+        capacity_content_design,
+        demand_ux_design,
+        demand_content_design,
+        roadmap_items_count,
+        capacity_is_manual
       )
       VALUES (
         ${sessionId},
-        ${dbFormat.title},
+        ${dbFormat.name},
+        ${dbFormat.description || null},
         ${dbFormat.quarter},
         ${dbFormat.year},
+        'draft',
         ${dbFormat.ux_designers ?? 0},
         ${dbFormat.content_designers ?? 0},
         ${dbFormat.weeks_per_period ?? 13},
         ${dbFormat.sprint_length_weeks ?? 2},
-        ${dbFormat.committed ?? false}
+        0,
+        0,
+        0,
+        0,
+        0,
+        false
       )
       RETURNING *
     `
 
-    // Transform database format to PlanningSession format
     const scenario: ScenarioResponse = dbScenarioToPlanningSession(result[0])
 
     return {
       statusCode: 201,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify(scenario),
     }
   } catch (error) {

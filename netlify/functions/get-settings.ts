@@ -2,8 +2,8 @@
  * get-settings — GET global settings (single row).
  * NEON: getDatabaseConnection() → NETLIFY_DATABASE_URL, @neondatabase/serverless.
  * DATA: Single row by fixed id (00000000-0000-0000-0000-000000000000). No user/session;
- * all visitors share the same settings. For per-visitor isolation, either keep global
- * settings or add session_id to settings and filter by it.
+ * all visitors share the same settings.
+ * Updated to match validated data model v2 (March 2026).
  */
 import { Handler } from '@netlify/functions'
 import { getDatabaseConnection } from './db-connection'
@@ -12,22 +12,70 @@ import { errorResponse } from './types'
 interface SettingsResponse {
   id: string
   effort_model: {
-    ux: Record<string, number>
-    content: Record<string, number>
-    pmIntakeMultiplier: number
+    effortWeights: {
+      productRisk: number
+      problemAmbiguity: number
+      contentSurface: number
+      localizationScope: number
+    }
+    effortModelEnabled: boolean
+    projectTypeDemand: Record<string, {
+      uxBaseWeeks: number
+      contentBaseWeeks: number
+    }>
   }
   time_model: {
     focusTimeRatio: number
+    planningPeriods: Record<string, {
+      baseWeeks: number
+      holidays: number
+      pto: number
+    }>
   }
   size_bands: {
-    xs: number
-    s: number
-    m: number
-    l: number
-    xl: number
+    xs: { min: number; max: number }
+    s:  { min: number; max: number }
+    m:  { min: number; max: number }
+    l:  { min: number; max: number }
+    xl: { min: number }
   }
   created_at: string
   updated_at: string
+}
+
+const DEFAULT_SETTINGS = {
+  effort_model: {
+    effortWeights: {
+      productRisk: 4,
+      problemAmbiguity: 5,
+      contentSurface: 5,
+      localizationScope: 5,
+    },
+    effortModelEnabled: true,
+    projectTypeDemand: {
+      'net-new':      { uxBaseWeeks: 12.0, contentBaseWeeks: 12.0 },
+      'new-feature':  { uxBaseWeeks: 8.0,  contentBaseWeeks: 8.0  },
+      'enhancement':  { uxBaseWeeks: 4.0,  contentBaseWeeks: 2.0  },
+      'optimization': { uxBaseWeeks: 2.0,  contentBaseWeeks: 1.0  },
+      'fix-polish':   { uxBaseWeeks: 1.0,  contentBaseWeeks: 1.0  },
+    },
+  },
+  time_model: {
+    focusTimeRatio: 0.75,
+    planningPeriods: {
+      'Q2_26': { baseWeeks: 13, holidays: 10, pto: 5 },
+      'Q3_26': { baseWeeks: 13, holidays: 10, pto: 5 },
+      'Q4_26': { baseWeeks: 13, holidays: 10, pto: 5 },
+      'Q1_27': { baseWeeks: 13, holidays: 10, pto: 5 },
+    },
+  },
+  size_bands: {
+    xs: { min: 0,  max: 2  },
+    s:  { min: 2,  max: 4  },
+    m:  { min: 4,  max: 8  },
+    l:  { min: 8,  max: 12 },
+    xl: { min: 12 },
+  },
 }
 
 const corsHeaders = {
@@ -36,14 +84,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 }
 
-export const handler: Handler = async (event, context) => {
-  // Handle CORS preflight
+export const handler: Handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: '',
-    }
+    return { statusCode: 200, headers: corsHeaders, body: '' }
   }
 
   if (event.httpMethod !== 'GET') {
@@ -51,12 +94,10 @@ export const handler: Handler = async (event, context) => {
   }
 
   try {
-    // Get database connection with timeout and retry logic
     const sql = await getDatabaseConnection()
 
-    // Get or create default settings
     const result = await sql`
-      SELECT * FROM settings 
+      SELECT * FROM settings
       WHERE id = '00000000-0000-0000-0000-000000000000'
       LIMIT 1
     `
@@ -64,46 +105,26 @@ export const handler: Handler = async (event, context) => {
     let dbRow: any
 
     if (result.length === 0) {
-      // Create default settings if they don't exist
-      const defaultSettings = await sql`
+      // Create default settings if missing
+      const inserted = await sql`
         INSERT INTO settings (id, effort_model, time_model, size_bands)
         VALUES (
           '00000000-0000-0000-0000-000000000000',
-          '{
-            "ux": {
-              "productRisk": 1.2,
-              "problemAmbiguity": 1.0,
-              "discoveryDepth": 0.9
-            },
-            "content": {
-              "contentSurfaceArea": 1.3,
-              "localizationScope": 1.0,
-              "regulatoryBrandRisk": 1.2,
-              "legalComplianceDependency": 1.1
-            },
-            "pmIntakeMultiplier": 1.0
-          }'::jsonb,
-          '{"focusTimeRatio": 0.75}'::jsonb,
-          '{
-            "xs": 1.6,
-            "s": 2.6,
-            "m": 3.6,
-            "l": 4.6,
-            "xl": 5.0
-          }'::jsonb
+          ${JSON.stringify(DEFAULT_SETTINGS.effort_model)}::jsonb,
+          ${JSON.stringify(DEFAULT_SETTINGS.time_model)}::jsonb,
+          ${JSON.stringify(DEFAULT_SETTINGS.size_bands)}::jsonb
         )
         RETURNING *
       `
-      dbRow = defaultSettings[0]
+      dbRow = inserted[0]
     } else {
       dbRow = result[0]
     }
 
-    // Ensure JSONB fields are properly parsed (Neon should handle this, but be explicit)
     const settings: SettingsResponse = {
       id: dbRow.id,
-      effort_model: typeof dbRow.effort_model === 'string' 
-        ? JSON.parse(dbRow.effort_model) 
+      effort_model: typeof dbRow.effort_model === 'string'
+        ? JSON.parse(dbRow.effort_model)
         : dbRow.effort_model,
       time_model: typeof dbRow.time_model === 'string'
         ? JSON.parse(dbRow.time_model)
@@ -117,10 +138,7 @@ export const handler: Handler = async (event, context) => {
 
     return {
       statusCode: 200,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify(settings),
     }
   } catch (error) {
