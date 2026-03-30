@@ -510,7 +510,8 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
       })
 
       if (!response.ok) {
-        throw new Error(`Failed to delete scenario: ${response.statusText}`)
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Failed to delete: ${response.statusText}`)
       }
 
       // Log activity
@@ -524,16 +525,7 @@ export function PlanningSessionsProvider({ children }: { children: ReactNode }) 
       // Remove from state
       setSessions((prev) => prev.filter((session) => session.id !== id))
     } catch (err) {
-      console.error('Error deleting scenario via API, falling back to localStorage:', err)
-      // Fallback: delete in localStorage
-      await logActivity({
-        type: 'scenario_deleted',
-        scenarioId: sessionToDelete.id,
-        scenarioName: sessionToDelete.name,
-        description: `Deleted scenario '${sessionToDelete.name}' (no roadmap items).`,
-      })
-
-      setSessions((prev) => prev.filter((session) => session.id !== id))
+      throw err
     }
   }, [sessions, logActivity])
 

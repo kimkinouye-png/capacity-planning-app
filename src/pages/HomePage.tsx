@@ -644,16 +644,26 @@ function HomePage() {
                 }}
                 onClick={async () => {
                   if (sessionToDelete) {
-                    await deleteSession(sessionToDelete.id)
-                    toast({
-                      title: 'Scenario deleted',
-                      description: `${sessionToDelete.name} has been deleted.`,
-                      status: 'success',
-                      duration: 3000,
-                      isClosable: true,
-                    })
-                    setSessionToDelete(null)
-                    onDeleteClose()
+                    try {
+                      await deleteSession(sessionToDelete.id)
+                      toast({
+                        title: 'Scenario deleted',
+                        description: `${sessionToDelete.name} has been deleted.`,
+                        status: 'success',
+                        duration: 3000,
+                        isClosable: true,
+                      })
+                      setSessionToDelete(null)
+                      onDeleteClose()
+                    } catch (err) {
+                      toast({
+                        title: 'Cannot delete scenario',
+                        description: err instanceof Error ? err.message : 'Failed to delete scenario',
+                        status: 'error',
+                        duration: 4000,
+                        isClosable: true,
+                      })
+                    }
                   }
                 }}
                 ml={3}
