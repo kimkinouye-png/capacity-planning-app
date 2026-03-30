@@ -108,7 +108,7 @@ test.describe('Commit Radio Button Functionality', () => {
     const scenarioName = await card.locator('h2, h3, [role="heading"]').first().textContent();
     
     // Commit the scenario first
-    const radioButton = card.locator('circle').first();
+    const radioButton = card.locator('[data-testid="commit-radio-button"]').first();
     const currentStatus = await card.getByText(/Commit as plan|Committed plan/i).first().textContent();
     
     if (currentStatus?.includes('Commit as plan')) {
@@ -210,7 +210,7 @@ test.describe('Commit Radio Button Functionality', () => {
     }
 
     // Find the radio button circle
-    const radioButton = draftCard.locator('circle').first();
+    const radioButton = draftCard.locator('[data-testid="commit-radio-button"]').first();
     await radioButton.click();
     
     // Should show warning toast
@@ -233,7 +233,7 @@ test.describe('Commit Radio Button Functionality', () => {
     const card = scenarioWithItems.locator('xpath=ancestor::article | ancestor::div[contains(@class, "card")] | ancestor::div[@role="article"]').first();
     
     // Find the radio button - look for circle near either "Commit as plan" or "Committed plan"
-    const radioButton = card.locator('circle').first();
+    const radioButton = card.locator('[data-testid="commit-radio-button"]').first();
     
     await radioButton.click();
     

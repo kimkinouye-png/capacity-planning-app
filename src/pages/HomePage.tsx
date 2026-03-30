@@ -514,6 +514,7 @@ function HomePage() {
                                 _hover={{ opacity: 0.8 }}
                               >
                                 <Box
+                                  data-testid="commit-radio-button"
                                   w={4}
                                   h={4}
                                   borderRadius="full"
