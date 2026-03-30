@@ -13,6 +13,34 @@ import { useActivity } from './ActivityContext'
 import { usePlanningSessions } from './PlanningSessionsContext'
 import { mapSizeBandToFocusWeeks, mapSizeBandToContentFocusWeeks, calculateWorkWeeks } from '../config/effortModel'
 
+const priorityOrder: Record<RoadmapItem['priority'], number> = { P0: 0, P1: 1, P2: 2, P3: 3 }
+
+/** Legacy localStorage/API may still store priority as 0–3; map to labels (same order as priorityOrder). */
+function legacyRankToPriority(rank: number): RoadmapItem['priority'] | null {
+  const idx = Math.trunc(rank)
+  if (!Number.isFinite(rank) || idx < 0 || idx > 3) return null
+  const labels: RoadmapItem['priority'][] = ['P0', 'P1', 'P2', 'P3']
+  return labels[idx]
+}
+
+/** Coerce raw values to string priorities P0–P3 for in-memory and persisted shape. */
+function coerceRoadmapPriority(raw: unknown): RoadmapItem['priority'] {
+  if (typeof raw === 'string') {
+    const t = raw.trim().toUpperCase()
+    if (t in priorityOrder) return t as RoadmapItem['priority']
+    const parsed = Number(raw)
+    const fromNum = legacyRankToPriority(parsed)
+    if (fromNum) return fromNum
+    return 'P2'
+  }
+  if (typeof raw === 'number') {
+    const fromNum = legacyRankToPriority(raw)
+    if (fromNum) return fromNum
+    return 'P2'
+  }
+  return 'P2'
+}
+
 interface ItemInputs {
   intake: PMIntake
   pd: ProductDesignInputs
@@ -45,6 +73,67 @@ const API_BASE_URL = import.meta.env.DEV
   ? 'http://localhost:8888/.netlify/functions'
   : '/.netlify/functions'
 
+/**
+ * Normalize a roadmap item to ensure it has valid focus and work weeks
+ * If focus weeks are missing or invalid, calculate them from size bands
+ * If work weeks are missing or invalid, calculate them from focus weeks
+ */
+function normalizeRoadmapItem(item: RoadmapItem): RoadmapItem {
+  const focusTimeRatio = 0.75 // Default ratio, matches transformation function
+
+  // Normalize UX focus weeks
+  let uxFocusWeeks = item.uxFocusWeeks
+  if (typeof uxFocusWeeks !== 'number' || isNaN(uxFocusWeeks) || uxFocusWeeks < 0) {
+    uxFocusWeeks = mapSizeBandToFocusWeeks(item.uxSizeBand || 'M')
+  }
+
+  let uxWorkWeeks = item.uxWorkWeeks
+  if (typeof uxWorkWeeks !== 'number' || isNaN(uxWorkWeeks) || uxWorkWeeks < 0) {
+    uxWorkWeeks = calculateWorkWeeks(uxFocusWeeks, focusTimeRatio)
+  }
+
+  let contentFocusWeeks = item.contentFocusWeeks
+  if (typeof contentFocusWeeks !== 'number' || isNaN(contentFocusWeeks) || contentFocusWeeks < 0) {
+    contentFocusWeeks = mapSizeBandToContentFocusWeeks(item.contentSizeBand || 'M')
+  }
+
+  let contentWorkWeeks = item.contentWorkWeeks
+  if (typeof contentWorkWeeks !== 'number' || isNaN(contentWorkWeeks) || contentWorkWeeks < 0) {
+    contentWorkWeeks = calculateWorkWeeks(contentFocusWeeks, focusTimeRatio)
+  }
+
+  return {
+    ...item,
+    priority: coerceRoadmapPriority(item.priority as unknown),
+    uxFocusWeeks,
+    uxWorkWeeks,
+    contentFocusWeeks,
+    contentWorkWeeks,
+  }
+}
+
+/** Normalize items and sort by string priority (P0 through P3 ascending). */
+function normalizeRoadmapItems(items: RoadmapItem[]): RoadmapItem[] {
+  const normalized = items.map(normalizeRoadmapItem)
+  return [...normalized].sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
+}
+
+/** True if any cached roadmap item still has legacy numeric priority (pre P0–P3 migration). */
+function storedRoadmapItemsHaveNumericPriority(parsed: unknown): boolean {
+  if (!parsed || typeof parsed !== 'object') return false
+  for (const items of Object.values(parsed as Record<string, unknown>)) {
+    if (!Array.isArray(items)) continue
+    for (const raw of items) {
+      if (raw && typeof raw === 'object' && 'priority' in raw) {
+        const p = (raw as { priority: unknown }).priority
+        if (typeof p === 'number') return true
+      }
+    }
+  }
+  return false
+}
+
+/** Read cached items from localStorage and normalize (string priorities, same shape as after API load). */
 function loadItemsFromStorage(): Record<string, RoadmapItem[]> {
   if (typeof window === 'undefined') {
     return {}
@@ -54,8 +143,21 @@ function loadItemsFromStorage(): Record<string, RoadmapItem[]> {
     if (!stored) {
       return {}
     }
-    const parsed = JSON.parse(stored)
-    return parsed && typeof parsed === 'object' ? parsed : {}
+    const parsed = JSON.parse(stored) as unknown
+    if (storedRoadmapItemsHaveNumericPriority(parsed)) {
+      localStorage.removeItem(ITEMS_STORAGE_KEY)
+      return {}
+    }
+    if (!parsed || typeof parsed !== 'object') {
+      return {}
+    }
+    const out: Record<string, RoadmapItem[]> = {}
+    for (const [sessionId, items] of Object.entries(parsed as Record<string, unknown>)) {
+      if (Array.isArray(items)) {
+        out[sessionId] = normalizeRoadmapItems(items as RoadmapItem[])
+      }
+    }
+    return out
   } catch (error) {
     console.error('Error loading items from localStorage:', error)
     return {}
@@ -101,58 +203,6 @@ function saveInputsToStorage(inputs: Record<string, ItemInputs>): void {
   }
 }
 
-/**
- * Normalize a roadmap item to ensure it has valid focus and work weeks
- * If focus weeks are missing or invalid, calculate them from size bands
- * If work weeks are missing or invalid, calculate them from focus weeks
- */
-function normalizeRoadmapItem(item: RoadmapItem): RoadmapItem {
-  const focusTimeRatio = 0.75 // Default ratio, matches transformation function
-  
-  // Normalize UX focus weeks
-  let uxFocusWeeks = item.uxFocusWeeks
-  if (typeof uxFocusWeeks !== 'number' || isNaN(uxFocusWeeks) || uxFocusWeeks < 0) {
-    // Calculate from size band
-    uxFocusWeeks = mapSizeBandToFocusWeeks(item.uxSizeBand || 'M')
-  }
-  
-  // Normalize UX work weeks
-  let uxWorkWeeks = item.uxWorkWeeks
-  if (typeof uxWorkWeeks !== 'number' || isNaN(uxWorkWeeks) || uxWorkWeeks < 0) {
-    // Calculate from focus weeks
-    uxWorkWeeks = calculateWorkWeeks(uxFocusWeeks, focusTimeRatio)
-  }
-  
-  // Normalize Content focus weeks
-  let contentFocusWeeks = item.contentFocusWeeks
-  if (typeof contentFocusWeeks !== 'number' || isNaN(contentFocusWeeks) || contentFocusWeeks < 0) {
-    // Calculate from size band
-    contentFocusWeeks = mapSizeBandToContentFocusWeeks(item.contentSizeBand || 'M')
-  }
-  
-  // Normalize Content work weeks
-  let contentWorkWeeks = item.contentWorkWeeks
-  if (typeof contentWorkWeeks !== 'number' || isNaN(contentWorkWeeks) || contentWorkWeeks < 0) {
-    // Calculate from focus weeks
-    contentWorkWeeks = calculateWorkWeeks(contentFocusWeeks, focusTimeRatio)
-  }
-  
-  return {
-    ...item,
-    uxFocusWeeks,
-    uxWorkWeeks,
-    contentFocusWeeks,
-    contentWorkWeeks,
-  }
-}
-
-/**
- * Normalize an array of roadmap items
- */
-function normalizeRoadmapItems(items: RoadmapItem[]): RoadmapItem[] {
-  return items.map(normalizeRoadmapItem)
-}
-
 export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
   const { logActivity } = useActivity()
   const { getSessionById, uncommitSession } = usePlanningSessions()
@@ -160,14 +210,9 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
   // Store items as a map: planning_session_id -> RoadmapItem[]
   // Initialize from localStorage for immediate availability
   // Normalize items on initial load to ensure they have valid focus/work weeks
-  const [itemsBySession, setItemsBySession] = useState<Record<string, RoadmapItem[]>>(() => {
-    const loaded = loadItemsFromStorage()
-    const normalized: Record<string, RoadmapItem[]> = {}
-    for (const [sessionId, items] of Object.entries(loaded)) {
-      normalized[sessionId] = normalizeRoadmapItems(items)
-    }
-    return normalized
-  })
+  const [itemsBySession, setItemsBySession] = useState<Record<string, RoadmapItem[]>>(() =>
+    loadItemsFromStorage()
+  )
   // Store inputs as a map: itemId -> { intake, pd, cd }
   const [inputsByItemId, setInputsByItemId] = useState<Record<string, ItemInputs>>(() =>
     loadInputsFromStorage()
@@ -317,7 +362,7 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
             short_key: input.short_key,
             name: input.name,
             initiative: input.initiative,
-            priority: input.priority,
+            priority: input.priority ?? 'P2',
             status: 'draft',
           }),
         })
@@ -405,24 +450,13 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
       })
       
       // Ensure numeric fields are numbers (Postgres NUMERIC can return as strings)
-      const priorityMap: Record<number, 'P0' | 'P1' | 'P2' | 'P3'> = { 0: 'P0', 1: 'P1', 2: 'P2', 3: 'P3' }
-      const rawPriority = updatedItem.priority as unknown
-      let priority: RoadmapItem['priority']
-      if (rawPriority === 'P0' || rawPriority === 'P1' || rawPriority === 'P2' || rawPriority === 'P3') {
-        priority = rawPriority
-      } else {
-        const n = typeof rawPriority === 'string' ? Number(rawPriority) : rawPriority
-        priority =
-          typeof n === 'number' && n >= 0 && n <= 3 && Number.isFinite(n) ? priorityMap[n] : 'P2'
-      }
-
       const normalizedResponse: RoadmapItem = {
         ...updatedItem,
         uxFocusWeeks: typeof updatedItem.uxFocusWeeks === 'string' ? Number(updatedItem.uxFocusWeeks) : updatedItem.uxFocusWeeks,
         uxWorkWeeks: typeof updatedItem.uxWorkWeeks === 'string' ? Number(updatedItem.uxWorkWeeks) : updatedItem.uxWorkWeeks,
         contentFocusWeeks: typeof updatedItem.contentFocusWeeks === 'string' ? Number(updatedItem.contentFocusWeeks) : updatedItem.contentFocusWeeks,
         contentWorkWeeks: typeof updatedItem.contentWorkWeeks === 'string' ? Number(updatedItem.contentWorkWeeks) : updatedItem.contentWorkWeeks,
-        priority,
+        priority: coerceRoadmapPriority(updatedItem.priority as unknown),
       }
       
       console.log('🟡 [updateItem] Normalized response:', { 

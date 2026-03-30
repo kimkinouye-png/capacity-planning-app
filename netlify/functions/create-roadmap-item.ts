@@ -107,6 +107,10 @@ export const handler: Handler = async (event) => {
         status,
         project_type,
         notes,
+        ux_product_risk,
+        ux_problem_ambiguity,
+        content_surface_area,
+        content_localization_scope,
         pm_intake,
         ux_factors,
         content_factors
@@ -121,6 +125,10 @@ export const handler: Handler = async (event) => {
         ${dbFormat.status || 'draft'},
         ${dbFormat.project_type ?? null},
         ${dbFormat.notes ?? null},
+        ${dbFormat.ux_product_risk ?? null},
+        ${dbFormat.ux_problem_ambiguity ?? null},
+        ${dbFormat.content_surface_area ?? null},
+        ${dbFormat.content_localization_scope ?? null},
         ${dbFormat.pm_intake ? JSON.stringify(dbFormat.pm_intake) : null}::jsonb,
         ${dbFormat.ux_factors ? JSON.stringify(dbFormat.ux_factors) : null}::jsonb,
         ${dbFormat.content_factors ? JSON.stringify(dbFormat.content_factors) : null}::jsonb

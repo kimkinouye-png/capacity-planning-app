@@ -33,6 +33,10 @@ export interface RoadmapItem {
   endDate?: string | null
   projectType?: 'net-new' | 'new-feature' | 'enhancement' | 'optimization' | 'fix-polish'
   notes?: string
+  uxProductRisk?: number
+  uxProblemAmbiguity?: number
+  contentSurfaceArea?: number
+  contentLocalizationScope?: number
 }
 
 export type ActivityEventType = 

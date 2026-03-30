@@ -54,6 +54,23 @@ import EditableNumberCell from '../components/EditableNumberCell'
 import EditableTextCell from '../components/EditableTextCell'
 import EditableDateCell from '../components/EditableDateCell'
 import PasteTableImportModal from '../features/scenarios/pasteTableImport/PasteTableImportModal'
+import type { RoadmapItem } from '../domain/types'
+
+function coerceImportedPriority(raw: unknown): RoadmapItem['priority'] {
+  if (raw === 'P0' || raw === 'P1' || raw === 'P2' || raw === 'P3') return raw
+  if (typeof raw === 'string') {
+    const t = raw.trim().toUpperCase()
+    if (t === 'P0' || t === 'P1' || t === 'P2' || t === 'P3') return t as RoadmapItem['priority']
+    const parsed = Number(raw)
+    if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 3) {
+      return (['P0', 'P1', 'P2', 'P3'] as const)[Math.trunc(parsed)]
+    }
+  }
+  if (typeof raw === 'number' && Number.isFinite(raw) && raw >= 0 && raw <= 3) {
+    return (['P0', 'P1', 'P2', 'P3'] as const)[Math.trunc(raw)]
+  }
+  return 'P2'
+}
 
 function SessionSummaryPage() {
   const { id } = useParams<{ id: string }>()
@@ -193,13 +210,10 @@ function SessionSummaryPage() {
     }
   }, [session, items])
 
-  // Format priority for display
-  const formatPriority = (priority: number | string | undefined) => {
+  // Format priority for display (P0–P3; legacy numeric values normalized in context)
+  const formatPriority = (priority: RoadmapItem['priority'] | undefined) => {
     if (priority === undefined || priority === null) return '—'
-    if (typeof priority === 'number') {
-      return `P${priority}`
-    }
-    return priority.toUpperCase()
+    return priority
   }
 
   // Format status for display
@@ -613,7 +627,7 @@ function SessionSummaryPage() {
       name: string
       short_key: string
       initiative: string
-      priority: number
+      priority: number | RoadmapItem['priority']
       effortWeeks?: number // Legacy 4-column format
       uxEffortWeeks?: number // 5-column format
       contentEffortWeeks?: number // 5-column format
@@ -625,18 +639,10 @@ function SessionSummaryPage() {
 
     try {
       const focusTimeRatio = 0.75 // Default ratio
-      const priorityMap: Record<number, 'P0' | 'P1' | 'P2' | 'P3'> = {
-        0: 'P0',
-        1: 'P1',
-        2: 'P2',
-        3: 'P3',
-      }
 
       // Import items sequentially
       for (const item of items) {
-        const p = item.priority
-        const priority =
-          typeof p === 'number' && p >= 0 && p <= 3 && Number.isFinite(p) ? priorityMap[p] : 'P2'
+        const priority = coerceImportedPriority(item.priority)
 
         const newItem = await createItem(id, {
           short_key: item.short_key,
@@ -1711,7 +1717,7 @@ function SessionSummaryPage() {
                   />
                 </FormControl>
 
-                <FormControl isRequired>
+                <FormControl>
                   <FormLabel color="gray.300">Initiative</FormLabel>
                   <Input
                     bg="#1a1a20"

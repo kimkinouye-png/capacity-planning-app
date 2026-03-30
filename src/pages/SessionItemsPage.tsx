@@ -196,7 +196,7 @@ function SessionItemsPage() {
                   />
                 </FormControl>
 
-                <FormControl isRequired>
+                <FormControl>
                   <FormLabel>Initiative</FormLabel>
                   <Input
                     value={formData.initiative}

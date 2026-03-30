@@ -138,6 +138,11 @@ export interface DatabaseRoadmapItem {
   content_work_weeks: number | null
   start_date: string | null // DATE in Postgres, ISO string (YYYY-MM-DD) in TypeScript
   end_date: string | null    // DATE in Postgres, ISO string (YYYY-MM-DD) in TypeScript
+  notes: string | null
+  ux_product_risk: number | null
+  ux_problem_ambiguity: number | null
+  content_surface_area: number | null
+  content_localization_scope: number | null
   created_at: string
   updated_at: string
 }
@@ -155,6 +160,10 @@ export interface CreateRoadmapItemRequest {
   pm_intake?: PMIntake
   ux_factors?: ProductDesignInputs
   content_factors?: ContentDesignInputs
+  ux_product_risk?: number
+  ux_problem_ambiguity?: number
+  content_surface_area?: number
+  content_localization_scope?: number
 }
 
 /**
@@ -187,6 +196,10 @@ export interface UpdateRoadmapItemRequest {
   content_focus_weeks?: number
   ux_work_weeks?: number
   content_work_weeks?: number
+  ux_product_risk?: number
+  ux_problem_ambiguity?: number
+  content_surface_area?: number
+  content_localization_scope?: number
 }
 
 /**
@@ -252,6 +265,10 @@ export function dbRoadmapItemToRoadmapItemResponse(db: DatabaseRoadmapItem): Roa
     contentWorkWeeks,
     startDate: db.start_date || null,
     endDate: db.end_date || null,
+    uxProductRisk: db.ux_product_risk ?? undefined,
+    uxProblemAmbiguity: db.ux_problem_ambiguity ?? undefined,
+    contentSurfaceArea: db.content_surface_area ?? undefined,
+    contentLocalizationScope: db.content_localization_scope ?? undefined,
   }
 }
 
@@ -275,7 +292,7 @@ export function roadmapItemToDbFormat(item: Partial<RoadmapItem>): Partial<Datab
   if (item.contentWorkWeeks !== undefined) db.content_work_weeks = item.contentWorkWeeks
   if (item.startDate !== undefined) db.start_date = item.startDate || null
   if (item.endDate !== undefined) db.end_date = item.endDate || null
-  
+
   return db
 }
 
@@ -293,6 +310,10 @@ export function createRoadmapItemRequestToDbFormat(req: CreateRoadmapItemRequest
     pm_intake: req.pm_intake || null,
     ux_factors: req.ux_factors || null,
     content_factors: req.content_factors || null,
+    ux_product_risk: req.ux_product_risk ?? null,
+    ux_problem_ambiguity: req.ux_problem_ambiguity ?? null,
+    content_surface_area: req.content_surface_area ?? null,
+    content_localization_scope: req.content_localization_scope ?? null,
   }
   
   return db

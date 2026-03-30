@@ -122,6 +122,18 @@ export const handler: Handler = async (event) => {
       }
     }
 
+    const complexityFields = [
+      body.ux_product_risk,
+      body.ux_problem_ambiguity,
+      body.content_surface_area,
+      body.content_localization_scope,
+    ]
+    for (const val of complexityFields) {
+      if (val !== undefined && (typeof val !== 'number' || val < 1 || val > 5)) {
+        return errorResponse(400, 'Complexity factors must be numbers between 1 and 5')
+      }
+    }
+
     // Fetch current item — verify session ownership via scenario join
     const current = await sql<DatabaseRoadmapItem>`
       SELECT ri.* FROM roadmap_items ri
@@ -145,6 +157,13 @@ export const handler: Handler = async (event) => {
     }
 
     const updates = roadmapItemToDbFormat(normalizedBody)
+
+    if (body.ux_product_risk !== undefined) updates.ux_product_risk = body.ux_product_risk
+    if (body.ux_problem_ambiguity !== undefined) updates.ux_problem_ambiguity = body.ux_problem_ambiguity
+    if (body.content_surface_area !== undefined) updates.content_surface_area = body.content_surface_area
+    if (body.content_localization_scope !== undefined) {
+      updates.content_localization_scope = body.content_localization_scope
+    }
 
     if (Object.keys(updates).length === 0) {
       return errorResponse(400, 'No fields to update')
@@ -175,6 +194,10 @@ export const handler: Handler = async (event) => {
         status = ${finalUpdates.status ?? currentItem.status},
         project_type = ${finalUpdates.project_type ?? currentItem.project_type},
         notes = ${finalUpdates.notes ?? currentItem.notes},
+        ux_product_risk = ${finalUpdates.ux_product_risk ?? currentItem.ux_product_risk},
+        ux_problem_ambiguity = ${finalUpdates.ux_problem_ambiguity ?? currentItem.ux_problem_ambiguity},
+        content_surface_area = ${finalUpdates.content_surface_area ?? currentItem.content_surface_area},
+        content_localization_scope = ${finalUpdates.content_localization_scope ?? currentItem.content_localization_scope},
         pm_intake = ${pmIntake ? JSON.stringify(pmIntake) : null}::jsonb,
         ux_factors = ${uxFactors ? JSON.stringify(uxFactors) : null}::jsonb,
         content_factors = ${contentFactors ? JSON.stringify(contentFactors) : null}::jsonb,
