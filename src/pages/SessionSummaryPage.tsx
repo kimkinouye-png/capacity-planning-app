@@ -42,10 +42,13 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
+  Divider,
+  Progress,
+  Flex,
 } from '@chakra-ui/react'
 import { DeleteIcon, CheckIcon } from '@chakra-ui/icons'
 import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom'
-import { useMemo, useRef, useEffect, useState } from 'react'
+import { useMemo, useRef, useEffect, useState, type ReactNode } from 'react'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
 import { useSettings } from '../context/SettingsContext'
@@ -71,6 +74,99 @@ function sessionStatusBadgeProps(status: PlanningSession['status']): { bg: strin
     default:
       return { bg: 'gray.600', color: 'gray.100', label: 'Draft' }
   }
+}
+
+type SessionCapacityCardMetrics = {
+  capacity: number
+  demand: number
+  surplus: number
+  utilization: number
+}
+
+function SessionCapacityCard({
+  title,
+  teamSizeControl,
+  metrics,
+}: {
+  title: string
+  teamSizeControl: ReactNode
+  metrics: SessionCapacityCardMetrics
+}) {
+  const { capacity, demand, surplus, utilization } = metrics
+  const isSurplus = surplus >= 0
+  const overCapacity = demand > capacity
+  const progressValue = Math.min(100, utilization)
+
+  const capacityStr = typeof capacity === 'number' ? capacity.toFixed(1) : '0.0'
+  const demandStr = typeof demand === 'number' ? demand.toFixed(1) : '0.0'
+  const utilizedPctStr = typeof utilization === 'number' ? utilization.toFixed(0) : '0'
+  const surplusAbsStr = typeof surplus === 'number' ? Math.abs(surplus).toFixed(1) : '0.0'
+
+  const surplusDeficitColor = isSurplus ? 'cyan.400' : 'red.400'
+
+  return (
+    <Box
+      bg="#1a1d2e"
+      border="1px solid"
+      borderColor="whiteAlpha.200"
+      borderRadius="md"
+      p={6}
+    >
+      <Heading size="sm" mb={4} fontWeight="bold" color="white">
+        {title}
+      </Heading>
+      <VStack spacing={3} align="stretch">
+        <Flex justify="space-between" align="center" gap={3} wrap="wrap">
+          <Text fontSize="sm" color="gray.500">
+            Team Size
+          </Text>
+          <Box fontSize="xl" fontWeight="bold" color="white" textAlign="right">
+            {teamSizeControl}
+          </Box>
+        </Flex>
+        <Flex justify="space-between" align="center" gap={3} wrap="wrap">
+          <Text fontSize="sm" color="gray.500">
+            Total Capacity
+          </Text>
+          <Text fontSize="xl" fontWeight="bold" color="white">
+            {capacityStr} focus weeks
+          </Text>
+        </Flex>
+        <Flex justify="space-between" align="center" gap={3} wrap="wrap">
+          <Text fontSize="sm" color="gray.500">
+            Total Demand
+          </Text>
+          <Text fontSize="xl" fontWeight="bold" color="white">
+            {demandStr} focus weeks
+          </Text>
+        </Flex>
+      </VStack>
+
+      <Divider borderColor="whiteAlpha.200" my={4} />
+
+      <VStack spacing={3} align="stretch">
+        <HStack spacing={2} align="center">
+          <Text fontSize="2xl" color={surplusDeficitColor} lineHeight={1} aria-hidden>
+            {isSurplus ? '↑' : '↓'}
+          </Text>
+          <Text fontSize="2xl" fontWeight="bold" color={surplusDeficitColor}>
+            {isSurplus ? '+' : '-'}
+            {surplusAbsStr} focus weeks
+          </Text>
+        </HStack>
+        <Text fontSize="sm" color="gray.500">
+          {isSurplus ? 'Surplus' : 'Deficit'} • {utilizedPctStr}% utilized
+        </Text>
+        <Progress
+          value={progressValue}
+          colorScheme={overCapacity ? 'red' : 'cyan'}
+          size="sm"
+          borderRadius="full"
+          w="100%"
+        />
+      </VStack>
+    </Box>
+  )
 }
 
 function coerceImportedPriority(raw: unknown): RoadmapItem['priority'] {
@@ -1044,188 +1140,73 @@ function SessionSummaryPage() {
 
         {/* Capacity Overview Cards */}
         {capacityMetrics && (
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={8}>
-            {/* UX Design Capacity Card */}
-            <Box
-              bg="#141419"
-              borderRadius="md"
-              p={6}
-              border="1px solid"
-              borderColor={capacityMetrics.ux.surplus >= 0 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}
-            >
-              <Heading size="sm" mb={4} fontWeight="bold" color="white">
-                UX Design Capacity
-              </Heading>
-              <VStack spacing={4} align="stretch">
-                <Box>
-                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
-                    Team Size
-                  </Text>
-                  <Box fontSize="24px" fontWeight="bold" color="white">
-                    <EditableNumberCell
-                      value={session.ux_designers}
-                      onChange={() => {
-                        // onChange is called immediately - optimistic update happens in context
-                      }}
-                      onUpdate={async (newValue) => {
-                        // Update via API - context does optimistic update, then syncs
-                        if (session.id && newValue !== undefined) {
-                          try {
-                            await updateSession(session.id, { ux_designers: newValue })
-                            // Success toast is optional - optimistic update already shows change
-                          } catch (error) {
-                            console.error('Failed to update UX designers:', error)
-                            toast({
-                              title: 'Update failed',
-                              description: 'Failed to update team size. Please try again.',
-                              status: 'error',
-                              duration: 3000,
-                              isClosable: true,
-                            })
-                            // Context will restore original value on error
-                          }
-                        }
-                      }}
-                      min={0}
-                      max={100}
-                      step={1}
-                      precision={0}
-                      color="white"
-                    />
-                  </Box>
-                </Box>
-                <Box>
-                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
-                    Total Capacity
-                  </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="white">
-                    {typeof capacityMetrics.ux.capacity === 'number' ? capacityMetrics.ux.capacity.toFixed(1) : '0.0'} focus weeks
-                  </Text>
-                </Box>
-                <Box>
-                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
-                    Total Demand
-                  </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="white">
-                    {typeof capacityMetrics.ux.demand === 'number' ? capacityMetrics.ux.demand.toFixed(1) : '0.0'} focus weeks
-                  </Text>
-                </Box>
-                <Box
-                  mt={4}
-                  pt={4}
-                  borderTop="1px solid"
-                  borderColor="rgba(255, 255, 255, 0.1)"
-                >
-                  <HStack spacing={2} mb={1}>
-                    <Text fontSize="20px" color={capacityMetrics.ux.surplus >= 0 ? '#10b981' : '#ef4444'}>
-                      {capacityMetrics.ux.surplus >= 0 ? '↑' : '↓'}
-                    </Text>
-                    <Text
-                      fontSize="24px"
-                      fontWeight="bold"
-                      color={capacityMetrics.ux.surplus >= 0 ? '#10b981' : '#ef4444'}
-                    >
-                      {capacityMetrics.ux.surplus >= 0 ? '+' : ''}
-                      {typeof capacityMetrics.ux.surplus === 'number' ? capacityMetrics.ux.surplus.toFixed(1) : '0.0'} focus weeks
-                    </Text>
-                  </HStack>
-                  <Text fontSize="12px" color="gray.400">
-                    {capacityMetrics.ux.surplus >= 0 ? 'Surplus' : 'Deficit'} • {typeof capacityMetrics.ux.utilization === 'number' ? capacityMetrics.ux.utilization.toFixed(0) : '0'}% utilized
-                  </Text>
-                </Box>
-              </VStack>
-            </Box>
-
-            {/* Content Design Capacity Card */}
-            <Box
-              bg="#141419"
-              borderRadius="md"
-              p={6}
-              border="1px solid"
-              borderColor={capacityMetrics.content.surplus >= 0 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}
-            >
-              <Heading size="sm" mb={4} fontWeight="bold" color="white">
-                Content Design Capacity
-              </Heading>
-              <VStack spacing={4} align="stretch">
-                <Box>
-                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
-                    Team Size
-                  </Text>
-                  <Box fontSize="24px" fontWeight="bold" color="white">
-                    <EditableNumberCell
-                      value={session.content_designers}
-                      onChange={() => {
-                        // onChange is called immediately - optimistic update happens in context
-                      }}
-                      onUpdate={async (newValue) => {
-                        // Update via API - context does optimistic update, then syncs
-                        if (session.id && newValue !== undefined) {
-                          try {
-                            await updateSession(session.id, { content_designers: newValue })
-                            // Success toast is optional - optimistic update already shows change
-                          } catch (error) {
-                            console.error('Failed to update content designers:', error)
-                            toast({
-                              title: 'Update failed',
-                              description: 'Failed to update team size. Please try again.',
-                              status: 'error',
-                              duration: 3000,
-                              isClosable: true,
-                            })
-                            // Context will restore original value on error
-                          }
-                        }
-                      }}
-                      min={0}
-                      max={100}
-                      step={1}
-                      precision={0}
-                      color="white"
-                    />
-                  </Box>
-                </Box>
-                <Box>
-                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
-                    Total Capacity
-                  </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="white">
-                    {typeof capacityMetrics.content.capacity === 'number' ? capacityMetrics.content.capacity.toFixed(1) : '0.0'} focus weeks
-                  </Text>
-                </Box>
-                <Box>
-                  <Text fontSize="12px" color="gray.400" fontWeight="medium" mb={1}>
-                    Total Demand
-                  </Text>
-                  <Text fontSize="24px" fontWeight="bold" color="white">
-                    {typeof capacityMetrics.content.demand === 'number' ? capacityMetrics.content.demand.toFixed(1) : '0.0'} focus weeks
-                  </Text>
-                </Box>
-                <Box
-                  mt={4}
-                  pt={4}
-                  borderTop="1px solid"
-                  borderColor="rgba(255, 255, 255, 0.1)"
-                >
-                  <HStack spacing={2} mb={1}>
-                    <Text fontSize="20px" color={capacityMetrics.content.surplus >= 0 ? '#10b981' : '#ef4444'}>
-                      {capacityMetrics.content.surplus >= 0 ? '↑' : '↓'}
-                    </Text>
-                    <Text
-                      fontSize="24px"
-                      fontWeight="bold"
-                      color={capacityMetrics.content.surplus >= 0 ? '#10b981' : '#ef4444'}
-                    >
-                      {capacityMetrics.content.surplus >= 0 ? '+' : ''}
-                      {typeof capacityMetrics.content.surplus === 'number' ? capacityMetrics.content.surplus.toFixed(1) : '0.0'} focus weeks
-                    </Text>
-                  </HStack>
-                  <Text fontSize="12px" color="gray.400">
-                    {capacityMetrics.content.surplus >= 0 ? 'Surplus' : 'Deficit'} • {typeof capacityMetrics.content.utilization === 'number' ? capacityMetrics.content.utilization.toFixed(0) : '0'}% utilized
-                  </Text>
-                </Box>
-              </VStack>
-            </Box>
+          <SimpleGrid columns={{ base: 1, md: 2 }} gap={4} mb={8}>
+            <SessionCapacityCard
+              title="UX Design Capacity"
+              metrics={capacityMetrics.ux}
+              teamSizeControl={
+                <EditableNumberCell
+                  value={session.ux_designers}
+                  onChange={() => {
+                    // onChange is called immediately - optimistic update happens in context
+                  }}
+                  onUpdate={async (newValue) => {
+                    if (session.id && newValue !== undefined) {
+                      try {
+                        await updateSession(session.id, { ux_designers: newValue })
+                      } catch (error) {
+                        console.error('Failed to update UX designers:', error)
+                        toast({
+                          title: 'Update failed',
+                          description: 'Failed to update team size. Please try again.',
+                          status: 'error',
+                          duration: 3000,
+                          isClosable: true,
+                        })
+                      }
+                    }
+                  }}
+                  min={0}
+                  max={100}
+                  step={1}
+                  precision={0}
+                  color="white"
+                />
+              }
+            />
+            <SessionCapacityCard
+              title="Content Design Capacity"
+              metrics={capacityMetrics.content}
+              teamSizeControl={
+                <EditableNumberCell
+                  value={session.content_designers}
+                  onChange={() => {
+                    // onChange is called immediately - optimistic update happens in context
+                  }}
+                  onUpdate={async (newValue) => {
+                    if (session.id && newValue !== undefined) {
+                      try {
+                        await updateSession(session.id, { content_designers: newValue })
+                      } catch (error) {
+                        console.error('Failed to update content designers:', error)
+                        toast({
+                          title: 'Update failed',
+                          description: 'Failed to update team size. Please try again.',
+                          status: 'error',
+                          duration: 3000,
+                          isClosable: true,
+                        })
+                      }
+                    }
+                  }}
+                  min={0}
+                  max={100}
+                  step={1}
+                  precision={0}
+                  color="white"
+                />
+              }
+            />
           </SimpleGrid>
         )}
 
