@@ -532,25 +532,23 @@ function SessionsListPage() {
                     _hover={{ color: CYAN, bg: 'whiteAlpha.50' }}
                   />
                 </Tooltip>
-                {itemCount === 0 && (
-                  <Tooltip label="Delete scenario" hasArrow>
-                    <IconButton
-                      aria-label="Delete scenario"
-                      icon={<DeleteIcon />}
-                      size="sm"
-                      variant="ghost"
-                      colorScheme="red"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (session.id && session.name) {
-                          setSessionToDelete({ id: session.id, name: session.name })
-                          onDeleteOpen()
-                        }
-                      }}
-                      _hover={{ bg: 'rgba(239, 68, 68, 0.15)' }}
-                    />
-                  </Tooltip>
-                )}
+                <Tooltip label="Delete scenario" hasArrow>
+                  <IconButton
+                    aria-label="Delete scenario"
+                    icon={<DeleteIcon />}
+                    size="sm"
+                    variant="ghost"
+                    colorScheme="red"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (session.id && session.name) {
+                        setSessionToDelete({ id: session.id, name: session.name })
+                        onDeleteOpen()
+                      }
+                    }}
+                    _hover={{ bg: 'rgba(239, 68, 68, 0.15)' }}
+                  />
+                </Tooltip>
               </HStack>
             </Flex>
           </VStack>
@@ -560,14 +558,8 @@ function SessionsListPage() {
   }
 
   const pageHeader = (
-    <Flex
-      direction={{ base: 'column', md: 'row' }}
-      justify="space-between"
-      align={{ base: 'stretch', md: 'flex-start' }}
-      gap={4}
-      mb={8}
-    >
-      <Box>
+    <Flex direction="row" justify="space-between" align="flex-start" gap={4} mb={8}>
+      <Box flex="1" minW={0} pr={2}>
         <Heading size="xl" color="white" fontWeight="bold" letterSpacing="tight">
           Plan → Compare → Commit
         </Heading>
@@ -580,7 +572,8 @@ function SessionsListPage() {
         color="#0a0a0f"
         _hover={{ bg: '#33e1ff' }}
         size="md"
-        alignSelf={{ base: 'stretch', md: 'flex-start' }}
+        flexShrink={0}
+        w="auto"
         onClick={onOpen}
       >
         + New Plan
