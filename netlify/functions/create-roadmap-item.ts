@@ -77,9 +77,9 @@ export const handler: Handler = async (event) => {
     }
 
     // Verify scenario belongs to this session and get its quarter
-    const scenarioCheck = await sql<{ id: string; quarter: string }>`
+    const scenarioCheck = (await sql`
       SELECT id, quarter FROM scenarios WHERE id = ${body.scenario_id} AND session_id = ${sessionId}
-    `
+    `) as { id: string; quarter: string }[]
     if (scenarioCheck.length === 0) {
       return errorResponse(404, 'Scenario not found')
     }
@@ -96,7 +96,7 @@ export const handler: Handler = async (event) => {
       return errorResponse(400, 'Missing required fields after transformation')
     }
 
-    const result = await sql<DatabaseRoadmapItem>`
+    const result = (await sql`
       INSERT INTO roadmap_items (
         scenario_id,
         key,
@@ -134,7 +134,7 @@ export const handler: Handler = async (event) => {
         ${dbFormat.content_factors ? JSON.stringify(dbFormat.content_factors) : null}::jsonb
       )
       RETURNING *
-    `
+    `) as DatabaseRoadmapItem[]
 
     // Update scenario roadmap_items_count
     await sql`

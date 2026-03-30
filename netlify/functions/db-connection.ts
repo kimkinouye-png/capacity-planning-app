@@ -154,7 +154,7 @@ function isRetryableError(error: unknown): boolean {
  * - Retries: 3 attempts
  * - Delays: 1s → 2s → 4s (exponential backoff, max 5s)
  */
-export async function getDatabaseConnection(): Promise<NeonQueryFunction<any>> {
+export async function getDatabaseConnection(): Promise<NeonQueryFunction<any, any>> {
   return getDatabaseConnectionInternal(
     CONNECTION_TIMEOUT_READ,
     MAX_RETRIES_READ,
@@ -184,7 +184,7 @@ export async function getDatabaseConnection(): Promise<NeonQueryFunction<any>> {
  * - delete-scenario.ts
  * - delete-roadmap-item.ts
  */
-export async function getDatabaseConnectionForWrites(): Promise<NeonQueryFunction<any>> {
+export async function getDatabaseConnectionForWrites(): Promise<NeonQueryFunction<any, any>> {
   return getDatabaseConnectionInternal(
     CONNECTION_TIMEOUT_WRITE,
     MAX_RETRIES_WRITE,
@@ -201,7 +201,7 @@ async function getDatabaseConnectionInternal(
   maxRetries: number,
   calculateDelay: (attempt: number) => number,
   operationType: 'READ' | 'WRITE'
-): Promise<NeonQueryFunction<any>> {
+): Promise<NeonQueryFunction<any, any>> {
   let connectionString = process.env.NETLIFY_DATABASE_URL
   
   if (!connectionString) {
@@ -323,7 +323,7 @@ async function getDatabaseConnectionInternal(
  * Execute a database query with automatic retry on connection errors (READ operations)
  */
 export async function executeQuery<T = any>(
-  queryFn: (sql: NeonQueryFunction<any>) => Promise<T>
+  queryFn: (sql: NeonQueryFunction<any, any>) => Promise<T>
 ): Promise<T> {
   let lastError: Error | null = null
   
@@ -353,7 +353,7 @@ export async function executeQuery<T = any>(
  * Uses write-specific timeout and retry configuration
  */
 export async function executeWriteQuery<T = any>(
-  queryFn: (sql: NeonQueryFunction<any>) => Promise<T>
+  queryFn: (sql: NeonQueryFunction<any, any>) => Promise<T>
 ): Promise<T> {
   let lastError: Error | null = null
   

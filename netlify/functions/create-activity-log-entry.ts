@@ -87,9 +87,9 @@ export const handler: Handler = async (event, context) => {
     }
 
     if (body.scenarioId) {
-      const scenarioCheck = await sql<{ id: string }>`
+      const scenarioCheck = (await sql`
         SELECT id FROM scenarios WHERE id = ${body.scenarioId} AND session_id = ${sessionId}
-      `
+      `) as { id: string }[]
       if (scenarioCheck.length === 0) {
         return errorResponse(404, 'Scenario not found')
       }
@@ -107,7 +107,7 @@ export const handler: Handler = async (event, context) => {
     }
 
     // Insert into database
-    const result = await sql`
+    const result = (await sql`
       INSERT INTO activity_log (
         type,
         scenario_id,
@@ -129,7 +129,7 @@ export const handler: Handler = async (event, context) => {
         scenario_id as "scenarioId",
         scenario_name as "scenarioName",
         description
-    `
+    `) as Record<string, any>[]
 
     if (result.length === 0) {
       return errorResponse(500, 'Failed to create activity log entry')

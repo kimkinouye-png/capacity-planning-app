@@ -135,11 +135,11 @@ export const handler: Handler = async (event) => {
     }
 
     // Fetch current item — verify session ownership via scenario join
-    const current = await sql<DatabaseRoadmapItem>`
+    const current = (await sql`
       SELECT ri.* FROM roadmap_items ri
       JOIN scenarios s ON s.id = ri.scenario_id AND s.session_id = ${sessionId}
       WHERE ri.id = ${body.id}
-    `
+    `) as DatabaseRoadmapItem[]
 
     if (current.length === 0) {
       return errorResponse(404, 'Roadmap item not found')
@@ -184,7 +184,7 @@ export const handler: Handler = async (event) => {
       fields: Object.keys(updates),
     })
 
-    const result = await sql<DatabaseRoadmapItem>`
+    const result = (await sql`
       UPDATE roadmap_items
       SET
         key = ${finalUpdates.key ?? currentItem.key},
@@ -214,7 +214,7 @@ export const handler: Handler = async (event) => {
         updated_at = NOW()
       WHERE id = ${body.id}
       RETURNING *
-    `
+    `) as DatabaseRoadmapItem[]
 
     if (result.length === 0) {
       return errorResponse(404, 'Roadmap item not found after update')

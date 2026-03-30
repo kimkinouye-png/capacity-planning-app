@@ -52,13 +52,13 @@ export const handler: Handler = async (event, context) => {
       return errorResponse(400, 'Invalid id format')
     }
 
-    const scenarioCheck = await sql<{ id: string; item_count: number }>`
+    const scenarioCheck = (await sql`
       SELECT s.id, COUNT(ri.id)::int as item_count
       FROM scenarios s
       LEFT JOIN roadmap_items ri ON ri.scenario_id = s.id
       WHERE s.id = ${id} AND s.session_id = ${sessionId}
       GROUP BY s.id
-    `
+    `) as { id: string; item_count: number }[]
 
     if (scenarioCheck.length === 0) {
       return errorResponse(404, 'Scenario not found')

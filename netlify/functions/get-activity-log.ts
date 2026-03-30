@@ -41,7 +41,9 @@ export const handler: Handler = async (event, context) => {
 
     const sql = await getDatabaseConnection()
 
-    const params = new URLSearchParams(event.queryStringParameters || '')
+    const params = new URLSearchParams(
+      (event.queryStringParameters as Record<string, string>) || ''
+    )
     const scenarioId = params.get('scenarioId') || params.get('sessionId')
 
     if (scenarioId && !isValidUUID(scenarioId)) {
@@ -80,7 +82,7 @@ export const handler: Handler = async (event, context) => {
       `
     }
 
-    const results = await query
+    const results = (await query) as Record<string, any>[]
 
     // Transform database results to ActivityEvent format
     const activities: ActivityEvent[] = results.map((row: any) => ({

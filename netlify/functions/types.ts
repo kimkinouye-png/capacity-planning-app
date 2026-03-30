@@ -11,14 +11,24 @@ import type { PlanningSession, PlanningPeriod, RoadmapItem, PMIntake, ProductDes
 export interface DatabaseScenario {
   id: string
   session_id: string | null
-  title: string
+  name: string
+  description: string | null
   quarter: string // e.g., "2026-Q1"
   year: number
-  committed: boolean
+  status: PlanningSession['status']
   ux_designers: number
   content_designers: number
   weeks_per_period: number
   sprint_length_weeks: number
+  capacity_ux_design: number | null
+  capacity_content_design: number | null
+  demand_ux_design: number | null
+  demand_content_design: number | null
+  roadmap_items_count: number | null
+  capacity_override_ux: number | null
+  capacity_override_content: number | null
+  capacity_override_reason: string | null
+  capacity_is_manual: boolean | null
   created_at: string
   updated_at: string
 }
@@ -28,6 +38,7 @@ export interface DatabaseScenario {
  */
 export interface CreateScenarioRequest {
   name: string
+  description?: string | null
   planning_period?: string
   planningPeriod?: PlanningPeriod
   weeks_per_period?: number
@@ -42,14 +53,18 @@ export interface CreateScenarioRequest {
 export interface UpdateScenarioRequest {
   id: string
   name?: string
+  description?: string | null
   planning_period?: string
   planningPeriod?: PlanningPeriod
   weeks_per_period?: number
   sprint_length_weeks?: number
   ux_designers?: number
   content_designers?: number
-  status?: 'draft' | 'committed'
-  isCommitted?: boolean
+  status?: PlanningSession['status']
+  capacity_override_ux?: number | null
+  capacity_override_content?: number | null
+  capacity_override_reason?: string | null
+  capacity_is_manual?: boolean | null
 }
 
 /**
@@ -71,30 +86,37 @@ export interface ErrorResponse {
 export function dbScenarioToPlanningSession(db: DatabaseScenario): PlanningSession {
   return {
     id: db.id,
-    name: db.title,
+    name: db.name,
+    description: db.description,
     planning_period: db.quarter,
     planningPeriod: db.quarter as PlanningPeriod,
     weeks_per_period: db.weeks_per_period,
     sprint_length_weeks: db.sprint_length_weeks,
     ux_designers: db.ux_designers,
     content_designers: db.content_designers,
-    status: db.committed ? 'committed' : 'draft',
-    isCommitted: db.committed,
+    status: db.status,
+    capacity_override_ux: db.capacity_override_ux,
+    capacity_override_content: db.capacity_override_content,
+    capacity_override_reason: db.capacity_override_reason,
+    capacity_is_manual: db.capacity_is_manual,
     created_at: db.created_at,
     updated_at: db.updated_at,
   }
 }
 
+/** Input accepted by planningSessionToDbFormat (partial session + same field names as API). */
+export type PlanningSessionWriteInput = Partial<PlanningSession>
+
 /**
  * Helper to transform PlanningSession format to database format
  */
-export function planningSessionToDbFormat(session: Partial<PlanningSession>): Partial<DatabaseScenario> {
+export function planningSessionToDbFormat(session: PlanningSessionWriteInput): Partial<DatabaseScenario> {
   const db: Partial<DatabaseScenario> = {}
-  
-  if (session.name !== undefined) db.title = session.name
+
+  if (session.name !== undefined) db.name = session.name
+  if (session.description !== undefined) db.description = session.description ?? null
   if (session.planningPeriod !== undefined || session.planning_period !== undefined) {
     db.quarter = session.planningPeriod || session.planning_period || ''
-    // Extract year from quarter
     const quarter = session.planningPeriod || session.planning_period
     if (quarter) {
       const yearMatch = quarter.match(/^(\d{4})-/)
@@ -105,12 +127,16 @@ export function planningSessionToDbFormat(session: Partial<PlanningSession>): Pa
   if (session.sprint_length_weeks !== undefined) db.sprint_length_weeks = session.sprint_length_weeks
   if (session.ux_designers !== undefined) db.ux_designers = session.ux_designers
   if (session.content_designers !== undefined) db.content_designers = session.content_designers
-  if (session.status !== undefined) {
-    db.committed = session.status === 'committed'
-  } else if (session.isCommitted !== undefined) {
-    db.committed = session.isCommitted
+  if (session.status !== undefined) db.status = session.status
+  if (session.capacity_override_ux !== undefined) db.capacity_override_ux = session.capacity_override_ux ?? null
+  if (session.capacity_override_content !== undefined) {
+    db.capacity_override_content = session.capacity_override_content ?? null
   }
-  
+  if (session.capacity_override_reason !== undefined) {
+    db.capacity_override_reason = session.capacity_override_reason ?? null
+  }
+  if (session.capacity_is_manual !== undefined) db.capacity_is_manual = session.capacity_is_manual ?? null
+
   return db
 }
 
@@ -123,8 +149,11 @@ export interface DatabaseRoadmapItem {
   key: string // Maps to short_key in frontend
   name: string
   initiative: string | null
-  priority: number | null
-  status: string // 'draft' | 'ready_for_sizing' | 'sized' | 'locked'
+  priority: RoadmapItem['priority'] | null
+  quarter: string | null
+  status: string
+  project_type: string | null
+  notes: string | null
   pm_intake: PMIntake | null // JSONB
   ux_factors: ProductDesignInputs | null // JSONB
   content_factors: ContentDesignInputs | null // JSONB
@@ -138,7 +167,6 @@ export interface DatabaseRoadmapItem {
   content_work_weeks: number | null
   start_date: string | null // DATE in Postgres, ISO string (YYYY-MM-DD) in TypeScript
   end_date: string | null    // DATE in Postgres, ISO string (YYYY-MM-DD) in TypeScript
-  notes: string | null
   ux_product_risk: number | null
   ux_problem_ambiguity: number | null
   content_surface_area: number | null
@@ -155,8 +183,11 @@ export interface CreateRoadmapItemRequest {
   short_key: string // Maps to key in DB
   name: string
   initiative?: string
-  priority?: number
-  status?: 'draft' | 'ready_for_sizing' | 'sized' | 'locked'
+  priority?: RoadmapItem['priority']
+  status?: RoadmapItem['status']
+  project_type?: RoadmapItem['projectType']
+  quarter?: string
+  notes?: string
   pm_intake?: PMIntake
   ux_factors?: ProductDesignInputs
   content_factors?: ContentDesignInputs
@@ -175,8 +206,11 @@ export interface UpdateRoadmapItemRequest {
   short_key?: string
   name?: string
   initiative?: string
-  priority?: number
-  status?: 'draft' | 'ready_for_sizing' | 'sized' | 'locked'
+  priority?: RoadmapItem['priority']
+  status?: RoadmapItem['status']
+  project_type?: RoadmapItem['projectType']
+  quarter?: string
+  notes?: string
   pm_intake?: PMIntake
   ux_factors?: ProductDesignInputs
   content_factors?: ContentDesignInputs
@@ -255,8 +289,10 @@ export function dbRoadmapItemToRoadmapItemResponse(db: DatabaseRoadmapItem): Roa
     short_key: db.key,
     name: db.name,
     initiative: db.initiative || '',
-    priority: db.priority || 0,
+    priority: db.priority || 'P2',
     status: (db.status as RoadmapItem['status']) || 'draft',
+    projectType: (db.project_type as RoadmapItem['projectType']) || undefined,
+    notes: db.notes ?? undefined,
     uxSizeBand,
     uxFocusWeeks,
     uxWorkWeeks,
@@ -292,6 +328,8 @@ export function roadmapItemToDbFormat(item: Partial<RoadmapItem>): Partial<Datab
   if (item.contentWorkWeeks !== undefined) db.content_work_weeks = item.contentWorkWeeks
   if (item.startDate !== undefined) db.start_date = item.startDate || null
   if (item.endDate !== undefined) db.end_date = item.endDate || null
+  if (item.projectType !== undefined) db.project_type = item.projectType ?? null
+  if (item.notes !== undefined) db.notes = item.notes ?? null
 
   return db
 }
@@ -307,6 +345,9 @@ export function createRoadmapItemRequestToDbFormat(req: CreateRoadmapItemRequest
     initiative: req.initiative || null,
     priority: req.priority ?? null,
     status: req.status || 'draft',
+    project_type: req.project_type ?? null,
+    quarter: req.quarter ?? null,
+    notes: req.notes ?? null,
     pm_intake: req.pm_intake || null,
     ux_factors: req.ux_factors || null,
     content_factors: req.content_factors || null,

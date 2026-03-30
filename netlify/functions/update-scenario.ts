@@ -107,9 +107,9 @@ export const handler: Handler = async (event) => {
     }
 
     const selectStartTime = Date.now()
-    const current = await sql<DatabaseScenario>`
+    const current = (await sql`
       SELECT * FROM scenarios WHERE id = ${body.id} AND session_id = ${sessionId}
-    `
+    `) as DatabaseScenario[]
     console.log('🔍 [update-scenario] Select query completed', {
       found: current.length > 0,
       selectDuration: `${Date.now() - selectStartTime}ms`,
@@ -136,7 +136,7 @@ export const handler: Handler = async (event) => {
     }
 
     const updateStartTime = Date.now()
-    const result = await sql<DatabaseScenario>`
+    const result = (await sql`
       UPDATE scenarios
       SET
         name = ${updates.name ?? currentScenario.name},
@@ -155,7 +155,7 @@ export const handler: Handler = async (event) => {
         updated_at = NOW()
       WHERE id = ${body.id} AND session_id = ${sessionId}
       RETURNING *
-    `
+    `) as DatabaseScenario[]
 
     console.log('✏️ [update-scenario] Update query completed', {
       updateDuration: `${Date.now() - updateStartTime}ms`,

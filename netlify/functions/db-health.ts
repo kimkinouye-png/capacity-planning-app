@@ -33,7 +33,7 @@ export const handler: Handler = async (event, context) => {
     const sql = await getDatabaseConnection()
 
     // Perform a trivial query to verify database connection
-    const result = await sql`SELECT 1 as health_check`
+    const result = (await sql`SELECT 1 as health_check`) as Record<string, any>[]
 
     if (result && result.length > 0 && result[0].health_check === 1) {
       const response: HealthResponse = {

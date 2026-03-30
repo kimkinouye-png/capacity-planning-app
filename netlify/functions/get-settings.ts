@@ -96,17 +96,17 @@ export const handler: Handler = async (event) => {
   try {
     const sql = await getDatabaseConnection()
 
-    const result = await sql`
+    const result = (await sql`
       SELECT * FROM settings
       WHERE id = '00000000-0000-0000-0000-000000000000'
       LIMIT 1
-    `
+    `) as Record<string, any>[]
 
     let dbRow: any
 
     if (result.length === 0) {
       // Create default settings if missing
-      const inserted = await sql`
+      const inserted = (await sql`
         INSERT INTO settings (id, effort_model, time_model, size_bands)
         VALUES (
           '00000000-0000-0000-0000-000000000000',
@@ -115,7 +115,7 @@ export const handler: Handler = async (event) => {
           ${JSON.stringify(DEFAULT_SETTINGS.size_bands)}::jsonb
         )
         RETURNING *
-      `
+      `) as Record<string, any>[]
       dbRow = inserted[0]
     } else {
       dbRow = result[0]

@@ -38,7 +38,7 @@ export const handler: Handler = async (event) => {
     const sql = await getDatabaseConnection()
 
     // Return all new fields; exclude NULL session_id (legacy rows)
-    const dbScenarios = await sql<DatabaseScenario>`
+    const dbScenarios = (await sql`
       SELECT
         id,
         session_id,
@@ -65,7 +65,7 @@ export const handler: Handler = async (event) => {
       FROM scenarios
       WHERE session_id IS NOT NULL AND session_id = ${trimmedSessionId}
       ORDER BY updated_at DESC
-    `
+    `) as DatabaseScenario[]
 
     const scenarios: ScenarioResponse[] = dbScenarios.map(dbScenarioToPlanningSession)
 

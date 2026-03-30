@@ -110,11 +110,11 @@ export const handler: Handler = async (event) => {
     }
 
     // Get current settings
-    const current = await sql`
+    const current = (await sql`
       SELECT * FROM settings
       WHERE id = '00000000-0000-0000-0000-000000000000'
       LIMIT 1
-    `
+    `) as Record<string, any>[]
 
     if (current.length === 0) {
       return errorResponse(404, 'Settings not found')
@@ -150,7 +150,7 @@ export const handler: Handler = async (event) => {
       ...body.size_bands,
     } : currentSettings.size_bands
 
-    const result = await sql`
+    const result = (await sql`
       UPDATE settings
       SET
         effort_model = ${JSON.stringify(updatedEffortModel)}::jsonb,
@@ -159,7 +159,7 @@ export const handler: Handler = async (event) => {
         updated_at = NOW()
       WHERE id = '00000000-0000-0000-0000-000000000000'
       RETURNING *
-    `
+    `) as Record<string, any>[]
 
     return {
       statusCode: 200,

@@ -103,7 +103,7 @@ export const handler: Handler = async (event) => {
       return errorResponse(400, 'Invalid planning period format')
     }
 
-    const result = await sql<DatabaseScenario>`
+    const result = (await sql`
       INSERT INTO scenarios (
         session_id,
         name,
@@ -141,7 +141,7 @@ export const handler: Handler = async (event) => {
         false
       )
       RETURNING *
-    `
+    `) as DatabaseScenario[]
 
     const scenario: ScenarioResponse = dbScenarioToPlanningSession(result[0])
 

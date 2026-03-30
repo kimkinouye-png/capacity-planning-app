@@ -57,11 +57,11 @@ export const handler: Handler = async (event) => {
     }
 
     // Fetch the original scenario (scoped to session)
-    const original = await sql<DatabaseScenario>`
+    const original = (await sql`
       SELECT * FROM scenarios
       WHERE id = ${body.id}
       AND session_id = ${sessionId}
-    `
+    `) as DatabaseScenario[]
 
     if (original.length === 0) {
       return errorResponse(404, 'Scenario not found')
@@ -71,7 +71,7 @@ export const handler: Handler = async (event) => {
     const newName = body.name || `${source.name} (Copy)`
 
     // Insert duplicated scenario — always starts as draft, resets capacity/demand
-    const duplicated = await sql<DatabaseScenario>`
+    const duplicated = (await sql`
       INSERT INTO scenarios (
         session_id,
         name,
@@ -109,7 +109,7 @@ export const handler: Handler = async (event) => {
         false
       )
       RETURNING *
-    `
+    `) as DatabaseScenario[]
 
     const newScenarioId = duplicated[0].id
 
@@ -179,9 +179,9 @@ export const handler: Handler = async (event) => {
     `
 
     // Fetch final state to return
-    const final = await sql<DatabaseScenario>`
+    const final = (await sql`
       SELECT * FROM scenarios WHERE id = ${newScenarioId}
-    `
+    `) as DatabaseScenario[]
 
     const scenario: ScenarioResponse = dbScenarioToPlanningSession(final[0])
 

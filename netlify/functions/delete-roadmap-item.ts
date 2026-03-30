@@ -69,11 +69,11 @@ export const handler: Handler = async (event, context) => {
     }
 
     const checkStartTime = Date.now()
-    const itemCheck = await sql<{ id: string }>`
+    const itemCheck = (await sql`
       SELECT ri.id FROM roadmap_items ri
       JOIN scenarios s ON s.id = ri.scenario_id AND s.session_id = ${sessionId}
       WHERE ri.id = ${id}
-    `
+    `) as { id: string }[]
     const checkEndTime = Date.now()
     const checkDuration = checkEndTime - checkStartTime
     console.log('🔍 [delete-roadmap-item] Item existence check completed', {

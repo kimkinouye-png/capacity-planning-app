@@ -3,6 +3,7 @@ export type PlanningPeriod = '2026-Q1' | '2026-Q2' | '2026-Q3' | '2026-Q4'
 export interface PlanningSession {
   id: string
   name: string
+  description?: string | null
   planning_period?: string // Legacy field, kept for backwards compatibility
   planningPeriod?: PlanningPeriod // Single selected quarter
   weeks_per_period: number
@@ -10,6 +11,10 @@ export interface PlanningSession {
   ux_designers: number
   content_designers: number
   status: 'draft' | 'in-review' | 'committed' | 'archived'
+  capacity_override_ux?: number | null
+  capacity_override_content?: number | null
+  capacity_override_reason?: string | null
+  capacity_is_manual?: boolean | null
   created_by?: string
   created_at: string
   updated_at: string

@@ -49,14 +49,14 @@ export const handler: Handler = async (event) => {
     }
 
     // Ensure scenario belongs to this session
-    const scenarioCheck = await sql<{ id: string }>`
+    const scenarioCheck = (await sql`
       SELECT id FROM scenarios WHERE id = ${scenarioId} AND session_id = ${sessionId}
-    `
+    `) as { id: string }[]
     if (scenarioCheck.length === 0) {
       return errorResponse(404, 'Scenario not found')
     }
 
-    const dbItems = await sql<DatabaseRoadmapItem>`
+    const dbItems = (await sql`
       SELECT
         id,
         scenario_id,
@@ -90,7 +90,7 @@ export const handler: Handler = async (event) => {
       FROM roadmap_items
       WHERE scenario_id = ${scenarioId}
       ORDER BY created_at ASC
-    `
+    `) as DatabaseRoadmapItem[]
 
     const items: RoadmapItemResponse[] = dbItems.map(dbRoadmapItemToRoadmapItemResponse)
 

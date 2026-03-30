@@ -139,11 +139,11 @@ export const handler: Handler = async (event) => {
     }
 
     // Verify scenario belongs to this session
-    const scenarioCheck = await sql`
+    const scenarioCheck = (await sql`
       SELECT id, quarter FROM scenarios
       WHERE id = ${body.scenario_id}
       AND session_id = ${sessionId}
-    `
+    `) as Record<string, any>[]
 
     if (scenarioCheck.length === 0) {
       return errorResponse(404, 'Scenario not found')
@@ -204,7 +204,7 @@ export const handler: Handler = async (event) => {
 
       const dbFormat = createRoadmapItemRequestToDbFormat(req)
 
-      const result = await sql<DatabaseRoadmapItem>`
+      const result = (await sql`
         INSERT INTO roadmap_items (
           scenario_id,
           key,
@@ -234,7 +234,7 @@ export const handler: Handler = async (event) => {
           ${dbFormat.content_factors ? JSON.stringify(dbFormat.content_factors) : null}
         )
         RETURNING *
-      `
+      `) as DatabaseRoadmapItem[]
       inserted.push(result[0])
     }
 
