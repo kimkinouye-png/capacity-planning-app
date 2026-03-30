@@ -22,6 +22,8 @@ import {
 } from '@chakra-ui/react'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
+import { useSettings } from '../context/SettingsContext'
+import { mapSizeBandToFocusWeeks } from '../config/effortModel'
 import type { RoadmapItem } from '../domain/types'
 
 type EditableFields = Pick<
@@ -42,6 +44,7 @@ export default function ItemDetailPage() {
   const toast = useToast()
   const { getItemsForSession, updateItem } = useRoadmapItems()
   const { getSessionById } = usePlanningSessions()
+  const { settings } = useSettings()
 
   const session = useMemo(() => (id ? getSessionById(id) : undefined), [id, getSessionById])
 
@@ -59,6 +62,14 @@ export default function ItemDetailPage() {
     notes: '',
   })
   const [saving, setSaving] = useState(false)
+  const [recalcedEffort, setRecalcedEffort] = useState<{
+    uxSizeBand: string
+    uxFocusWeeks: number
+    uxWorkWeeks: number
+    contentSizeBand: string
+    contentFocusWeeks: number
+    contentWorkWeeks: number
+  } | null>(null)
 
   useEffect(() => {
     if (!item) return
@@ -70,6 +81,7 @@ export default function ItemDetailPage() {
       projectType: item.projectType ?? 'new-feature',
       notes: item.notes ?? '',
     })
+    setRecalcedEffort(null)
   }, [item])
 
   if (!itemId) {
@@ -89,8 +101,37 @@ export default function ItemDetailPage() {
   }
 
   const set = (field: keyof EditableFields) =>
-    (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
-      setFormData((prev) => ({ ...prev, [field]: e.target.value }))
+    (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+      const value = e.target.value
+      setFormData((prev) => {
+        const updated = { ...prev, [field]: value }
+
+        if (field === 'projectType' && settings) {
+          const demand = settings.project_type_demand[value]
+          if (demand) {
+            const uxBand = demand.ux
+            const contentBand = demand.content
+            const uxFocusWeeks = mapSizeBandToFocusWeeks(uxBand)
+            const contentFocusWeeks = mapSizeBandToFocusWeeks(contentBand)
+            const focusTimeRatio = settings.focus_time_ratio ?? 0.75
+            setRecalcedEffort({
+              uxSizeBand: uxBand,
+              uxFocusWeeks,
+              uxWorkWeeks: Number((uxFocusWeeks / focusTimeRatio).toFixed(1)),
+              contentSizeBand: contentBand,
+              contentFocusWeeks,
+              contentWorkWeeks: Number((contentFocusWeeks / focusTimeRatio).toFixed(1)),
+            })
+          } else {
+            setRecalcedEffort(null)
+          }
+        } else if (field === 'projectType') {
+          setRecalcedEffort(null)
+        }
+
+        return updated
+      })
+    }
 
   const handleSave = async () => {
     setSaving(true)
@@ -102,7 +143,18 @@ export default function ItemDetailPage() {
         status: formData.status,
         projectType: formData.projectType as RoadmapItem['projectType'],
         notes: formData.notes,
+        ...(recalcedEffort
+          ? {
+              uxSizeBand: recalcedEffort.uxSizeBand as RoadmapItem['uxSizeBand'],
+              uxFocusWeeks: recalcedEffort.uxFocusWeeks,
+              uxWorkWeeks: recalcedEffort.uxWorkWeeks,
+              contentSizeBand: recalcedEffort.contentSizeBand as RoadmapItem['contentSizeBand'],
+              contentFocusWeeks: recalcedEffort.contentFocusWeeks,
+              contentWorkWeeks: recalcedEffort.contentWorkWeeks,
+            }
+          : {}),
       })
+      setRecalcedEffort(null)
       toast({
         title: 'Item saved',
         status: 'success',
@@ -122,6 +174,13 @@ export default function ItemDetailPage() {
       setSaving(false)
     }
   }
+
+  const displayUxFocusWeeks = recalcedEffort?.uxFocusWeeks ?? item.uxFocusWeeks
+  const displayUxWorkWeeks = recalcedEffort?.uxWorkWeeks ?? item.uxWorkWeeks
+  const displayUxSizeBand = recalcedEffort?.uxSizeBand ?? item.uxSizeBand
+  const displayContentFocusWeeks = recalcedEffort?.contentFocusWeeks ?? item.contentFocusWeeks
+  const displayContentWorkWeeks = recalcedEffort?.contentWorkWeeks ?? item.contentWorkWeeks
+  const displayContentSizeBand = recalcedEffort?.contentSizeBand ?? item.contentSizeBand
 
   return (
     <Box minH="100vh" bg="gray.900" color="white">
@@ -273,13 +332,14 @@ export default function ItemDetailPage() {
                     value={formData.projectType ?? ''}
                     onChange={set('projectType')}
                   >
-                    {(['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).map(
-                      (t) => (
-                        <option key={t} value={t} style={{ background: '#2D3748' }}>
-                          {t}
-                        </option>
-                      )
-                    )}
+                    <option key="net-new" value="net-new" style={{ background: '#2D3748' }}>
+                      New Product
+                    </option>
+                    {(['new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).map((t) => (
+                      <option key={t} value={t} style={{ background: '#2D3748' }}>
+                        {t}
+                      </option>
+                    ))}
                   </Select>
                 </FormControl>
               </GridItem>
@@ -318,14 +378,19 @@ export default function ItemDetailPage() {
               </Text>
               <Flex align="baseline" gap={2}>
                 <Text fontSize="2xl" fontWeight="bold" color="cyan.400">
-                  {item.uxFocusWeeks?.toFixed(1) ?? '—'}
+                  {displayUxFocusWeeks !== undefined && displayUxFocusWeeks !== null
+                    ? displayUxFocusWeeks.toFixed(1)
+                    : '—'}
                 </Text>
                 <Text fontSize="sm" color="gray.400">
                   focus weeks
                 </Text>
               </Flex>
               <Text fontSize="xs" color="gray.500" mt={1}>
-                {item.uxWorkWeeks?.toFixed(1) ?? '—'} work weeks · {item.uxSizeBand ?? '—'}
+                {displayUxWorkWeeks !== undefined && displayUxWorkWeeks !== null
+                  ? displayUxWorkWeeks.toFixed(1)
+                  : '—'}{' '}
+                work weeks · {displayUxSizeBand ?? '—'}
               </Text>
             </GridItem>
             <GridItem>
@@ -334,14 +399,19 @@ export default function ItemDetailPage() {
               </Text>
               <Flex align="baseline" gap={2}>
                 <Text fontSize="2xl" fontWeight="bold" color="cyan.400">
-                  {item.contentFocusWeeks?.toFixed(1) ?? '—'}
+                  {displayContentFocusWeeks !== undefined && displayContentFocusWeeks !== null
+                    ? displayContentFocusWeeks.toFixed(1)
+                    : '—'}
                 </Text>
                 <Text fontSize="sm" color="gray.400">
                   focus weeks
                 </Text>
               </Flex>
               <Text fontSize="xs" color="gray.500" mt={1}>
-                {item.contentWorkWeeks?.toFixed(1) ?? '—'} work weeks · {item.contentSizeBand ?? '—'}
+                {displayContentWorkWeeks !== undefined && displayContentWorkWeeks !== null
+                  ? displayContentWorkWeeks.toFixed(1)
+                  : '—'}{' '}
+                work weeks · {displayContentSizeBand ?? '—'}
               </Text>
             </GridItem>
           </Grid>

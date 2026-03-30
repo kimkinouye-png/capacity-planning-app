@@ -221,9 +221,10 @@ export default function AddRoadmapItemModal({
                     value={formData.projectType ?? ''}
                     onChange={set('projectType')}
                   >
-                    {(
-                      ['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish'] as const
-                    ).map((t) => (
+                    <option key="net-new" value="net-new" style={{ background: '#2D3748' }}>
+                      New Product
+                    </option>
+                    {(['new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).map((t) => (
                       <option key={t} value={t} style={{ background: '#2D3748' }}>
                         {t}
                       </option>
