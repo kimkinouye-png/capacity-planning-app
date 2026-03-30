@@ -39,9 +39,12 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
 } from '@chakra-ui/react'
-import { ChevronLeftIcon, DeleteIcon, CheckIcon } from '@chakra-ui/icons'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { DeleteIcon, CheckIcon } from '@chakra-ui/icons'
+import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useMemo, useRef, useEffect, useState } from 'react'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
@@ -54,7 +57,21 @@ import EditableNumberCell from '../components/EditableNumberCell'
 import EditableTextCell from '../components/EditableTextCell'
 import EditableDateCell from '../components/EditableDateCell'
 import PasteTableImportModal from '../features/scenarios/pasteTableImport/PasteTableImportModal'
-import type { RoadmapItem } from '../domain/types'
+import type { PlanningSession, RoadmapItem } from '../domain/types'
+
+function sessionStatusBadgeProps(status: PlanningSession['status']): { bg: string; color: string; label: string } {
+  switch (status) {
+    case 'committed':
+      return { bg: 'purple.600', color: 'white', label: 'Committed' }
+    case 'in-review':
+      return { bg: 'blue.600', color: 'white', label: 'In Review' }
+    case 'archived':
+      return { bg: 'gray.600', color: 'gray.100', label: 'Archived' }
+    case 'draft':
+    default:
+      return { bg: 'gray.600', color: 'gray.100', label: 'Draft' }
+  }
+}
 
 function coerceImportedPriority(raw: unknown): RoadmapItem['priority'] {
   if (raw === 'P0' || raw === 'P1' || raw === 'P2' || raw === 'P3') return raw
@@ -77,12 +94,11 @@ function SessionSummaryPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const { sessions, getSessionById, commitSession, uncommitSession, updateSession, isLoading: sessionsLoading, error: sessionsError, loadSessions } = usePlanningSessions()
-  const { getItemsForSession, removeItem, createItem, updateItem, loadItemsForSession, clearSessionData, forceReloadSession, error: roadmapError } = useRoadmapItems()
+  const { getItemsForSession, removeItem, createItem, updateItem, loadItemsForSession, error: roadmapError } = useRoadmapItems()
   const { settings } = useSettings()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isCreateModalOpen, onOpen: onCreateModalOpen, onClose: onCreateModalClose } = useDisclosure()
   const { isOpen: isPasteModalOpen, onOpen: onPasteModalOpen, onClose: onPasteModalClose } = useDisclosure()
-  const { isOpen: isClearDataOpen, onOpen: onClearDataOpen, onClose: onClearDataClose } = useDisclosure()
   const cancelRef = useRef<HTMLButtonElement>(null)
   const itemToDeleteRef = useRef<{ id: string; name: string } | null>(null)
 
@@ -550,77 +566,6 @@ function SessionSummaryPage() {
     }
   }
 
-  // Handle clear session data
-  const handleClearSessionData = async () => {
-    if (!id) return
-    
-    const loadingToast = toast({
-      title: 'Clearing session data...',
-      description: 'Removing all roadmap items and inputs. This may take a moment.',
-      status: 'info',
-      duration: null,
-      isClosable: false,
-    })
-    
-    try {
-      await clearSessionData(id)
-      toast.close(loadingToast)
-      toast({
-        title: 'Session data cleared',
-        description: 'All roadmap items and inputs have been removed.',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      })
-      onClearDataClose()
-    } catch (error) {
-      console.error('Error clearing session data:', error)
-      toast.close(loadingToast)
-      toast({
-        title: 'Failed to clear data',
-        description: error instanceof Error ? error.message : 'An error occurred while clearing session data.',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      })
-    }
-  }
-
-  // Handle force reload
-  const handleForceReload = async () => {
-    if (!id) return
-    
-    const loadingToast = toast({
-      title: 'Reloading session...',
-      description: 'Clearing cache and fetching fresh data from the database.',
-      status: 'info',
-      duration: null,
-      isClosable: false,
-    })
-    
-    try {
-      await forceReloadSession(id)
-      toast.close(loadingToast)
-      toast({
-        title: 'Session reloaded',
-        description: 'Fresh data has been loaded from the database.',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      })
-    } catch (error) {
-      console.error('Error force reloading session:', error)
-      toast.close(loadingToast)
-      toast({
-        title: 'Failed to reload',
-        description: error instanceof Error ? error.message : 'An error occurred while reloading the session.',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      })
-    }
-  }
-
   // Handle paste import
   const handlePasteImport = async (
     items: Array<{ 
@@ -900,6 +845,7 @@ function SessionSummaryPage() {
 
   // Get planning period (handles both legacy and new field names)
   const planningPeriod = session.planning_period || session.planningPeriod
+  const statusBadge = sessionStatusBadgeProps(session.status)
 
   return (
     <Box bg="#0a0a0f" minH="100vh" pb={8}>
@@ -925,33 +871,35 @@ function SessionSummaryPage() {
         )}
 
         {/* Header Section */}
-        <HStack spacing={4} mb={6} align="center">
-          <IconButton
-            aria-label="Back to home"
-            icon={<ChevronLeftIcon />}
-            variant="ghost"
-            onClick={() => navigate('/')}
-            color="gray.300"
-            _hover={{ color: '#00d9ff', bg: 'rgba(255, 255, 255, 0.05)' }}
-          />
-          <HStack spacing={2} fontSize="14px">
-            <Link to="/" style={{ color: '#00d9ff' }}>
-              Home
-            </Link>
-            <Text color="gray.400"> &gt; </Text>
-            <Link to={`/sessions/${id}`} style={{ color: '#00d9ff' }}>
-              {session.name}
-            </Link>
-            <Text color="gray.400"> &gt; </Text>
-            <Text color="gray.300" fontWeight="medium">
-              Scenario Summary
+        <Breadcrumb
+          mb={6}
+          spacing={2}
+          separator={
+            <Text color="gray.600" fontSize="sm" px={1}>
+              →
             </Text>
-          </HStack>
-        </HStack>
+          }
+        >
+          <BreadcrumbItem>
+            <BreadcrumbLink as={RouterLink} to="/" color="gray.500" _hover={{ color: 'gray.400' }}>
+              Get Started
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbItem>
+            <BreadcrumbLink as={RouterLink} to="/scenarios" color="gray.500" _hover={{ color: 'gray.400' }}>
+              Plans
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbItem isCurrentPage>
+            <Text color="white" fontWeight="medium">
+              {session.name}
+            </Text>
+          </BreadcrumbItem>
+        </Breadcrumb>
 
-        <HStack justify="space-between" align="start" mb={4}>
-          <Box>
-            <Box mb={2}>
+        <HStack justify="space-between" align="start" mb={4} flexWrap="wrap" gap={4}>
+          <Box flex="1" minW={0}>
+            <HStack align="center" spacing={3} mb={2} flexWrap="wrap">
               <InlineEditableText
                 value={session.name}
                 onChange={async (newName) => {
@@ -967,16 +915,27 @@ function SessionSummaryPage() {
                   }
                 }}
                 ariaLabel="Scenario name"
-                fontSize="xl"
+                fontSize="2xl"
                 fontWeight="bold"
               />
-            </Box>
+              <Badge
+                borderRadius="full"
+                px={3}
+                py={1}
+                fontSize="xs"
+                fontWeight="semibold"
+                bg={statusBadge.bg}
+                color={statusBadge.color}
+              >
+                {statusBadge.label}
+              </Badge>
+            </HStack>
             <Text fontSize="14px" color="gray.400">
               {formatQuarter(planningPeriod)} • {session.ux_designers} UX Designers • {session.content_designers} Content Designers
             </Text>
           </Box>
-          <HStack spacing={3}>
-            {session.status === 'committed' ? (
+          <HStack spacing={3} flexShrink={0}>
+            {session.status === 'committed' && (
               <Button
                 variant="outline"
                 size="md"
@@ -1050,7 +1009,8 @@ function SessionSummaryPage() {
               >
                 Uncommit
               </Button>
-            ) : (
+            )}
+            {session.status !== 'committed' && (
               <Button
                 colorScheme="cyan"
                 size="md"
@@ -1077,38 +1037,6 @@ function SessionSummaryPage() {
                 }}
               >
                 Commit this scenario
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleForceReload}
-              borderColor="rgba(255, 255, 255, 0.1)"
-              color="gray.400"
-              _hover={{
-                borderColor: 'rgba(255, 255, 255, 0.3)',
-                color: 'white',
-                bg: 'rgba(255, 255, 255, 0.05)',
-              }}
-              title="Clear cache and reload fresh data from database"
-            >
-              Force Reload
-            </Button>
-            {items.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClearDataOpen}
-                borderColor="rgba(239, 68, 68, 0.3)"
-                color="rgba(239, 68, 68, 0.8)"
-                _hover={{
-                  borderColor: 'rgba(239, 68, 68, 0.5)',
-                  color: '#ef4444',
-                  bg: 'rgba(239, 68, 68, 0.1)',
-                }}
-                title="Delete all roadmap items and inputs for this session"
-              >
-                Clear Data
               </Button>
             )}
           </HStack>
@@ -1638,42 +1566,6 @@ function SessionSummaryPage() {
                 ml={3}
               >
                 Delete
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
-
-      {/* Clear Session Data Confirmation Dialog */}
-      <AlertDialog isOpen={isClearDataOpen} leastDestructiveRef={cancelRef} onClose={onClearDataClose}>
-        <AlertDialogOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)">
-          <AlertDialogContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(239, 68, 68, 0.3)">
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white" borderBottom="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
-              Clear All Session Data?
-            </AlertDialogHeader>
-            <AlertDialogBody color="gray.300">
-              This will permanently delete all roadmap items and their inputs for <strong>{session.name}</strong>. This cannot be undone.
-              <Box mt={3} fontSize="sm" color="gray.400">
-                The scenario itself will remain, but all items and data will be removed.
-              </Box>
-            </AlertDialogBody>
-            <AlertDialogFooter borderTop="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
-              <Button ref={cancelRef} onClick={onClearDataClose} variant="outline">
-                Cancel
-              </Button>
-              <Button
-                bg="rgba(239, 68, 68, 0.1)"
-                border="1px solid"
-                borderColor="rgba(239, 68, 68, 0.5)"
-                color="#ef4444"
-                _hover={{
-                  bg: 'rgba(239, 68, 68, 0.2)',
-                  borderColor: '#ef4444',
-                }}
-                onClick={handleClearSessionData}
-                ml={3}
-              >
-                Clear All Data
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
