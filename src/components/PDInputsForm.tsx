@@ -16,6 +16,7 @@ import type { ProductDesignInputs } from '../domain/types'
 import { calculateEffort, type FactorScores } from '../config/effortModel'
 import { estimateSprints, formatSprintEstimate } from '../config/sprints'
 import { useSettings } from '../context/SettingsContext'
+import { effortWeightsForUx, sizeBandThresholdsNumeric } from '../utils/settingsEffort'
 
 interface PDInputsFormProps {
   value: ProductDesignInputs
@@ -67,11 +68,10 @@ export default function PDInputsForm({ value, onChange }: PDInputsFormProps) {
       problemAmbiguity: value.problemAmbiguity ?? 3,
       discoveryDepth: value.discoveryDepth ?? 3,
     }
-    // TODO: Use settings from SettingsContext for weights, size bands, and focus-time ratio
     return calculateEffort('ux', scores, {
-      weights: settings?.effort_model.ux,
-      sizeBands: settings?.size_bands,
-      focusTimeRatio: settings?.time_model.focusTimeRatio,
+      weights: effortWeightsForUx(settings ?? null),
+      sizeBands: sizeBandThresholdsNumeric(settings ?? null),
+      focusTimeRatio: settings?.focus_time_ratio,
     })
   }
 

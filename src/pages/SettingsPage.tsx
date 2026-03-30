@@ -19,58 +19,41 @@ import {
   AlertTitle,
   AlertDescription,
   Spinner,
+  Checkbox,
+  Select,
 } from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
-import { useSettings } from '../context/SettingsContext'
+import { useSettings, DEFAULT_SETTINGS, type Settings } from '../context/SettingsContext'
 import DbHealthIndicator from '../components/DbHealthIndicator'
 
 export default function SettingsPage() {
   const { settings, loading, error: settingsError, saveSettings, resetToDefaults } = useSettings()
   const toast = useToast()
 
-  // Local form state
   const [formData, setFormData] = useState({
-    // UX factor weights
-    uxProductRisk: 1.2,
-    uxProblemAmbiguity: 1.0,
-    uxDiscoveryDepth: 0.9,
-    // Content factor weights
-    contentSurfaceArea: 1.3,
-    contentLocalizationScope: 1.0,
-    contentRegulatoryBrandRisk: 1.2,
-    contentLegalComplianceDependency: 1.1,
-    // PM Intake multiplier
-    pmIntakeMultiplier: 1.0,
-    // Focus-time ratio
-    focusTimeRatio: 0.75,
-    // Size band thresholds
-    sizeBandXS: 1.6,
-    sizeBandS: 2.6,
-    sizeBandM: 3.6,
-    sizeBandL: 4.6,
-    sizeBandXL: 5.0,
+    effort_weights: { ...DEFAULT_SETTINGS.effort_weights },
+    effort_model_enabled: DEFAULT_SETTINGS.effort_model_enabled,
+    workstream_impact_enabled: DEFAULT_SETTINGS.workstream_impact_enabled,
+    workstream_penalty: DEFAULT_SETTINGS.workstream_penalty,
+    focus_time_ratio: DEFAULT_SETTINGS.focus_time_ratio,
+    planning_periods: { ...DEFAULT_SETTINGS.planning_periods },
+    size_band_thresholds: JSON.parse(JSON.stringify(DEFAULT_SETTINGS.size_band_thresholds)) as Settings['size_band_thresholds'],
+    project_type_demand: JSON.parse(JSON.stringify(DEFAULT_SETTINGS.project_type_demand)) as Settings['project_type_demand'],
   })
 
   const [saving, setSaving] = useState(false)
 
-  // Initialize form data from settings
   useEffect(() => {
     if (settings) {
       setFormData({
-        uxProductRisk: settings.effort_model?.ux?.productRisk ?? 1.2,
-        uxProblemAmbiguity: settings.effort_model?.ux?.problemAmbiguity ?? 1.0,
-        uxDiscoveryDepth: settings.effort_model?.ux?.discoveryDepth ?? 0.9,
-        contentSurfaceArea: settings.effort_model?.content?.contentSurfaceArea ?? 1.3,
-        contentLocalizationScope: settings.effort_model?.content?.localizationScope ?? 1.0,
-        contentRegulatoryBrandRisk: settings.effort_model?.content?.regulatoryBrandRisk ?? 1.2,
-        contentLegalComplianceDependency: settings.effort_model?.content?.legalComplianceDependency ?? 1.1,
-        pmIntakeMultiplier: settings.effort_model?.pmIntakeMultiplier ?? 1.0,
-        focusTimeRatio: settings.time_model?.focusTimeRatio ?? 0.75,
-        sizeBandXS: settings.size_bands?.xs ?? 1.6,
-        sizeBandS: settings.size_bands?.s ?? 2.6,
-        sizeBandM: settings.size_bands?.m ?? 3.6,
-        sizeBandL: settings.size_bands?.l ?? 4.6,
-        sizeBandXL: settings.size_bands?.xl ?? 5.0,
+        effort_weights: { ...settings.effort_weights },
+        effort_model_enabled: settings.effort_model_enabled,
+        workstream_impact_enabled: settings.workstream_impact_enabled,
+        workstream_penalty: settings.workstream_penalty,
+        focus_time_ratio: settings.focus_time_ratio,
+        planning_periods: { ...settings.planning_periods },
+        size_band_thresholds: JSON.parse(JSON.stringify(settings.size_band_thresholds)) as Settings['size_band_thresholds'],
+        project_type_demand: JSON.parse(JSON.stringify(settings.project_type_demand)) as Settings['project_type_demand'],
       })
     }
   }, [settings])
@@ -82,37 +65,18 @@ export default function SettingsPage() {
       setSaving(true)
 
       await saveSettings({
-        effort_model: {
-          ux: {
-            productRisk: formData.uxProductRisk,
-            problemAmbiguity: formData.uxProblemAmbiguity,
-            discoveryDepth: formData.uxDiscoveryDepth,
-          },
-          content: {
-            contentSurfaceArea: formData.contentSurfaceArea,
-            localizationScope: formData.contentLocalizationScope,
-            regulatoryBrandRisk: formData.contentRegulatoryBrandRisk,
-            legalComplianceDependency: formData.contentLegalComplianceDependency,
-          },
-          pmIntakeMultiplier: formData.pmIntakeMultiplier,
-        },
-        time_model: {
-          focusTimeRatio: formData.focusTimeRatio,
-        },
-        size_bands: {
-          xs: formData.sizeBandXS,
-          s: formData.sizeBandS,
-          m: formData.sizeBandM,
-          l: formData.sizeBandL,
-          xl: formData.sizeBandXL,
-        },
+        effort_weights: formData.effort_weights,
+        effort_model_enabled: formData.effort_model_enabled,
+        workstream_impact_enabled: formData.workstream_impact_enabled,
+        workstream_penalty: formData.workstream_penalty,
+        focus_time_ratio: formData.focus_time_ratio,
+        planning_periods: formData.planning_periods,
+        size_band_thresholds: formData.size_band_thresholds,
+        project_type_demand: formData.project_type_demand,
       })
 
-      // Wait a brief moment for error state to update, then check
       await new Promise(resolve => setTimeout(resolve, 100))
 
-      // Only show success toast if no error was set (API succeeded)
-      // If there's an error, the error banner will display it
       if (!settingsError) {
         toast({
           title: 'Settings saved',
@@ -159,6 +123,17 @@ export default function SettingsPage() {
     }
   }
 
+  const sizeBandKeys = ['xs', 's', 'm', 'l', 'xl'] as const
+  const sizeBandLabels: Record<(typeof sizeBandKeys)[number], string> = {
+    xs: 'XS',
+    s: 'S',
+    m: 'M',
+    l: 'L',
+    xl: 'XL',
+  }
+
+  const projectSizeOptions: Array<'XS' | 'S' | 'M' | 'L' | 'XL'> = ['XS', 'S', 'M', 'L', 'XL']
+
   if (loading) {
     return (
       <Box minH="100vh" bg="#0a0a0f">
@@ -182,10 +157,9 @@ export default function SettingsPage() {
           <DbHealthIndicator pollInterval={30000} compact />
         </HStack>
         <Text fontSize="sm" color="gray.400" mb={6}>
-          Configure global effort model weights, focus-time ratio, and size-band thresholds
+          Configure effort weights, planning periods, size-band thresholds, and project-type demand.
         </Text>
 
-        {/* Error message for SettingsContext */}
         {settingsError && (
           <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={6}>
             <AlertIcon color="#f59e0b" />
@@ -197,7 +171,6 @@ export default function SettingsPage() {
         )}
 
         <VStack spacing={8} align="stretch">
-          {/* Effort Model Weights */}
           <Box
             bg="#141419"
             border="1px solid"
@@ -206,273 +179,92 @@ export default function SettingsPage() {
             p={6}
           >
             <Heading size="md" color="white" mb={4}>
-              Effort Model Weights
+              Effort weights (1–10)
             </Heading>
-
-            {/* UX Factors */}
-            <VStack spacing={4} align="stretch" mb={6}>
-              <Text fontSize="sm" fontWeight="600" color="gray.300">
-                UX Design Factors
-              </Text>
-              <FormControl>
-                <FormLabel color="gray.300">Product Risk</FormLabel>
-                <NumberInput
-                  value={formData.uxProductRisk}
-                  onChange={(_, value) => setFormData({ ...formData, uxProductRisk: value || 0 })}
-                  min={0.1}
-                  max={5}
-                  step={0.1}
-                  precision={1}
-                >
-                  <NumberInputField
-                    bg="#1a1a20"
-                    borderColor="rgba(255, 255, 255, 0.1)"
-                    color="white"
-                    _focus={{
-                      borderColor: '#00d9ff',
-                      boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
-                    }}
-                  />
-                  <NumberInputStepper>
-                    <NumberIncrementStepper
+            <Text fontSize="sm" color="gray.400" mb={4}>
+              Relative importance scales for product risk, ambiguity, content surface, and localization.
+            </Text>
+            <VStack spacing={4} align="stretch">
+              {(
+                [
+                  ['productRisk', 'Product risk'],
+                  ['problemAmbiguity', 'Problem ambiguity'],
+                  ['contentSurface', 'Content surface'],
+                  ['localizationScope', 'Localization scope'],
+                ] as const
+              ).map(([key, label]) => (
+                <FormControl key={key}>
+                  <FormLabel color="gray.300">{label}</FormLabel>
+                  <NumberInput
+                    value={formData.effort_weights[key]}
+                    onChange={(_, v) =>
+                      setFormData({
+                        ...formData,
+                        effort_weights: { ...formData.effort_weights, [key]: Math.round(v || 1) },
+                      })
+                    }
+                    min={1}
+                    max={10}
+                    step={1}
+                  >
+                    <NumberInputField
+                      bg="#1a1a20"
                       borderColor="rgba(255, 255, 255, 0.1)"
-                      color="gray.400"
-                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
+                      color="white"
+                      _focus={{
+                        borderColor: '#00d9ff',
+                        boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
+                      }}
                     />
-                    <NumberDecrementStepper
-                      borderColor="rgba(255, 255, 255, 0.1)"
-                      color="gray.400"
-                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
-                    />
-                  </NumberInputStepper>
-                </NumberInput>
-              </FormControl>
-
-              <FormControl>
-                <FormLabel color="gray.300">Problem Ambiguity</FormLabel>
-                <NumberInput
-                  value={formData.uxProblemAmbiguity}
-                  onChange={(_, value) => setFormData({ ...formData, uxProblemAmbiguity: value || 0 })}
-                  min={0.1}
-                  max={5}
-                  step={0.1}
-                  precision={1}
-                >
-                  <NumberInputField
-                    bg="#1a1a20"
-                    borderColor="rgba(255, 255, 255, 0.1)"
-                    color="white"
-                    _focus={{
-                      borderColor: '#00d9ff',
-                      boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
-                    }}
-                  />
-                  <NumberInputStepper>
-                    <NumberIncrementStepper
-                      borderColor="rgba(255, 255, 255, 0.1)"
-                      color="gray.400"
-                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
-                    />
-                    <NumberDecrementStepper
-                      borderColor="rgba(255, 255, 255, 0.1)"
-                      color="gray.400"
-                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
-                    />
-                  </NumberInputStepper>
-                </NumberInput>
-              </FormControl>
-
-              <FormControl>
-                <FormLabel color="gray.300">Discovery Depth</FormLabel>
-                <NumberInput
-                  value={formData.uxDiscoveryDepth}
-                  onChange={(_, value) => setFormData({ ...formData, uxDiscoveryDepth: value || 0 })}
-                  min={0.1}
-                  max={5}
-                  step={0.1}
-                  precision={1}
-                >
-                  <NumberInputField
-                    bg="#1a1a20"
-                    borderColor="rgba(255, 255, 255, 0.1)"
-                    color="white"
-                    _focus={{
-                      borderColor: '#00d9ff',
-                      boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
-                    }}
-                  />
-                  <NumberInputStepper>
-                    <NumberIncrementStepper
-                      borderColor="rgba(255, 255, 255, 0.1)"
-                      color="gray.400"
-                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
-                    />
-                    <NumberDecrementStepper
-                      borderColor="rgba(255, 255, 255, 0.1)"
-                      color="gray.400"
-                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
-                    />
-                  </NumberInputStepper>
-                </NumberInput>
-              </FormControl>
+                    <NumberInputStepper>
+                      <NumberIncrementStepper
+                        borderColor="rgba(255, 255, 255, 0.1)"
+                        color="gray.400"
+                        _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
+                      />
+                      <NumberDecrementStepper
+                        borderColor="rgba(255, 255, 255, 0.1)"
+                        color="gray.400"
+                        _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
+                      />
+                    </NumberInputStepper>
+                  </NumberInput>
+                </FormControl>
+              ))}
             </VStack>
 
-            <Divider borderColor="rgba(255, 255, 255, 0.1)" mb={6} />
+            <Divider borderColor="rgba(255, 255, 255, 0.1)" my={6} />
 
-            {/* Content Factors */}
-            <VStack spacing={4} align="stretch" mb={6}>
-              <Text fontSize="sm" fontWeight="600" color="gray.300">
-                Content Design Factors
-              </Text>
-              <FormControl>
-                <FormLabel color="gray.300">Content Surface Area</FormLabel>
-                <NumberInput
-                  value={formData.contentSurfaceArea}
-                  onChange={(_, value) => setFormData({ ...formData, contentSurfaceArea: value || 0 })}
-                  min={0.1}
-                  max={5}
-                  step={0.1}
-                  precision={1}
-                >
-                  <NumberInputField
-                    bg="#1a1a20"
-                    borderColor="rgba(255, 255, 255, 0.1)"
-                    color="white"
-                    _focus={{
-                      borderColor: '#00d9ff',
-                      boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
-                    }}
-                  />
-                  <NumberInputStepper>
-                    <NumberIncrementStepper
-                      borderColor="rgba(255, 255, 255, 0.1)"
-                      color="gray.400"
-                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
-                    />
-                    <NumberDecrementStepper
-                      borderColor="rgba(255, 255, 255, 0.1)"
-                      color="gray.400"
-                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
-                    />
-                  </NumberInputStepper>
-                </NumberInput>
-              </FormControl>
-
-              <FormControl>
-                <FormLabel color="gray.300">Localization Scope</FormLabel>
-                <NumberInput
-                  value={formData.contentLocalizationScope}
-                  onChange={(_, value) => setFormData({ ...formData, contentLocalizationScope: value || 0 })}
-                  min={0.1}
-                  max={5}
-                  step={0.1}
-                  precision={1}
-                >
-                  <NumberInputField
-                    bg="#1a1a20"
-                    borderColor="rgba(255, 255, 255, 0.1)"
-                    color="white"
-                    _focus={{
-                      borderColor: '#00d9ff',
-                      boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
-                    }}
-                  />
-                  <NumberInputStepper>
-                    <NumberIncrementStepper
-                      borderColor="rgba(255, 255, 255, 0.1)"
-                      color="gray.400"
-                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
-                    />
-                    <NumberDecrementStepper
-                      borderColor="rgba(255, 255, 255, 0.1)"
-                      color="gray.400"
-                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
-                    />
-                  </NumberInputStepper>
-                </NumberInput>
-              </FormControl>
-
-              <FormControl>
-                <FormLabel color="gray.300">Regulatory & Brand Risk</FormLabel>
-                <NumberInput
-                  value={formData.contentRegulatoryBrandRisk}
-                  onChange={(_, value) => setFormData({ ...formData, contentRegulatoryBrandRisk: value || 0 })}
-                  min={0.1}
-                  max={5}
-                  step={0.1}
-                  precision={1}
-                >
-                  <NumberInputField
-                    bg="#1a1a20"
-                    borderColor="rgba(255, 255, 255, 0.1)"
-                    color="white"
-                    _focus={{
-                      borderColor: '#00d9ff',
-                      boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
-                    }}
-                  />
-                  <NumberInputStepper>
-                    <NumberIncrementStepper
-                      borderColor="rgba(255, 255, 255, 0.1)"
-                      color="gray.400"
-                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
-                    />
-                    <NumberDecrementStepper
-                      borderColor="rgba(255, 255, 255, 0.1)"
-                      color="gray.400"
-                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
-                    />
-                  </NumberInputStepper>
-                </NumberInput>
-              </FormControl>
-
-              <FormControl>
-                <FormLabel color="gray.300">Legal Compliance Dependency</FormLabel>
-                <NumberInput
-                  value={formData.contentLegalComplianceDependency}
-                  onChange={(_, value) => setFormData({ ...formData, contentLegalComplianceDependency: value || 0 })}
-                  min={0.1}
-                  max={5}
-                  step={0.1}
-                  precision={1}
-                >
-                  <NumberInputField
-                    bg="#1a1a20"
-                    borderColor="rgba(255, 255, 255, 0.1)"
-                    color="white"
-                    _focus={{
-                      borderColor: '#00d9ff',
-                      boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
-                    }}
-                  />
-                  <NumberInputStepper>
-                    <NumberIncrementStepper
-                      borderColor="rgba(255, 255, 255, 0.1)"
-                      color="gray.400"
-                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
-                    />
-                    <NumberDecrementStepper
-                      borderColor="rgba(255, 255, 255, 0.1)"
-                      color="gray.400"
-                      _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
-                    />
-                  </NumberInputStepper>
-                </NumberInput>
-              </FormControl>
+            <VStack align="stretch" spacing={4}>
+              <Checkbox
+                colorScheme="cyan"
+                color="gray.300"
+                isChecked={formData.effort_model_enabled}
+                onChange={e => setFormData({ ...formData, effort_model_enabled: e.target.checked })}
+              >
+                Effort model enabled
+              </Checkbox>
+              <Checkbox
+                colorScheme="cyan"
+                color="gray.300"
+                isChecked={formData.workstream_impact_enabled}
+                onChange={e => setFormData({ ...formData, workstream_impact_enabled: e.target.checked })}
+              >
+                Workstream impact enabled
+              </Checkbox>
             </VStack>
 
-            <Divider borderColor="rgba(255, 255, 255, 0.1)" mb={6} />
+            <Divider borderColor="rgba(255, 255, 255, 0.1)" my={6} />
 
-            {/* PM Intake Multiplier */}
             <FormControl>
-              <FormLabel color="gray.300">PM Intake Multiplier</FormLabel>
+              <FormLabel color="gray.300">Workstream penalty (0–1)</FormLabel>
               <NumberInput
-                value={formData.pmIntakeMultiplier}
-                onChange={(_, value) => setFormData({ ...formData, pmIntakeMultiplier: value || 0 })}
-                min={0.1}
-                max={5}
-                step={0.1}
-                precision={1}
+                value={formData.workstream_penalty}
+                onChange={(_, v) => setFormData({ ...formData, workstream_penalty: v || 0 })}
+                min={0}
+                max={1}
+                step={0.01}
+                precision={2}
               >
                 <NumberInputField
                   bg="#1a1a20"
@@ -499,7 +291,6 @@ export default function SettingsPage() {
             </FormControl>
           </Box>
 
-          {/* Focus-Time Ratio */}
           <Box
             bg="#141419"
             border="1px solid"
@@ -508,16 +299,16 @@ export default function SettingsPage() {
             p={6}
           >
             <Heading size="md" color="white" mb={4}>
-              Focus-Time Ratio
+              Focus-time ratio
             </Heading>
             <Text fontSize="sm" color="gray.400" mb={4}>
               Ratio used to convert focus weeks to work weeks. Lower values account for more context switching.
             </Text>
             <FormControl>
-              <FormLabel color="gray.300">Focus-Time Ratio (0.4 - 0.9)</FormLabel>
+              <FormLabel color="gray.300">Focus-time ratio (0.4–0.9)</FormLabel>
               <NumberInput
-                value={formData.focusTimeRatio}
-                onChange={(_, value) => setFormData({ ...formData, focusTimeRatio: value || 0.75 })}
+                value={formData.focus_time_ratio}
+                onChange={(_, v) => setFormData({ ...formData, focus_time_ratio: v || 0.75 })}
                 min={0.4}
                 max={0.9}
                 step={0.05}
@@ -548,7 +339,6 @@ export default function SettingsPage() {
             </FormControl>
           </Box>
 
-          {/* Size Band Thresholds */}
           <Box
             bg="#141419"
             border="1px solid"
@@ -557,57 +347,226 @@ export default function SettingsPage() {
             p={6}
           >
             <Heading size="md" color="white" mb={4}>
-              Size Band Thresholds
+              Planning periods
             </Heading>
             <Text fontSize="sm" color="gray.400" mb={4}>
-              Score thresholds for mapping weighted scores to size bands (XS, S, M, L, XL).
+              Base weeks, holidays, and PTO per quarter. Focus weeks are stored from the server (read-only).
             </Text>
-            <VStack spacing={4} align="stretch">
-              {[
-                { key: 'sizeBandXS', label: 'XS', value: formData.sizeBandXS },
-                { key: 'sizeBandS', label: 'S', value: formData.sizeBandS },
-                { key: 'sizeBandM', label: 'M', value: formData.sizeBandM },
-                { key: 'sizeBandL', label: 'L', value: formData.sizeBandL },
-                { key: 'sizeBandXL', label: 'XL', value: formData.sizeBandXL },
-              ].map(({ key, label, value }) => (
-                <FormControl key={key}>
-                  <FormLabel color="gray.300">{label}</FormLabel>
-                  <NumberInput
-                    value={value}
-                    onChange={(_, numValue) => setFormData({ ...formData, [key]: numValue || 0 })}
-                    min={0}
-                    max={10}
-                    step={0.1}
-                    precision={1}
-                  >
-                    <NumberInputField
-                      bg="#1a1a20"
-                      borderColor="rgba(255, 255, 255, 0.1)"
-                      color="white"
-                      _focus={{
-                        borderColor: '#00d9ff',
-                        boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
-                      }}
-                    />
-                    <NumberInputStepper>
-                      <NumberIncrementStepper
-                        borderColor="rgba(255, 255, 255, 0.1)"
-                        color="gray.400"
-                        _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
-                      />
-                      <NumberDecrementStepper
-                        borderColor="rgba(255, 255, 255, 0.1)"
-                        color="gray.400"
-                        _active={{ bg: 'rgba(0, 217, 255, 0.2)' }}
-                      />
-                    </NumberInputStepper>
-                  </NumberInput>
-                </FormControl>
+            <VStack spacing={6} align="stretch">
+              {Object.entries(formData.planning_periods).map(([quarter, period]) => (
+                <Box key={quarter} borderBottom="1px solid" borderColor="rgba(255,255,255,0.06)" pb={4}>
+                  <Text fontWeight="600" color="gray.300" mb={3}>
+                    {quarter}
+                  </Text>
+                  <HStack spacing={4} flexWrap="wrap">
+                    <FormControl maxW="140px">
+                      <FormLabel color="gray.400" fontSize="xs">Base weeks</FormLabel>
+                      <NumberInput
+                        value={period.baseWeeks}
+                        onChange={(_, v) =>
+                          setFormData({
+                            ...formData,
+                            planning_periods: {
+                              ...formData.planning_periods,
+                              [quarter]: { ...period, baseWeeks: v || 0 },
+                            },
+                          })
+                        }
+                        min={0}
+                        max={52}
+                        step={1}
+                      >
+                        <NumberInputField bg="#1a1a20" borderColor="rgba(255,255,255,0.1)" color="white" />
+                      </NumberInput>
+                    </FormControl>
+                    <FormControl maxW="140px">
+                      <FormLabel color="gray.400" fontSize="xs">Holidays</FormLabel>
+                      <NumberInput
+                        value={period.holidays}
+                        onChange={(_, v) =>
+                          setFormData({
+                            ...formData,
+                            planning_periods: {
+                              ...formData.planning_periods,
+                              [quarter]: { ...period, holidays: v || 0 },
+                            },
+                          })
+                        }
+                        min={0}
+                        max={52}
+                        step={1}
+                      >
+                        <NumberInputField bg="#1a1a20" borderColor="rgba(255,255,255,0.1)" color="white" />
+                      </NumberInput>
+                    </FormControl>
+                    <FormControl maxW="140px">
+                      <FormLabel color="gray.400" fontSize="xs">PTO</FormLabel>
+                      <NumberInput
+                        value={period.pto}
+                        onChange={(_, v) =>
+                          setFormData({
+                            ...formData,
+                            planning_periods: {
+                              ...formData.planning_periods,
+                              [quarter]: { ...period, pto: v || 0 },
+                            },
+                          })
+                        }
+                        min={0}
+                        max={52}
+                        step={1}
+                      >
+                        <NumberInputField bg="#1a1a20" borderColor="rgba(255,255,255,0.1)" color="white" />
+                      </NumberInput>
+                    </FormControl>
+                    <FormControl maxW="160px">
+                      <FormLabel color="gray.400" fontSize="xs">Focus weeks (read-only)</FormLabel>
+                      <Text color="gray.300" pt={2}>
+                        {period.focusWeeks}
+                      </Text>
+                    </FormControl>
+                  </HStack>
+                </Box>
               ))}
             </VStack>
           </Box>
 
-          {/* Actions */}
+          <Box
+            bg="#141419"
+            border="1px solid"
+            borderColor="rgba(255, 255, 255, 0.1)"
+            borderRadius="md"
+            p={6}
+          >
+            <Heading size="md" color="white" mb={4}>
+              Size band thresholds
+            </Heading>
+            <Text fontSize="sm" color="gray.400" mb={4}>
+              Min–max score bands. XL may omit max.
+            </Text>
+            <VStack spacing={4} align="stretch">
+              {sizeBandKeys.map(sk => (
+                <HStack key={sk} spacing={4} align="flex-end" flexWrap="wrap">
+                  <Text minW="40px" color="gray.300" fontWeight="600">
+                    {sizeBandLabels[sk]}
+                  </Text>
+                  <FormControl maxW="120px">
+                    <FormLabel color="gray.400" fontSize="xs">Min</FormLabel>
+                    <NumberInput
+                      value={formData.size_band_thresholds[sk].min}
+                      onChange={(_, v) =>
+                        setFormData({
+                          ...formData,
+                          size_band_thresholds: {
+                            ...formData.size_band_thresholds,
+                            [sk]: { ...formData.size_band_thresholds[sk], min: v || 0 },
+                          },
+                        })
+                      }
+                      step={0.01}
+                    >
+                      <NumberInputField bg="#1a1a20" borderColor="rgba(255,255,255,0.1)" color="white" />
+                    </NumberInput>
+                  </FormControl>
+                  <FormControl maxW="120px">
+                    <FormLabel color="gray.400" fontSize="xs">Max</FormLabel>
+                    {sk === 'xl' ? (
+                      <Text color="gray.500" fontSize="sm" pb={2}>
+                        {formData.size_band_thresholds.xl.max ?? '—'}
+                      </Text>
+                    ) : (
+                      <NumberInput
+                        value={formData.size_band_thresholds[sk].max ?? 0}
+                        onChange={(_, v) =>
+                          setFormData({
+                            ...formData,
+                            size_band_thresholds: {
+                              ...formData.size_band_thresholds,
+                              [sk]: { ...formData.size_band_thresholds[sk], max: v },
+                            },
+                          })
+                        }
+                        step={0.01}
+                      >
+                        <NumberInputField bg="#1a1a20" borderColor="rgba(255,255,255,0.1)" color="white" />
+                      </NumberInput>
+                    )}
+                  </FormControl>
+                </HStack>
+              ))}
+            </VStack>
+          </Box>
+
+          <Box
+            bg="#141419"
+            border="1px solid"
+            borderColor="rgba(255, 255, 255, 0.1)"
+            borderRadius="md"
+            p={6}
+          >
+            <Heading size="md" color="white" mb={4}>
+              Project-type demand
+            </Heading>
+            <Text fontSize="sm" color="gray.400" mb={4}>
+              Default UX and content size bands by project type.
+            </Text>
+            <VStack spacing={4} align="stretch">
+              {Object.entries(formData.project_type_demand).map(([ptype, demand]) => (
+                <HStack key={ptype} spacing={4} flexWrap="wrap" align="flex-end">
+                  <Text minW="140px" color="gray.300">
+                    {ptype}
+                  </Text>
+                  <FormControl maxW="120px">
+                    <FormLabel color="gray.400" fontSize="xs">UX</FormLabel>
+                    <Select
+                      bg="#1a1a20"
+                      borderColor="rgba(255,255,255,0.1)"
+                      color="white"
+                      value={demand.ux}
+                      onChange={e => {
+                        const ux = e.target.value as 'XS' | 'S' | 'M' | 'L' | 'XL'
+                        setFormData({
+                          ...formData,
+                          project_type_demand: {
+                            ...formData.project_type_demand,
+                            [ptype]: { ...demand, ux },
+                          },
+                        })
+                      }}
+                    >
+                      {projectSizeOptions.map(o => (
+                        <option key={o} value={o} style={{ background: '#1a1a20', color: 'white' }}>{o}</option>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <FormControl maxW="120px">
+                    <FormLabel color="gray.400" fontSize="xs">Content</FormLabel>
+                    <Select
+                      bg="#1a1a20"
+                      borderColor="rgba(255,255,255,0.1)"
+                      color="white"
+                      value={demand.content}
+                      onChange={e => {
+                        const content = e.target.value as 'XS' | 'S' | 'M' | 'L' | 'XL'
+                        setFormData({
+                          ...formData,
+                          project_type_demand: {
+                            ...formData.project_type_demand,
+                            [ptype]: { ...demand, content },
+                          },
+                        })
+                      }}
+                    >
+                      {projectSizeOptions.map(o => (
+                        <option key={o} value={o} style={{ background: '#1a1a20', color: 'white' }}>{o}</option>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </HStack>
+              ))}
+            </VStack>
+          </Box>
+
           <HStack spacing={4} justify="flex-end">
             <Button
               variant="outline"

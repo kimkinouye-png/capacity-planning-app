@@ -7,7 +7,7 @@ import SessionSummaryPage from '../SessionSummaryPage'
 import { PlanningSessionsProvider } from '../../context/PlanningSessionsContext'
 import { RoadmapItemsProvider } from '../../context/RoadmapItemsContext'
 import { ActivityProvider } from '../../context/ActivityContext'
-import { SettingsProvider } from '../../context/SettingsContext'
+import { SettingsProvider, DEFAULT_SETTINGS } from '../../context/SettingsContext'
 import theme from '../../theme'
 import type { PlanningSession } from '../../domain/types'
 import { calculateWorkWeeks } from '../../config/effortModel'
@@ -39,19 +39,7 @@ global.fetch = mockFetch
 
 // Default mock responses for contexts that load on mount
 const defaultSettingsResponse = {
-  id: '00000000-0000-0000-0000-000000000000',
-  effort_model: {
-    ux: { productRisk: 1.2, problemAmbiguity: 1.0, discoveryDepth: 0.9 },
-    content: {
-      contentSurfaceArea: 1.3,
-      localizationScope: 1.0,
-      regulatoryBrandRisk: 1.2,
-      legalComplianceDependency: 1.1,
-    },
-    pmIntakeMultiplier: 1.0,
-  },
-  time_model: { focusTimeRatio: 0.75 },
-  size_bands: { xs: 1.6, s: 2.6, m: 3.6, l: 4.6, xl: 5.0 },
+  ...DEFAULT_SETTINGS,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 }

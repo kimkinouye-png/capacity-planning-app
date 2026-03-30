@@ -6,29 +6,45 @@
  */
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 
-export interface EffortModelSettings {
-  ux: Record<string, number>
-  content: Record<string, number>
-  pmIntakeMultiplier: number
-}
-
-export interface TimeModelSettings {
-  focusTimeRatio: number
-}
-
-export interface SizeBandSettings {
-  xs: number
-  s: number
-  m: number
-  l: number
-  xl: number
-}
-
 export interface Settings {
   id: string
-  effort_model: EffortModelSettings
-  time_model: TimeModelSettings
-  size_bands: SizeBandSettings
+  // New fields
+  effort_weights: {
+    productRisk: number // 1-10 integer
+    problemAmbiguity: number // 1-10 integer
+    contentSurface: number // 1-10 integer
+    localizationScope: number // 1-10 integer
+  }
+  effort_model_enabled: boolean
+  workstream_impact_enabled: boolean
+  workstream_penalty: number // 0-1 decimal e.g. 0.10
+  focus_time_ratio: number // 0-1 decimal e.g. 0.75
+  planning_periods: {
+    [quarter: string]: {
+      baseWeeks: number
+      holidays: number
+      pto: number
+      focusWeeks: number // calculated, read-only
+    }
+  }
+  size_band_thresholds: {
+    xs: { min: number; max?: number }
+    s: { min: number; max?: number }
+    m: { min: number; max?: number }
+    l: { min: number; max?: number }
+    xl: { min: number; max?: number }
+  }
+  project_type_demand: {
+    [projectType: string]: {
+      ux: 'XS' | 'S' | 'M' | 'L' | 'XL'
+      content: 'XS' | 'S' | 'M' | 'L' | 'XL'
+    }
+  }
+  // Hidden legacy fields — keep in interface but do not
+  // use in UI. These are preserved in DB for backlog.
+  effort_model?: Record<string, unknown>
+  time_model?: Record<string, unknown>
+  size_bands?: Record<string, unknown>
   created_at: string
   updated_at: string
 }
@@ -48,31 +64,37 @@ const API_BASE_URL = import.meta.env.DEV
   ? 'http://localhost:8888/.netlify/functions'
   : '/.netlify/functions'
 
-const DEFAULT_SETTINGS: Settings = {
+export const DEFAULT_SETTINGS: Settings = {
   id: '00000000-0000-0000-0000-000000000000',
-  effort_model: {
-    ux: {
-      productRisk: 1.2,
-      problemAmbiguity: 1.0,
-      discoveryDepth: 0.9,
-    },
-    content: {
-      contentSurfaceArea: 1.3,
-      localizationScope: 1.0,
-      regulatoryBrandRisk: 1.2,
-      legalComplianceDependency: 1.1,
-    },
-    pmIntakeMultiplier: 1.0,
+  effort_weights: {
+    productRisk: 4,
+    problemAmbiguity: 5,
+    contentSurface: 5,
+    localizationScope: 5,
   },
-  time_model: {
-    focusTimeRatio: 0.75,
+  effort_model_enabled: true,
+  workstream_impact_enabled: true,
+  workstream_penalty: 0.10,
+  focus_time_ratio: 0.75,
+  planning_periods: {
+    Q2_26: { baseWeeks: 13, holidays: 10, pto: 5, focusWeeks: 7.5 },
+    Q3_26: { baseWeeks: 13, holidays: 10, pto: 5, focusWeeks: 7.5 },
+    Q4_26: { baseWeeks: 13, holidays: 10, pto: 5, focusWeeks: 7.5 },
+    Q1_27: { baseWeeks: 13, holidays: 10, pto: 5, focusWeeks: 7.5 },
   },
-  size_bands: {
-    xs: 1.6,
-    s: 2.6,
-    m: 3.6,
-    l: 4.6,
-    xl: 5.0,
+  size_band_thresholds: {
+    xs: { min: 0, max: 2 },
+    s: { min: 2, max: 4 },
+    m: { min: 4, max: 8 },
+    l: { min: 8, max: 12 },
+    xl: { min: 12 },
+  },
+  project_type_demand: {
+    'net-new': { ux: 'XL', content: 'XL' },
+    'new-feature': { ux: 'L', content: 'L' },
+    enhancement: { ux: 'M', content: 'S' },
+    optimization: { ux: 'S', content: 'XS' },
+    'fix-polish': { ux: 'XS', content: 'XS' },
   },
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
