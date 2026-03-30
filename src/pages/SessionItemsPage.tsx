@@ -9,18 +9,7 @@ import {
   Td,
   TableContainer,
   Button,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalCloseButton,
   useDisclosure,
-  FormControl,
-  FormLabel,
-  Input,
-  Select,
   Stack,
   Text,
   HStack,
@@ -34,6 +23,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useState, useMemo } from 'react'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
+import AddRoadmapItemModal from '../components/AddRoadmapItemModal'
 
 function SessionItemsPage() {
   const { id } = useParams<{ id: string }>()
@@ -45,29 +35,18 @@ function SessionItemsPage() {
   const items = id ? getItemsForSession(id) : []
   const session = useMemo(() => (id ? getSessionById(id) : undefined), [id, getSessionById])
 
-  const [formData, setFormData] = useState({
-    short_key: '',
-    name: '',
-    initiative: '',
-    priority: 'P1' as 'P0' | 'P1' | 'P2' | 'P3',
-  })
+  const [isCreating, setIsCreating] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleCreateItem = async (data: Parameters<typeof createItem>[1]) => {
     if (!id) return
-
+    setIsCreating(true)
     try {
-      await createItem(id, formData)
+      await createItem(id, data)
       onClose()
-      setFormData({
-        short_key: '',
-        name: '',
-        initiative: '',
-        priority: 'P1',
-      })
     } catch (error) {
       console.error('Error creating item:', error)
-      // Error is handled by context fallback
+    } finally {
+      setIsCreating(false)
     }
   }
 
@@ -170,72 +149,12 @@ function SessionItemsPage() {
         )}
       </Box>
 
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
-          <form onSubmit={handleSubmit}>
-            <ModalHeader color="white">Create New Roadmap Item</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>
-              <Stack spacing={4}>
-                <FormControl isRequired>
-                  <FormLabel>Short Key</FormLabel>
-                  <Input
-                    value={formData.short_key}
-                    onChange={(e) => setFormData({ ...formData, short_key: e.target.value })}
-                    placeholder="e.g., F1"
-                  />
-                </FormControl>
-
-                <FormControl isRequired>
-                  <FormLabel>Name</FormLabel>
-                  <Input
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g., New Payment Method"
-                  />
-                </FormControl>
-
-                <FormControl>
-                  <FormLabel>Initiative</FormLabel>
-                  <Input
-                    value={formData.initiative}
-                    onChange={(e) => setFormData({ ...formData, initiative: e.target.value })}
-                    placeholder="e.g., Revenue"
-                  />
-                </FormControl>
-
-                <FormControl isRequired>
-                  <FormLabel>Priority</FormLabel>
-                  <Select
-                    value={formData.priority}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        priority: e.target.value as 'P0' | 'P1' | 'P2' | 'P3',
-                      })
-                    }
-                  >
-                    <option value="P0">P0</option>
-                    <option value="P1">P1</option>
-                    <option value="P2">P2</option>
-                    <option value="P3">P3</option>
-                  </Select>
-                </FormControl>
-              </Stack>
-            </ModalBody>
-
-            <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onClose}>
-                Cancel
-              </Button>
-              <Button colorScheme="black" type="submit">
-                Create Item
-              </Button>
-            </ModalFooter>
-          </form>
-        </ModalContent>
-      </Modal>
+      <AddRoadmapItemModal
+        isOpen={isOpen}
+        onClose={onClose}
+        onSubmit={handleCreateItem}
+        isSubmitting={isCreating}
+      />
     </Box>
   )
 }

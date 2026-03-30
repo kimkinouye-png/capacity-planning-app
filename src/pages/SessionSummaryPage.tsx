@@ -7,7 +7,6 @@ import {
   Tr,
   Th,
   Td,
-  Stack,
   Text,
   Badge,
   Button,
@@ -26,17 +25,6 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
   useToast,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalCloseButton,
-  FormControl,
-  FormLabel,
-  Input,
-  Select,
   SimpleGrid,
   Alert,
   AlertIcon,
@@ -68,6 +56,7 @@ import { calculateWorkWeeks } from '../config/effortModel'
 import InlineEditableText from '../components/InlineEditableText'
 import EditableNumberCell from '../components/EditableNumberCell'
 import EditableTextCell from '../components/EditableTextCell'
+import AddRoadmapItemModal from '../components/AddRoadmapItemModal'
 import PasteTableImportModal from '../features/scenarios/pasteTableImport/PasteTableImportModal'
 import type { PlanningSession, RoadmapItem } from '../domain/types'
 
@@ -271,13 +260,7 @@ function SessionSummaryPage() {
   const cancelRef = useRef<HTMLButtonElement>(null)
   const itemToDeleteRef = useRef<{ id: string; name: string } | null>(null)
 
-  // Form state for creating new item
-  const [formData, setFormData] = useState({
-    short_key: '',
-    name: '',
-    initiative: '',
-    priority: 'P1' as 'P0' | 'P1' | 'P2' | 'P3',
-  })
+  const [isCreating, setIsCreating] = useState(false)
 
   // Ensure sessions are loaded when navigating to this page
   // This handles the case where you navigate directly to a session URL
@@ -530,14 +513,11 @@ function SessionSummaryPage() {
     }
   }
 
-  // Handle create item
-  const handleCreateItem = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleCreateItem = async (data: Parameters<typeof createItem>[1]) => {
     if (!id) return
-
+    setIsCreating(true)
     try {
-      const newItem = await createItem(id, formData)
-      
+      const newItem = await createItem(id, data)
       toast({
         title: 'Item created',
         description: `${newItem.name} has been added.`,
@@ -545,18 +525,11 @@ function SessionSummaryPage() {
         duration: 2000,
         isClosable: true,
       })
-
-      // Reset form and close modal
-      setFormData({
-        short_key: '',
-        name: '',
-        initiative: '',
-        priority: 'P1',
-      })
       onCreateModalClose()
     } catch (error) {
       console.error('Error creating item:', error)
-      // Error is handled by context fallback
+    } finally {
+      setIsCreating(false)
     }
   }
 
@@ -1486,91 +1459,12 @@ function SessionSummaryPage() {
       </AlertDialog>
 
       {/* Create Item Modal */}
-      <Modal isOpen={isCreateModalOpen} onClose={onCreateModalClose}>
-        <ModalOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)" />
-        <ModalContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
-          <form onSubmit={handleCreateItem}>
-            <ModalHeader color="white" borderBottom="1px solid" borderColor="rgba(255, 255, 255, 0.1)">Create New Roadmap Item</ModalHeader>
-            <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
-            <ModalBody>
-              <Stack spacing={4}>
-                <FormControl isRequired>
-                  <FormLabel color="gray.300">Short Key</FormLabel>
-                  <Input
-                    bg="#1a1a20"
-                    borderColor="rgba(255, 255, 255, 0.1)"
-                    color="white"
-                    _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
-                    placeholder="e.g., PROJ-1"
-                    _placeholder={{ color: 'gray.500' }}
-                    value={formData.short_key}
-                    onChange={(e) => setFormData({ ...formData, short_key: e.target.value })}
-                  />
-                </FormControl>
-
-                <FormControl isRequired>
-                  <FormLabel color="gray.300">Name</FormLabel>
-                  <Input
-                    bg="#1a1a20"
-                    borderColor="rgba(255, 255, 255, 0.1)"
-                    color="white"
-                    _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
-                    placeholder="e.g., New Payment Method"
-                    _placeholder={{ color: 'gray.500' }}
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
-                </FormControl>
-
-                <FormControl>
-                  <FormLabel color="gray.300">Initiative</FormLabel>
-                  <Input
-                    bg="#1a1a20"
-                    borderColor="rgba(255, 255, 255, 0.1)"
-                    color="white"
-                    _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
-                    placeholder="e.g., Revenue"
-                    _placeholder={{ color: 'gray.500' }}
-                    value={formData.initiative}
-                    onChange={(e) => setFormData({ ...formData, initiative: e.target.value })}
-                  />
-                </FormControl>
-
-                <FormControl isRequired>
-                  <FormLabel color="gray.300">Priority</FormLabel>
-                  <Select
-                    bg="#1a1a20"
-                    borderColor="rgba(255, 255, 255, 0.1)"
-                    color="white"
-                    _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
-                    value={formData.priority}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        priority: e.target.value as 'P0' | 'P1' | 'P2' | 'P3',
-                      })
-                    }
-                  >
-                    <option value="P0">P0</option>
-                    <option value="P1">P1</option>
-                    <option value="P2">P2</option>
-                    <option value="P3">P3</option>
-                  </Select>
-                </FormControl>
-              </Stack>
-            </ModalBody>
-
-            <ModalFooter borderTop="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
-              <Button variant="ghost" mr={3} onClick={onCreateModalClose}>
-                Cancel
-              </Button>
-              <Button colorScheme="cyan" type="submit">
-                Create Item
-              </Button>
-            </ModalFooter>
-          </form>
-        </ModalContent>
-      </Modal>
+      <AddRoadmapItemModal
+        isOpen={isCreateModalOpen}
+        onClose={onCreateModalClose}
+        onSubmit={handleCreateItem}
+        isSubmitting={isCreating}
+      />
 
       {/* Paste Table Import Modal */}
       <PasteTableImportModal

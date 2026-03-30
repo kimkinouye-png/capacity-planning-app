@@ -348,7 +348,9 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
   const createItem = useCallback(
     async (
       sessionId: string,
-      input: Omit<RoadmapItem, 'id' | 'planning_session_id' | 'status' | 'uxSizeBand' | 'uxFocusWeeks' | 'uxWorkWeeks' | 'contentSizeBand' | 'contentFocusWeeks' | 'contentWorkWeeks'>
+      input: Omit<RoadmapItem, 'id' | 'planning_session_id' | 'status' | 'uxSizeBand' | 'uxFocusWeeks' | 'uxWorkWeeks' | 'contentSizeBand' | 'contentFocusWeeks' | 'contentWorkWeeks'> & {
+        status?: RoadmapItem['status']
+      }
     ): Promise<RoadmapItem> => {
       try {
         const response = await fetch(`${API_BASE_URL}/create-roadmap-item`, {
@@ -362,8 +364,10 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
             short_key: input.short_key,
             name: input.name,
             initiative: input.initiative,
-            priority: input.priority ?? 'P2',
-            status: 'draft',
+            priority: input.priority,
+            status: input.status ?? 'draft',
+            project_type: input.projectType,
+            notes: input.notes,
           }),
         })
 
