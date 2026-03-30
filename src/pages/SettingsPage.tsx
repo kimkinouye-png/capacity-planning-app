@@ -194,7 +194,6 @@ export default function SettingsPage() {
               { label: 'Size Band Thresholds', id: 'size-band-thresholds' },
               { label: 'Project-Type Demand', id: 'project-type-demand' },
               { label: 'Effort Model Weights', id: 'effort-model-weights' },
-              { label: 'Workstream Impact', id: 'workstream-impact' },
             ].map(({ label, id }) => (
               <Link
                 key={id}
