@@ -115,9 +115,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const response = await fetch(`${API_BASE_URL}/get-settings`)
         if (response.ok) {
           const data = await response.json()
-          setSettings(data)
-          // Also store in localStorage as fallback
-          localStorage.setItem('designCapacity.settings', JSON.stringify(data))
+          const coerced = {
+            ...data,
+            focus_time_ratio: Number(data.focus_time_ratio ?? DEFAULT_SETTINGS.focus_time_ratio),
+            workstream_penalty: Number(data.workstream_penalty ?? DEFAULT_SETTINGS.workstream_penalty),
+          }
+          setSettings(coerced)
+          localStorage.setItem('designCapacity.settings', JSON.stringify(coerced))
           return
         }
       } catch (apiError) {
