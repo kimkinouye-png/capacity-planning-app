@@ -10,671 +10,564 @@ import {
   CardBody,
   Divider,
   Icon,
-  Tooltip,
-  IconButton,
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogContent,
-  AlertDialogOverlay,
-  useDisclosure,
-  useToast,
-  SimpleGrid,
+  Flex,
+  Grid,
+  GridItem,
+  Progress,
+  Badge,
+  Input,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  Tabs,
+  TabList,
+  Tab,
   Alert,
   AlertIcon,
   AlertTitle,
   AlertDescription,
 } from '@chakra-ui/react'
-import { CalendarIcon, DeleteIcon, ViewIcon, CheckCircleIcon, SettingsIcon } from '@chakra-ui/icons'
+import { CalendarIcon, SettingsIcon, ViewIcon, CheckCircleIcon, RepeatIcon } from '@chakra-ui/icons'
 import { useNavigate } from 'react-router-dom'
-import { useMemo, useRef, useState } from 'react'
+import type { ElementType, ReactNode } from 'react'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
-import { useRoadmapItems } from '../context/RoadmapItemsContext'
-import { useActivity } from '../context/ActivityContext'
-import CreateScenarioModal from '../components/CreateScenarioModal'
-import { formatRelativeTime } from '../utils/formatTime'
-import InlineEditableText from '../components/InlineEditableText'
+
+const BG = '#0f1117'
+const CARD_BG = '#1a1d2e'
+const BORDER = 'rgba(255, 255, 255, 0.08)'
+const CYAN = '#00d9ff'
+
+function StepPreviewCard({ children }: { children: ReactNode }) {
+  return (
+    <Card
+      bg={CARD_BG}
+      border="1px solid"
+      borderColor={BORDER}
+      borderRadius="lg"
+      overflow="hidden"
+    >
+      <CardBody p={{ base: 4, md: 6 }}>{children}</CardBody>
+    </Card>
+  )
+}
+
+function StepRow({
+  step,
+  icon,
+  title,
+  body,
+  preview,
+  reverseOnDesktop,
+}: {
+  step: number
+  icon: ElementType
+  title: string
+  body: string
+  preview: ReactNode
+  reverseOnDesktop?: boolean
+}) {
+  const left = (
+    <VStack align={{ base: 'center', md: 'start' }} spacing={4} textAlign={{ base: 'center', md: 'left' }}>
+      <HStack spacing={3} justify={{ base: 'center', md: 'flex-start' }}>
+        <Flex
+          w={10}
+          h={10}
+          borderRadius="full"
+          bg={CYAN}
+          color="#0a0a0f"
+          align="center"
+          justify="center"
+          fontWeight="bold"
+          fontSize="sm"
+          flexShrink={0}
+        >
+          {step}
+        </Flex>
+        <Flex
+          w={12}
+          h={12}
+          borderRadius="full"
+          bg="rgba(0, 217, 255, 0.12)"
+          align="center"
+          justify="center"
+        >
+          <Icon as={icon} w={6} h={6} color={CYAN} />
+        </Flex>
+      </HStack>
+      <Heading size="lg" color="white">
+        {title}
+      </Heading>
+      <Text color="gray.400" lineHeight="tall" maxW="lg">
+        {body}
+      </Text>
+    </VStack>
+  )
+
+  const right = <StepPreviewCard>{preview}</StepPreviewCard>
+
+  return (
+    <Grid
+      templateColumns={{ base: '1fr', md: '1fr 1fr' }}
+      gap={{ base: 8, md: 12 }}
+      alignItems="center"
+      py={{ base: 10, md: 14 }}
+    >
+      <GridItem order={{ base: 1, md: reverseOnDesktop ? 2 : 1 }}>{left}</GridItem>
+      <GridItem order={{ base: 2, md: reverseOnDesktop ? 1 : 2 }}>{right}</GridItem>
+    </Grid>
+  )
+}
 
 function HomePage() {
   const navigate = useNavigate()
-  const { sessions, commitSession, uncommitSession, deleteSession, updateSession, error: sessionsError } = usePlanningSessions()
-  const { getItemsForSession } = useRoadmapItems()
-  const { activity, isLoading: activityLoading } = useActivity()
-  const { isOpen, onOpen, onClose } = useDisclosure()
-  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure()
-  const [sessionToDelete, setSessionToDelete] = useState<{ id: string; name: string } | null>(null)
-  const cancelDeleteRef = useRef<HTMLButtonElement>(null)
-  const toast = useToast()
-  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
-  const [highlightedCardId, setHighlightedCardId] = useState<string | null>(null)
-
-  // Get most recently updated scenario
-  const mostRecentScenario = useMemo(() => {
-    if (sessions.length === 0) return null
-    return [...sessions].sort((a, b) => {
-      const timeA = new Date(a.updated_at).getTime()
-      const timeB = new Date(b.updated_at).getTime()
-      return timeB - timeA
-    })[0]
-  }, [sessions])
-
-  // Get 3-5 most recently updated scenarios, sorted by: committed first, then quarter (parsed), then title
-  const recentScenarios = useMemo(() => {
-    if (sessions.length === 0) return []
-    return [...sessions]
-      .sort((a, b) => {
-        // First: sort by status (committed first)
-        const statusOrderA = a.status === 'committed' ? 0 : 1
-        const statusOrderB = b.status === 'committed' ? 0 : 1
-        const statusDiff = statusOrderA - statusOrderB
-        if (statusDiff !== 0) return statusDiff
-
-        // Second: sort by quarter (parse "2026-Q1" into { year: 2026, quarter: 1 })
-        const parseQuarter = (quarterStr: string | undefined): { year: number; quarter: number } => {
-          if (!quarterStr) return { year: 0, quarter: 0 }
-          const match = quarterStr.match(/(\d{4})-Q(\d)/)
-          if (match) {
-            return { year: parseInt(match[1], 10), quarter: parseInt(match[2], 10) }
-          }
-          return { year: 0, quarter: 0 }
-        }
-
-        const quarterA = parseQuarter(a.planningPeriod || a.planning_period)
-        const quarterB = parseQuarter(b.planningPeriod || b.planning_period)
-        
-        // Sort by year first
-        const yearDiff = quarterA.year - quarterB.year
-        if (yearDiff !== 0) return yearDiff
-        
-        // Then by quarter
-        const quarterDiff = quarterA.quarter - quarterB.quarter
-        if (quarterDiff !== 0) return quarterDiff
-
-        // Third: sort by title alphabetically (case-insensitive)
-        const nameA = (a.name || '').toLowerCase()
-        const nameB = (b.name || '').toLowerCase()
-        return nameA.localeCompare(nameB)
-      })
-      .slice(0, 5)
-  }, [sessions])
-
-  // Get 5 most recent activity events
-  const recentActivity = useMemo(() => {
-    return activity.slice(0, 5)
-  }, [activity])
+  const { sessions, error: sessionsError } = usePlanningSessions()
 
   return (
-    <Box maxW="1400px" mx="auto" px={6} py={8}>
-      {/* Error message for PlanningSessionsContext */}
-      {/* Only show error banner if we have sessions loaded (fallback succeeded) */}
+    <Box bg={BG} minH="100vh">
       {sessionsError && sessions.length > 0 && (
-        <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
+        <Alert
+          status="warning"
+          bg="#141419"
+          border="1px solid"
+          borderColor="rgba(245, 158, 11, 0.3)"
+          borderRadius="md"
+          mx={6}
+          mt={4}
+        >
           <AlertIcon color="#f59e0b" />
-          <AlertTitle color="white" mr={2}>Warning:</AlertTitle>
+          <AlertTitle color="white" mr={2}>
+            Warning:
+          </AlertTitle>
           <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
         </Alert>
       )}
 
-      <Stack spacing={8}>
-        {/* Welcome Back Section */}
-        <Box>
-          {sessions.length > 0 ? (
-            <VStack spacing={4} align="stretch">
-              <Heading size="lg" color="white">Welcome back</Heading>
-              <HStack spacing={4}>
-                {mostRecentScenario && (
-                  <Button
-                    colorScheme="cyan"
-                    size="md"
-                    onClick={() => navigate(`/sessions/${mostRecentScenario.id}`)}
-                  >
-                    Open last scenario
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  size="md"
-                  onClick={onOpen}
-                >
-                  Create new scenario
+      <Box maxW="1100px" mx="auto" px={6} py={{ base: 12, md: 16 }}>
+        {/* Hero */}
+        <VStack spacing={6} textAlign="center" pb={{ base: 12, md: 16 }}>
+          <Flex
+            w={{ base: 20, md: 24 }}
+            h={{ base: 20, md: 24 }}
+            borderRadius="full"
+            bg="teal.900"
+            align="center"
+            justify="center"
+            boxShadow={`0 0 24px rgba(0, 217, 255, 0.25)`}
+          >
+            <Icon as={CalendarIcon} w={{ base: 10, md: 12 }} h={{ base: 10, md: 12 }} color={CYAN} />
+          </Flex>
+          <Heading as="h1" size="2xl" color="white" fontWeight="bold" maxW="3xl">
+            Welcome to Capacity Planner
+          </Heading>
+          <Text fontSize={{ base: 'md', md: 'lg' }} color="gray.400" maxW="2xl" lineHeight="tall">
+            A planning tool that gives design leaders a measurable way to size and visualize how much work is in a
+            product roadmap.
+          </Text>
+        </VStack>
+
+        {/* CTA Card */}
+        <Card
+          bg={CARD_BG}
+          border="1px solid"
+          borderColor={BORDER}
+          borderRadius="xl"
+          maxW="xl"
+          mx="auto"
+          mb={{ base: 16, md: 20 }}
+        >
+          <CardBody p={{ base: 8, md: 10 }} textAlign="center">
+            <Text color="white" fontSize="xl" fontWeight="semibold" mb={6}>
+              Ready to get started?
+            </Text>
+            <Stack direction={{ base: 'column', sm: 'row' }} spacing={4} justify="center">
+              <Button
+                bg={CYAN}
+                color="#0a0a0f"
+                _hover={{ bg: '#33e1ff' }}
+                size="lg"
+                flex={1}
+                onClick={() => navigate('/scenarios')}
+              >
+                Create a New Plan
+              </Button>
+              <Button
+                variant="outline"
+                borderColor="rgba(255,255,255,0.25)"
+                color="gray.200"
+                _hover={{ bg: 'whiteAlpha.100' }}
+                size="lg"
+                flex={1}
+                onClick={() => navigate('/scenarios')}
+              >
+                Review Current Plans
+              </Button>
+            </Stack>
+          </CardBody>
+        </Card>
+
+        <Divider borderColor={BORDER} mb={{ base: 4, md: 8 }} />
+
+        {/* Step 1 */}
+        <StepRow
+          step={1}
+          icon={SettingsIcon}
+          title="Add your team size"
+          body="Create a new scenario by setting your planning period and defining how many UX designers and content designers are on your team."
+          preview={
+            <VStack align="stretch" spacing={4} pointerEvents="none">
+              <VStack align="stretch" spacing={3}>
+                <Box>
+                  <Text fontSize="xs" color="gray.500" mb={1}>
+                    Plan Name
+                  </Text>
+                  <Input value="Q2 2026 Planning" isReadOnly size="sm" bg="whiteAlpha.50" borderColor={BORDER} />
+                </Box>
+                <Box>
+                  <Text fontSize="xs" color="gray.500" mb={1}>
+                    Quarter
+                  </Text>
+                  <Input value="Q2'26" isReadOnly size="sm" bg="whiteAlpha.50" borderColor={BORDER} />
+                </Box>
+                <HStack spacing={4}>
+                  <Box flex={1}>
+                    <Text fontSize="xs" color="gray.500" mb={1}>
+                      UX Designers
+                    </Text>
+                    <Input value="5" isReadOnly size="sm" bg="whiteAlpha.50" borderColor={BORDER} />
+                  </Box>
+                  <Box flex={1}>
+                    <Text fontSize="xs" color="gray.500" mb={1}>
+                      Content Designers
+                    </Text>
+                    <Input value="3" isReadOnly size="sm" bg="whiteAlpha.50" borderColor={BORDER} />
+                  </Box>
+                </HStack>
+              </VStack>
+              <Divider borderColor={BORDER} />
+              <VStack align="stretch" spacing={2}>
+                <HStack justify="space-between">
+                  <Text fontSize="sm" color="gray.400">
+                    UX Design Capacity
+                  </Text>
+                  <Text fontSize="sm" color="white" fontWeight="medium">
+                    80.0 weeks
+                  </Text>
+                </HStack>
+                <HStack justify="space-between">
+                  <Text fontSize="sm" color="gray.400">
+                    Content Design Capacity
+                  </Text>
+                  <Text fontSize="sm" color="white" fontWeight="medium">
+                    40.0 weeks
+                  </Text>
+                </HStack>
+              </VStack>
+            </VStack>
+          }
+        />
+
+        <Divider borderColor={BORDER} />
+
+        {/* Step 2 */}
+        <StepRow
+          step={2}
+          icon={ViewIcon}
+          title="Paste your roadmap"
+          body="Copy your roadmap directly from Google Sheets, Excel, or any spreadsheet and paste it into the tool to get started."
+          reverseOnDesktop
+          preview={
+            <VStack align="stretch" spacing={4} pointerEvents="none">
+              <Box overflowX="auto">
+                <Table size="sm" variant="unstyled">
+                  <Thead>
+                    <Tr borderBottom="1px solid" borderColor={BORDER}>
+                      <Th color="gray.500" fontSize="xs" textTransform="uppercase" py={2}>
+                        KEY
+                      </Th>
+                      <Th color="gray.500" fontSize="xs" textTransform="uppercase" py={2}>
+                        NAME
+                      </Th>
+                      <Th color="gray.500" fontSize="xs" textTransform="uppercase" py={2}>
+                        INITIATIVE
+                      </Th>
+                      <Th color="gray.500" fontSize="xs" textTransform="uppercase" py={2}>
+                        PRIORITY
+                      </Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {[
+                      ['PROJ-101', 'Payment Flow', 'Revenue', 'P1'],
+                      ['PROJ-102', 'User Onboarding', 'Growth', 'P2'],
+                      ['PROJ-103', 'Dashboard Redesign', 'Engagement', 'P1'],
+                      ['PROJ-104', 'Mobile App', 'Platform', 'P3'],
+                    ].map((row) => (
+                      <Tr key={row[0]} borderBottom="1px solid" borderColor="whiteAlpha.50">
+                        <Td color="gray.300" py={2} fontSize="sm">
+                          {row[0]}
+                        </Td>
+                        <Td color="gray.300" py={2} fontSize="sm">
+                          {row[1]}
+                        </Td>
+                        <Td color="gray.300" py={2} fontSize="sm">
+                          {row[2]}
+                        </Td>
+                        <Td color="gray.300" py={2} fontSize="sm">
+                          {row[3]}
+                        </Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              </Box>
+              <HStack spacing={3} justify="flex-end">
+                <Button size="sm" bg={CYAN} color="#0a0a0f" isDisabled>
+                  Import Roadmap
+                </Button>
+                <Button size="sm" variant="outline" borderColor="whiteAlpha.300" color="gray.300" isDisabled>
+                  Cancel
                 </Button>
               </HStack>
             </VStack>
-          ) : (
-            <VStack spacing={12} align="stretch">
-              {/* Hero Section */}
-              <VStack spacing={4} align="center" textAlign="center" py={8}>
-                <Box
-                  w={24}
-                  h={24}
-                  borderRadius="full"
-                  bg="linear-gradient(135deg, rgba(0, 217, 255, 0.2), rgba(37, 99, 235, 0.2))"
-                  border="1px solid"
-                  borderColor="rgba(0, 217, 255, 0.3)"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  boxShadow="0 0 20px rgba(0, 217, 255, 0.3)"
-                >
-                  <Icon as={CalendarIcon} w={12} h={12} color="#00d9ff" />
-                </Box>
-                <Heading size="xl" fontWeight="bold" color="white">
-                  Welcome to Planning Assistant
-                </Heading>
-                <Text fontSize="lg" color="gray.300" maxW="700px" lineHeight="tall">
-                  Your intelligent companion for capacity planning and roadmap management. Make data-driven decisions with confidence using factor-based sizing and real-time capacity analysis.
-                </Text>
-              </VStack>
+          }
+        />
 
-              {/* Three Feature Cards */}
-              <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
-                <Card 
-                  variant="outline" 
-                  bg="#141419" 
-                  borderColor="rgba(255, 255, 255, 0.1)"
-                  _hover={{
-                    borderColor: 'rgba(0, 217, 255, 0.5)',
-                    boxShadow: '0 10px 15px -3px rgba(0, 217, 255, 0.2), 0 4px 6px -2px rgba(0, 217, 255, 0.2)',
-                    transform: 'translateY(-2px)',
-                  }}
-                  transition="all 0.3s ease"
-                >
-                  <CardBody p={6}>
-                    <VStack spacing={3} align="start">
-                      <Icon as={SettingsIcon} w={8} h={8} color="#00d9ff" />
-                      <Heading size="sm" fontWeight="bold" color="white">
-                        Plan Your Roadmaps
-                      </Heading>
-                      <Text fontSize="sm" color="gray.300" lineHeight="tall">
-                        Create and manage multiple scenarios to explore different planning options. Adjust team capacity and evaluate trade-offs before committing to a plan.
-                      </Text>
-                    </VStack>
-                  </CardBody>
-                </Card>
+        <Divider borderColor={BORDER} />
 
-                <Card 
-                  variant="outline" 
-                  bg="#141419" 
-                  borderColor="rgba(255, 255, 255, 0.1)"
-                  _hover={{
-                    borderColor: 'rgba(0, 217, 255, 0.5)',
-                    boxShadow: '0 10px 15px -3px rgba(0, 217, 255, 0.2), 0 4px 6px -2px rgba(0, 217, 255, 0.2)',
-                    transform: 'translateY(-2px)',
-                  }}
-                  transition="all 0.3s ease"
-                >
-                  <CardBody p={6}>
-                    <VStack spacing={3} align="start">
-                      <Icon as={ViewIcon} w={8} h={8} color="#00d9ff" />
-                      <Heading size="sm" fontWeight="bold" color="white">
-                        Review Capacity vs Demand
-                      </Heading>
-                      <Text fontSize="sm" color="gray.300" lineHeight="tall">
-                        Understand your team's capacity constraints with visual indicators. Track surplus or deficit across UX and Content Design resources in real-time.
-                      </Text>
-                    </VStack>
-                  </CardBody>
-                </Card>
-
-                <Card 
-                  variant="outline" 
-                  bg="#141419" 
-                  borderColor="rgba(255, 255, 255, 0.1)"
-                  _hover={{
-                    borderColor: 'rgba(0, 217, 255, 0.5)',
-                    boxShadow: '0 10px 15px -3px rgba(0, 217, 255, 0.2), 0 4px 6px -2px rgba(0, 217, 255, 0.2)',
-                    transform: 'translateY(-2px)',
-                  }}
-                  transition="all 0.3s ease"
-                >
-                  <CardBody p={6}>
-                    <VStack spacing={3} align="start">
-                      <Icon as={CheckCircleIcon} w={8} h={8} color="#00d9ff" />
-                      <Heading size="sm" fontWeight="bold" color="white">
-                        Review Your Committed Plan
-                      </Heading>
-                      <Text fontSize="sm" color="gray.300" lineHeight="tall">
-                        Commit to scenarios and view your complete quarterly plan. Get a comprehensive view of all committed work across your organization.
-                      </Text>
-                    </VStack>
-                  </CardBody>
-                </Card>
-              </SimpleGrid>
-
-              {/* Key Features Section */}
-              <Box>
-                <Heading size="md" mb={6} textAlign="center" color="white">
-                  Key Features
-                </Heading>
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                  <Card variant="outline" bg="#1a1a20" borderColor="rgba(255, 255, 255, 0.05)">
-                    <CardBody p={6}>
-                      <VStack spacing={2} align="start">
-                        <Heading size="sm" fontWeight="bold" color="white">
-                          Factor-Based Sizing
-                        </Heading>
-                        <Text fontSize="sm" color="gray.300">
-                          Estimate effort using complexity factors across Product Management, UX Design, and Content Design
-                        </Text>
-                      </VStack>
-                    </CardBody>
-                  </Card>
-
-                  <Card variant="outline" bg="#1a1a20" borderColor="rgba(255, 255, 255, 0.05)">
-                    <CardBody p={6}>
-                      <VStack spacing={2} align="start">
-                        <Heading size="sm" fontWeight="bold" color="white">
-                          Real-Time Calculations
-                        </Heading>
-                        <Text fontSize="sm" color="gray.300">
-                          See capacity and demand update instantly as you adjust complexity factors and team size
-                        </Text>
-                      </VStack>
-                    </CardBody>
-                  </Card>
-
-                  <Card variant="outline" bg="#1a1a20" borderColor="rgba(255, 255, 255, 0.05)">
-                    <CardBody p={6}>
-                      <VStack spacing={2} align="start">
-                        <Heading size="sm" fontWeight="bold" color="white">
-                          Auto-Save Functionality
-                        </Heading>
-                        <Text fontSize="sm" color="gray.300">
-                          Never lose your work with automatic saving of all changes and scenario updates
-                        </Text>
-                      </VStack>
-                    </CardBody>
-                  </Card>
-
-                  <Card variant="outline" bg="#1a1a20" borderColor="rgba(255, 255, 255, 0.05)">
-                    <CardBody p={6}>
-                      <VStack spacing={2} align="start">
-                        <Heading size="sm" fontWeight="bold" color="white">
-                          Scenario Management
-                        </Heading>
-                        <Text fontSize="sm" color="gray.300">
-                          Create, edit, and compare multiple scenarios to find the best plan for your team
-                        </Text>
-                      </VStack>
-                    </CardBody>
-                  </Card>
-                </SimpleGrid>
-              </Box>
-
-              {/* CTA Section */}
-              <VStack spacing={4} align="center" textAlign="center" py={8} bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" borderRadius="md" px={6}>
-                <Heading size="md" fontWeight="bold" color="white">
-                  Ready to get started?
-                </Heading>
-                <Text fontSize="md" color="gray.300" maxW="600px">
-                  Begin by creating your first scenario or exploring existing planning scenarios.
-                </Text>
-                <Button
-                  colorScheme="cyan"
-                  size="lg"
-                  onClick={onOpen}
-                  borderRadius="md"
-                  px={8}
-                  py={6}
-                  fontSize="md"
-                  fontWeight="medium"
-                >
-                  Create Your First Scenario
-                </Button>
-              </VStack>
-            </VStack>
-          )}
-        </Box>
-
-        {/* Recent Scenarios Section */}
-        {sessions.length > 0 && (
-          <Box>
-            <Heading size="md" mb={4} color="white">Recent scenarios</Heading>
-            <VStack spacing={4} align="stretch">
-              {recentScenarios.map((session) => {
-                const items = getItemsForSession(session.id)
-                const itemCount = items?.length || 0
-                const planningPeriod = session?.planningPeriod || session?.planning_period || '—'
-                
-                return (
-                  <Card
-                    key={session.id}
-                    ref={(el) => {
-                      cardRefs.current[session.id] = el
-                    }}
-                    variant="outline"
-                    bg={
-                      highlightedCardId === session.id 
-                        ? 'rgba(0, 217, 255, 0.1)' 
-                        : session.status === 'committed' 
-                          ? 'rgba(16, 185, 129, 0.1)' 
-                          : '#141419'
-                    }
-                    borderColor={
-                      highlightedCardId === session.id 
-                        ? 'rgba(0, 217, 255, 0.5)' 
-                        : session.status === 'committed' 
-                          ? 'rgba(16, 185, 129, 0.3)' 
-                          : 'rgba(255, 255, 255, 0.1)'
-                    }
-                    borderWidth={highlightedCardId === session.id ? '2px' : '1px'}
-                    _hover={{
-                      borderColor: 'rgba(0, 217, 255, 0.5)',
-                      boxShadow: '0 10px 15px -3px rgba(0, 217, 255, 0.2), 0 4px 6px -2px rgba(0, 217, 255, 0.2)',
-                      transform: 'translateY(-2px)',
-                    }}
-                    transition="all 0.3s ease"
-                    cursor="pointer"
-                    onClick={() => navigate(`/sessions/${session.id}`)}
+        {/* Step 3 */}
+        <StepRow
+          step={3}
+          icon={CheckCircleIcon}
+          title="Estimate effort"
+          body="Size your initiatives using factor-based complexity scoring for accurate estimates."
+          preview={
+            <VStack align="stretch" spacing={4} pointerEvents="none" opacity={0.95}>
+              <Text fontSize="sm" color="gray.400">
+                Payment Flow Redesign / PROJ-101 • Revenue Initiative
+              </Text>
+              <Tabs variant="unstyled" defaultIndex={0}>
+                <TabList gap={2} flexWrap="wrap">
+                  <Tab
+                    px={4}
+                    py={2}
+                    borderRadius="md"
+                    bg={CYAN}
+                    color="#0a0a0f"
+                    fontWeight="semibold"
+                    fontSize="sm"
                   >
-                    <CardBody p={6}>
-                      <Stack spacing={4}>
-                        {/* Title and Status */}
-                        <HStack justify="space-between" align="center">
-                          <HStack spacing={3} align="center" flex={1}>
-                            <InlineEditableText
-                              value={session.name || 'Unnamed Scenario'}
-                              onChange={async (newName) => {
-                                if (session.id && newName.trim()) {
-                                  await updateSession(session.id, { name: newName.trim() })
-                                  toast({
-                                    title: 'Scenario renamed',
-                                    description: `Scenario name updated to "${newName.trim()}".`,
-                                    status: 'success',
-                                    duration: 2000,
-                                    isClosable: true,
-                                  })
-                                }
-                              }}
-                              ariaLabel="Scenario name"
-                              fontSize="md"
-                              fontWeight="bold"
-                            />
-                            {/* Capacity indicator - calculate if within capacity */}
-                            {(() => {
-                              const items = getItemsForSession(session.id)
-                              const weeks = session.weeks_per_period || 0
-                              const uxCapacity = (session.ux_designers || 0) * weeks
-                              const contentCapacity = (session.content_designers || 0) * weeks
-                              const uxDemand = items.reduce((sum, item) => sum + (item.uxFocusWeeks || 0), 0)
-                              const contentDemand = items.reduce((sum, item) => sum + (item.contentFocusWeeks || 0), 0)
-                              const isWithinCapacity = uxDemand <= uxCapacity && contentDemand <= contentCapacity
-                              
-                              return (
-                                <HStack spacing={1.5} align="center">
-                                  <Box
-                                    w={2}
-                                    h={2}
-                                    borderRadius="full"
-                                    bg={isWithinCapacity ? '#10b981' : '#f59e0b'}
-                                    boxShadow={isWithinCapacity ? '0 0 8px rgba(16, 185, 129, 0.5)' : '0 0 8px rgba(245, 158, 11, 0.5)'}
-                                  />
-                                  <Text fontSize="sm" color={isWithinCapacity ? '#10b981' : '#f59e0b'} fontWeight="medium">
-                                    {isWithinCapacity ? 'Within' : 'Over'}
-                                  </Text>
-                                </HStack>
-                              )
-                            })()}
-                          </HStack>
-                          <HStack spacing={2} align="center">
-                            {/* Delete button - only show if no roadmap items */}
-                            {itemCount === 0 && (
-                              <Tooltip
-                                label="Delete scenario"
-                                placement="top"
-                                hasArrow
-                              >
-                                <IconButton
-                                  aria-label="Delete scenario"
-                                  icon={<DeleteIcon />}
-                                  size="sm"
-                                  variant="ghost"
-                                  colorScheme="red"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    if (session.id && session.name) {
-                                      setSessionToDelete({ id: session.id, name: session.name })
-                                      onDeleteOpen()
-                                    }
-                                  }}
-                                  _hover={{ bg: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}
-                                />
-                              </Tooltip>
-                            )}
-                            {itemCount === 0 && session.status === 'draft' ? (
-                              <Tooltip
-                                label="Add at least one roadmap item before committing this scenario."
-                                placement="top"
-                                hasArrow
-                              >
-                                <HStack
-                                  spacing={2}
-                                  align="center"
-                                  cursor="not-allowed"
-                                  opacity={0.5}
-                                >
-                                  <Box
-                                    w={4}
-                                    h={4}
-                                    borderRadius="full"
-                                    border="2px solid"
-                                    borderColor="gray.300"
-                                    bg="transparent"
-                                    display="flex"
-                                    alignItems="center"
-                                    justifyContent="center"
-                                  />
-                                  <Text fontSize="sm" color="gray.400" fontWeight="medium">
-                                    Commit as plan
-                                  </Text>
-                                </HStack>
-                              </Tooltip>
-                            ) : (
-                              <HStack
-                                spacing={2}
-                                align="center"
-                                cursor="pointer"
-                                onClick={async (e) => {
-                                  e.stopPropagation()
-                                  if (session.id && itemCount > 0) {
-                                    if (session.status === 'committed') {
-                                      // Uncommit if already committed
-                                      await uncommitSession(session.id)
-                                      toast({
-                                        title: 'Scenario uncommitted',
-                                        description: `${session.name} has been uncommitted.`,
-                                        status: 'success',
-                                        duration: 3000,
-                                        isClosable: true,
-                                      })
-                                    } else {
-                                      // Commit if not committed
-                                      await commitSession(session.id, itemCount)
-                                      toast({
-                                        title: 'Scenario committed',
-                                        description: `${session.name} has been set as the committed plan.`,
-                                        status: 'success',
-                                        duration: 3000,
-                                        isClosable: true,
-                                      })
-                                    }
-                                    
-                                    // Highlight the card briefly
-                                    setHighlightedCardId(session.id)
-                                    setTimeout(() => setHighlightedCardId(null), 2000)
-                                    
-                                    // Scroll card into view if needed
-                                    const cardElement = cardRefs.current[session.id]
-                                    if (cardElement) {
-                                      cardElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-                                    }
-                                  }
-                                }}
-                                _hover={{ opacity: 0.8 }}
-                              >
-                                <Box
-                                  data-testid="commit-radio-button"
-                                  w={4}
-                                  h={4}
-                                  borderRadius="full"
-                                  border="2px solid"
-                                  borderColor={session.status === 'committed' ? '#00d9ff' : 'rgba(255, 255, 255, 0.2)'}
-                                  bg={session.status === 'committed' ? '#00d9ff' : 'transparent'}
-                                  display="flex"
-                                  alignItems="center"
-                                  justifyContent="center"
-                                  boxShadow={session.status === 'committed' ? '0 0 8px rgba(0, 217, 255, 0.5)' : 'none'}
-                                >
-                                  {session.status === 'committed' && (
-                                    <Box
-                                      w={2}
-                                      h={2}
-                                      borderRadius="full"
-                                      bg="#0a0a0f"
-                                    />
-                                  )}
-                                </Box>
-                                <Text fontSize="sm" color="gray.300" fontWeight="medium">
-                                  {session.status === 'committed' ? 'Committed plan' : 'Commit as plan'}
-                                </Text>
-                              </HStack>
-                            )}
-                          </HStack>
-                        </HStack>
-
-                        {/* Details Line */}
-                        <HStack spacing={4} color="gray.400" fontSize="sm">
-                          <HStack spacing={1}>
-                            <Icon as={CalendarIcon} w={4} h={4} />
-                            <Text>{planningPeriod}</Text>
-                          </HStack>
-                          <HStack spacing={1}>
-                            <Text>👤</Text>
-                            <Text>
-                              {session.ux_designers || 0} UX, {session.content_designers || 0} Content
-                            </Text>
-                          </HStack>
-                          <Text>{itemCount} roadmap {itemCount === 1 ? 'item' : 'items'}</Text>
-                        </HStack>
-                      </Stack>
-                    </CardBody>
-                  </Card>
-                )
-              })}
-            </VStack>
-          </Box>
-        )}
-
-        {/* Activity Section - Only show for returning users */}
-        {sessions.length > 0 && (
-          <Box>
-            <Heading size="md" mb={4} color="white">Recent activity</Heading>
-            {activityLoading ? (
-              <Card variant="outline" bg="#141419" borderColor="rgba(255, 255, 255, 0.1)">
-                <CardBody p={6}>
-                  <Text fontSize="sm" color="gray.400" textAlign="center">
-                    Loading activity...
+                    Product Design
+                  </Tab>
+                  <Tab px={4} py={2} borderRadius="md" bg="whiteAlpha.100" color="gray.400" fontSize="sm">
+                    PM Intake
+                  </Tab>
+                  <Tab px={4} py={2} borderRadius="md" bg="whiteAlpha.100" color="gray.400" fontSize="sm">
+                    Content Design
+                  </Tab>
+                </TabList>
+              </Tabs>
+              <VStack align="stretch" spacing={4} pt={2}>
+                <Box>
+                  <Text fontSize="sm" color="gray.300" mb={2}>
+                    Product Risk Weight: ×0.4
                   </Text>
-                </CardBody>
-              </Card>
-            ) : recentActivity.length > 0 ? (
-              <Card variant="outline" bg="#141419" borderColor="rgba(255, 255, 255, 0.1)">
-                <CardBody p={6}>
-                  <VStack spacing={3} align="stretch">
-                    {recentActivity.map((event, index) => (
-                      <Box key={event.id}>
-                        <HStack justify="space-between" align="start" spacing={4}>
-                          <Text fontSize="sm" color="gray.300" flex={1}>
-                            {event.description}
-                          </Text>
-                          <Text fontSize="xs" color="gray.400" whiteSpace="nowrap">
-                            {formatRelativeTime(event.timestamp)}
-                          </Text>
-                        </HStack>
-                        {index < recentActivity.length - 1 && (
-                          <Divider mt={3} borderColor="rgba(255, 255, 255, 0.1)" />
-                        )}
-                      </Box>
+                  <HStack spacing={2}>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <Flex
+                        key={n}
+                        w={9}
+                        h={9}
+                        borderRadius="md"
+                        align="center"
+                        justify="center"
+                        fontSize="sm"
+                        fontWeight="medium"
+                        bg={n === 3 ? CYAN : 'whiteAlpha.100'}
+                        color={n === 3 ? '#0a0a0f' : 'gray.400'}
+                        border="1px solid"
+                        borderColor={n === 3 ? CYAN : BORDER}
+                      >
+                        {n}
+                      </Flex>
                     ))}
+                  </HStack>
+                </Box>
+                <Box>
+                  <Text fontSize="sm" color="gray.300" mb={2}>
+                    Problem Ambiguity Weight: ×0.5
+                  </Text>
+                  <HStack spacing={2}>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <Flex
+                        key={n}
+                        w={9}
+                        h={9}
+                        borderRadius="md"
+                        align="center"
+                        justify="center"
+                        fontSize="sm"
+                        fontWeight="medium"
+                        bg={n === 4 ? CYAN : 'whiteAlpha.100'}
+                        color={n === 4 ? '#0a0a0f' : 'gray.400'}
+                        border="1px solid"
+                        borderColor={n === 4 ? CYAN : BORDER}
+                      >
+                        {n}
+                      </Flex>
+                    ))}
+                  </HStack>
+                </Box>
+              </VStack>
+              <Divider borderColor={BORDER} />
+              <HStack justify="space-between">
+                <Text fontSize="sm" color="gray.400">
+                  UX Effort Estimate
+                </Text>
+                <Text fontSize="sm" color="white" fontWeight="semibold">
+                  3.5 weeks
+                </Text>
+              </HStack>
+            </VStack>
+          }
+        />
+
+        <Divider borderColor={BORDER} />
+
+        {/* Step 4 */}
+        <StepRow
+          step={4}
+          icon={RepeatIcon}
+          title="Compare scenarios"
+          body="Create and compare different planning scenarios to find the optimal approach."
+          reverseOnDesktop
+          preview={
+            <VStack align="stretch" spacing={4} pointerEvents="none">
+              <Card bg="#141824" border="1px solid" borderColor={BORDER} borderRadius="md">
+                <CardBody p={4}>
+                  <HStack justify="space-between" align="flex-start" mb={3} flexWrap="wrap" gap={2}>
+                    <Box>
+                      <Text color="white" fontWeight="semibold">
+                        Q2 2026 - Committed
+                      </Text>
+                      <Text fontSize="sm" color="gray.500">
+                        15 roadmap items
+                      </Text>
+                    </Box>
+                    <Badge bg="purple.600" color="white" px={2} py={1} borderRadius="md">
+                      Committed
+                    </Badge>
+                  </HStack>
+                  <VStack align="stretch" spacing={3}>
+                    <Box>
+                      <HStack justify="space-between" mb={1}>
+                        <Text fontSize="xs" color="gray.500">
+                          UX Design
+                        </Text>
+                        <Text fontSize="xs" color="gray.400">
+                          72.0 / 80.0 weeks
+                        </Text>
+                      </HStack>
+                      <Progress
+                        value={(72 / 80) * 100}
+                        size="sm"
+                        borderRadius="full"
+                        bg="whiteAlpha.100"
+                        sx={{
+                          '& > div': {
+                            background: CYAN,
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box>
+                      <HStack justify="space-between" mb={1}>
+                        <Text fontSize="xs" color="gray.500">
+                          Content Design
+                        </Text>
+                        <Text fontSize="xs" color="gray.400">
+                          35.0 / 40.0 weeks
+                        </Text>
+                      </HStack>
+                      <Progress
+                        value={(35 / 40) * 100}
+                        size="sm"
+                        borderRadius="full"
+                        bg="whiteAlpha.100"
+                        colorScheme="green"
+                      />
+                    </Box>
                   </VStack>
                 </CardBody>
               </Card>
-            ) : (
-              <Card variant="outline" bg="#141419" borderColor="rgba(255, 255, 255, 0.1)">
-                <CardBody p={6}>
-                  <Text fontSize="sm" color="gray.400" textAlign="center">
-                    Activity will show your recent changes across scenarios.
-                  </Text>
+
+              <Card bg="#141824" border="1px solid" borderColor={BORDER} borderRadius="md">
+                <CardBody p={4}>
+                  <HStack justify="space-between" align="flex-start" mb={3} flexWrap="wrap" gap={2}>
+                    <Box>
+                      <Text color="white" fontWeight="semibold">
+                        Q2 2026 - Optimistic
+                      </Text>
+                      <Text fontSize="sm" color="gray.500">
+                        18 roadmap items
+                      </Text>
+                    </Box>
+                    <Badge bg="gray.600" color="gray.100" px={2} py={1} borderRadius="md">
+                      Draft
+                    </Badge>
+                  </HStack>
+                  <VStack align="stretch" spacing={3}>
+                    <Box>
+                      <HStack justify="space-between" mb={1}>
+                        <Text fontSize="xs" color="gray.500">
+                          UX Design
+                        </Text>
+                        <Text fontSize="xs" color="red.300">
+                          95.0 / 80.0 weeks
+                        </Text>
+                      </HStack>
+                      <Progress
+                        value={100}
+                        size="sm"
+                        borderRadius="full"
+                        bg="whiteAlpha.100"
+                        sx={{
+                          '& > div': {
+                            background: '#ef4444',
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box>
+                      <HStack justify="space-between" mb={1}>
+                        <Text fontSize="xs" color="gray.500">
+                          Content Design
+                        </Text>
+                        <Text fontSize="xs" color="orange.300">
+                          42.0 / 40.0 weeks
+                        </Text>
+                      </HStack>
+                      <Progress
+                        value={100}
+                        size="sm"
+                        borderRadius="full"
+                        bg="whiteAlpha.100"
+                        sx={{
+                          '& > div': {
+                            background: '#f59e0b',
+                          },
+                        }}
+                      />
+                    </Box>
+                  </VStack>
                 </CardBody>
               </Card>
-            )}
-          </Box>
-        )}
-      </Stack>
-
-      {/* Create Scenario Modal */}
-      <CreateScenarioModal isOpen={isOpen} onClose={onClose} />
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        isOpen={isDeleteOpen}
-        leastDestructiveRef={cancelDeleteRef}
-        onClose={onDeleteClose}
-      >
-        <AlertDialogOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)">
-          <AlertDialogContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white" borderBottom="1px solid" borderColor="rgba(255, 255, 255, 0.1)" px={6} py={4}>
-              Delete this scenario?
-            </AlertDialogHeader>
-            <AlertDialogBody color="gray.300" px={6} py={4}>
-              This scenario has no roadmap items and will be permanently removed.
-            </AlertDialogBody>
-            <AlertDialogFooter borderTop="1px solid" borderColor="rgba(255, 255, 255, 0.1)" px={6} py={4}>
-              <Button ref={cancelDeleteRef} onClick={onDeleteClose} variant="outline">
-                Cancel
-              </Button>
-              <Button
-                bg="rgba(239, 68, 68, 0.1)"
-                border="1px solid"
-                borderColor="rgba(239, 68, 68, 0.5)"
-                color="#ef4444"
-                _hover={{
-                  bg: 'rgba(239, 68, 68, 0.2)',
-                  borderColor: '#ef4444',
-                }}
-                onClick={async () => {
-                  if (sessionToDelete) {
-                    try {
-                      await deleteSession(sessionToDelete.id)
-                      toast({
-                        title: 'Scenario deleted',
-                        description: `${sessionToDelete.name} has been deleted.`,
-                        status: 'success',
-                        duration: 3000,
-                        isClosable: true,
-                      })
-                      setSessionToDelete(null)
-                      onDeleteClose()
-                    } catch (err) {
-                      toast({
-                        title: 'Cannot delete scenario',
-                        description: err instanceof Error ? err.message : 'Failed to delete scenario',
-                        status: 'error',
-                        duration: 4000,
-                        isClosable: true,
-                      })
-                    }
-                  }
-                }}
-                ml={3}
-              >
-                Delete
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
+            </VStack>
+          }
+        />
+      </Box>
     </Box>
   )
 }
