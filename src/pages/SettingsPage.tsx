@@ -57,20 +57,20 @@ export default function SettingsPage() {
   useEffect(() => {
     if (settings) {
       setFormData({
-        uxProductRisk: settings.effort_model.ux.productRisk ?? 1.2,
-        uxProblemAmbiguity: settings.effort_model.ux.problemAmbiguity ?? 1.0,
-        uxDiscoveryDepth: settings.effort_model.ux.discoveryDepth ?? 0.9,
-        contentSurfaceArea: settings.effort_model.content.contentSurfaceArea ?? 1.3,
-        contentLocalizationScope: settings.effort_model.content.localizationScope ?? 1.0,
-        contentRegulatoryBrandRisk: settings.effort_model.content.regulatoryBrandRisk ?? 1.2,
-        contentLegalComplianceDependency: settings.effort_model.content.legalComplianceDependency ?? 1.1,
-        pmIntakeMultiplier: settings.effort_model.pmIntakeMultiplier ?? 1.0,
-        focusTimeRatio: settings.time_model.focusTimeRatio ?? 0.75,
-        sizeBandXS: settings.size_bands.xs ?? 1.6,
-        sizeBandS: settings.size_bands.s ?? 2.6,
-        sizeBandM: settings.size_bands.m ?? 3.6,
-        sizeBandL: settings.size_bands.l ?? 4.6,
-        sizeBandXL: settings.size_bands.xl ?? 5.0,
+        uxProductRisk: settings.effort_model?.ux?.productRisk ?? 1.2,
+        uxProblemAmbiguity: settings.effort_model?.ux?.problemAmbiguity ?? 1.0,
+        uxDiscoveryDepth: settings.effort_model?.ux?.discoveryDepth ?? 0.9,
+        contentSurfaceArea: settings.effort_model?.content?.contentSurfaceArea ?? 1.3,
+        contentLocalizationScope: settings.effort_model?.content?.localizationScope ?? 1.0,
+        contentRegulatoryBrandRisk: settings.effort_model?.content?.regulatoryBrandRisk ?? 1.2,
+        contentLegalComplianceDependency: settings.effort_model?.content?.legalComplianceDependency ?? 1.1,
+        pmIntakeMultiplier: settings.effort_model?.pmIntakeMultiplier ?? 1.0,
+        focusTimeRatio: settings.time_model?.focusTimeRatio ?? 0.75,
+        sizeBandXS: settings.size_bands?.xs ?? 1.6,
+        sizeBandS: settings.size_bands?.s ?? 2.6,
+        sizeBandM: settings.size_bands?.m ?? 3.6,
+        sizeBandL: settings.size_bands?.l ?? 4.6,
+        sizeBandXL: settings.size_bands?.xl ?? 5.0,
       })
     }
   }, [settings])
