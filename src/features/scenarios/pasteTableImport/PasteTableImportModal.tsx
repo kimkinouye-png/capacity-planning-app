@@ -27,6 +27,14 @@ import {
 import { useState, useCallback, KeyboardEvent } from 'react'
 import { parsePastedRoadmapItems, getImportSummary, type ParsedRow } from './parsePastedRoadmapItems'
 
+const PROJECT_TYPE_OPTION_LABELS: Record<string, string> = {
+  'net-new': 'New Product',
+  'new-feature': 'New Feature',
+  enhancement: 'Enhancement',
+  optimization: 'Optimization',
+  'fix-polish': 'Fix & Polish',
+}
+
 interface PasteTableImportModalProps {
   isOpen: boolean
   onClose: () => void
@@ -259,11 +267,10 @@ export default function PasteTableImportModal({
                               onChange={(e) => setRowField(index, 'projectType', e.target.value)}
                               isDisabled={!row.isValid}
                             >
-                              <option key="net-new" value="net-new" style={{ background: '#2D3748' }}>
-                                New Product
-                              </option>
-                              {(['new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).map((t) => (
-                                <option key={t} value={t} style={{ background: '#2D3748' }}>{t}</option>
+                              {(['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).map((t) => (
+                                <option key={t} value={t} style={{ background: '#2D3748' }}>
+                                  {PROJECT_TYPE_OPTION_LABELS[t]}
+                                </option>
                               ))}
                             </Select>
                           </Td>

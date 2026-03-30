@@ -19,6 +19,14 @@ import {
 import { useState, type ChangeEvent } from 'react'
 import type { RoadmapItem } from '../domain/types'
 
+const PROJECT_TYPE_OPTION_LABELS: Record<string, string> = {
+  'net-new': 'New Product',
+  'new-feature': 'New Feature',
+  enhancement: 'Enhancement',
+  optimization: 'Optimization',
+  'fix-polish': 'Fix & Polish',
+}
+
 type CreateItemInput = Omit<
   RoadmapItem,
   | 'id'
@@ -221,12 +229,9 @@ export default function AddRoadmapItemModal({
                     value={formData.projectType ?? ''}
                     onChange={set('projectType')}
                   >
-                    <option key="net-new" value="net-new" style={{ background: '#2D3748' }}>
-                      New Product
-                    </option>
-                    {(['new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).map((t) => (
+                    {(['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).map((t) => (
                       <option key={t} value={t} style={{ background: '#2D3748' }}>
-                        {t}
+                        {PROJECT_TYPE_OPTION_LABELS[t]}
                       </option>
                     ))}
                   </Select>

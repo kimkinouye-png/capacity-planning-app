@@ -26,6 +26,14 @@ import {
 import { useState, useEffect } from 'react'
 import { useSettings, DEFAULT_SETTINGS, type Settings } from '../context/SettingsContext'
 
+const PROJECT_TYPE_LABELS: Record<string, string> = {
+  'net-new': 'New Product',
+  'new-feature': 'New Feature',
+  enhancement: 'Enhancement',
+  optimization: 'Optimization',
+  'fix-polish': 'Fix & Polish',
+}
+
 export default function SettingsPage() {
   const { settings, loading, error: settingsError, saveSettings, resetToDefaults } = useSettings()
   const toast = useToast()
@@ -499,7 +507,7 @@ export default function SettingsPage() {
             {/* One row per project type */}
             {(['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).flatMap((projectType) => [
               <GridItem key={`${projectType}-label`}>
-                <Text fontSize="sm" color="gray.200">{projectType}</Text>
+                <Text fontSize="sm" color="gray.200">{PROJECT_TYPE_LABELS[projectType]}</Text>
               </GridItem>,
               <GridItem key={`${projectType}-ux`}>
                 <Select
