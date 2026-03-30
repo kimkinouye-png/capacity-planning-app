@@ -542,9 +542,9 @@ function SessionSummaryPage() {
           name: item.name,
           initiative: item.initiative,
           priority: item.priority,
+          status: item.status,
           projectType: item.projectType as RoadmapItem['projectType'],
         })
-        await updateItem(newItem.id, { status: item.status })
 
         // Date updates
         const dateUpdates: { startDate?: string | null; endDate?: string | null } = {}

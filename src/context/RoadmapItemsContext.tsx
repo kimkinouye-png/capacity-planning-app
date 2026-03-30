@@ -53,7 +53,9 @@ interface RoadmapItemsContextType {
   error: string | null
   createItem: (
     sessionId: string,
-    input: Omit<RoadmapItem, 'id' | 'planning_session_id' | 'status' | 'uxSizeBand' | 'uxFocusWeeks' | 'uxWorkWeeks' | 'contentSizeBand' | 'contentFocusWeeks' | 'contentWorkWeeks'>
+    input: Omit<RoadmapItem, 'id' | 'planning_session_id' | 'uxSizeBand' | 'uxFocusWeeks' | 'uxWorkWeeks' | 'contentSizeBand' | 'contentFocusWeeks' | 'contentWorkWeeks'> & {
+      status?: RoadmapItem['status']
+    }
   ) => Promise<RoadmapItem>
   updateItem: (id: string, patch: Partial<RoadmapItem>) => Promise<void>
   removeItem: (sessionId: string, itemId: string) => Promise<void>
@@ -348,7 +350,7 @@ export function RoadmapItemsProvider({ children }: { children: ReactNode }) {
   const createItem = useCallback(
     async (
       sessionId: string,
-      input: Omit<RoadmapItem, 'id' | 'planning_session_id' | 'status' | 'uxSizeBand' | 'uxFocusWeeks' | 'uxWorkWeeks' | 'contentSizeBand' | 'contentFocusWeeks' | 'contentWorkWeeks'> & {
+      input: Omit<RoadmapItem, 'id' | 'planning_session_id' | 'uxSizeBand' | 'uxFocusWeeks' | 'uxWorkWeeks' | 'contentSizeBand' | 'contentFocusWeeks' | 'contentWorkWeeks'> & {
         status?: RoadmapItem['status']
       }
     ): Promise<RoadmapItem> => {
