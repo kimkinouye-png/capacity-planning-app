@@ -336,7 +336,12 @@ export default function SettingsPage() {
                         fontSize="sm"
                         color="gray.300"
                       >
-                        {period.focusWeeks}
+                        {(
+                          (formData.planning_periods[quarter].baseWeeks -
+                            formData.planning_periods[quarter].holidays -
+                            formData.planning_periods[quarter].pto) *
+                          formData.focus_time_ratio
+                        ).toFixed(1)}
                       </Box>
                     </GridItem>
                   </Grid>

@@ -1,4 +1,19 @@
-import { Box, Flex, HStack, Heading, Text, Button, Tooltip } from '@chakra-ui/react'
+import {
+  Box,
+  Flex,
+  HStack,
+  Heading,
+  Text,
+  Button,
+  Tooltip,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
+} from '@chakra-ui/react'
 import { Link, useLocation } from 'react-router-dom'
 import { InfoIcon } from '@chakra-ui/icons'
 import QRCodeDisplay from './QRCodeDisplay'
@@ -6,6 +21,7 @@ import { resetWorkspace } from '../utils/session'
 
 export default function AppHeader() {
   const location = useLocation()
+  const { isOpen, onOpen, onClose } = useDisclosure()
 
   const navItems = [
     { path: '/scenarios', label: 'Scenarios' },
@@ -16,6 +32,7 @@ export default function AppHeader() {
   ]
 
   return (
+    <>
     <Box
       as="header"
       position="sticky"
@@ -75,7 +92,7 @@ export default function AppHeader() {
                 color="gray.400"
                 borderColor="rgba(255,255,255,0.2)"
                 _hover={{ color: 'white', borderColor: 'rgba(255,255,255,0.4)' }}
-                onClick={resetWorkspace}
+                onClick={onOpen}
               >
                 Reset my workspace
               </Button>
@@ -118,5 +135,42 @@ export default function AppHeader() {
         </Flex>
       </Box>
     </Box>
+
+    <Modal isOpen={isOpen} onClose={onClose} isCentered>
+      <ModalOverlay bg="blackAlpha.700" />
+      <ModalContent bg="gray.800" border="1px solid" borderColor="gray.700" borderRadius="lg">
+        <ModalHeader color="white" fontSize="md" fontWeight="semibold">
+          Reset workspace
+        </ModalHeader>
+        <ModalBody>
+          <Text fontSize="sm" color="gray.300">
+            This will permanently delete all plans and roadmap items. This cannot be undone.
+          </Text>
+        </ModalBody>
+        <ModalFooter gap={3}>
+          <Button
+            variant="outline"
+            borderColor="gray.600"
+            color="gray.300"
+            _hover={{ borderColor: 'gray.400', color: 'white' }}
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+          <Button
+            bg="red.500"
+            color="white"
+            _hover={{ bg: 'red.400' }}
+            onClick={() => {
+              resetWorkspace()
+              onClose()
+            }}
+          >
+            Reset everything
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+    </>
   )
 }
