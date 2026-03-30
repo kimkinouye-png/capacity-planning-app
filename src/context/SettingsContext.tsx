@@ -129,7 +129,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (stored) {
         try {
           const parsed = JSON.parse(stored)
-          setSettings(parsed)
+          const coerced = {
+            ...parsed,
+            focus_time_ratio: Number(parsed.focus_time_ratio ?? DEFAULT_SETTINGS.focus_time_ratio),
+            workstream_penalty: Number(parsed.workstream_penalty ?? DEFAULT_SETTINGS.workstream_penalty),
+          }
+          setSettings(coerced)
         } catch (parseError) {
           console.error('Failed to parse stored settings:', parseError)
           setSettings(DEFAULT_SETTINGS)
