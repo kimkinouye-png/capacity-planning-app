@@ -11,8 +11,6 @@ import {
   Divider,
   Icon,
   Flex,
-  Grid,
-  GridItem,
   Progress,
   Badge,
   Input,
@@ -29,8 +27,9 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
+  createIcon,
 } from '@chakra-ui/react'
-import { CalendarIcon, SettingsIcon, ViewIcon, CheckCircleIcon, RepeatIcon } from '@chakra-ui/icons'
+import { CalendarIcon, RepeatIcon } from '@chakra-ui/icons'
 import { useNavigate } from 'react-router-dom'
 import type { ElementType, ReactNode } from 'react'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
@@ -39,6 +38,27 @@ const BG = '#0f1117'
 const CARD_BG = '#1a1d2e'
 const BORDER = 'rgba(255, 255, 255, 0.08)'
 const CYAN = '#00d9ff'
+
+/** Material-style people icon — not in @chakra-ui/icons */
+const UsersStepIcon = createIcon({
+  displayName: 'UsersStepIcon',
+  viewBox: '0 0 24 24',
+  d: 'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
+})
+
+/** Clipboard with note lines */
+const ClipboardStepIcon = createIcon({
+  displayName: 'ClipboardStepIcon',
+  viewBox: '0 0 24 24',
+  d: 'M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V5h2v3h10V5h2v16z',
+})
+
+/** Calculator keypad */
+const CalculatorStepIcon = createIcon({
+  displayName: 'CalculatorStepIcon',
+  viewBox: '0 0 24 24',
+  d: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm-8 4h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm0 4h2v2h-2v-2z',
+})
 
 function StepPreviewCard({ children }: { children: ReactNode }) {
   return (
@@ -69,9 +89,9 @@ function StepRow({
   preview: ReactNode
   reverseOnDesktop?: boolean
 }) {
-  const left = (
-    <VStack align={{ base: 'center', md: 'start' }} spacing={4} textAlign={{ base: 'center', md: 'left' }}>
-      <HStack spacing={3} justify={{ base: 'center', md: 'flex-start' }}>
+  const textColumn = (
+    <VStack align="stretch" spacing={4} textAlign="left" w="full">
+      <HStack spacing={3} justify="flex-start" w="full">
         <Flex
           w={10}
           h={10}
@@ -106,18 +126,22 @@ function StepRow({
     </VStack>
   )
 
-  const right = <StepPreviewCard>{preview}</StepPreviewCard>
+  const previewColumn = <StepPreviewCard>{preview}</StepPreviewCard>
 
   return (
-    <Grid
-      templateColumns={{ base: '1fr', md: '1fr 1fr' }}
+    <Flex
+      direction={{ base: 'column', md: reverseOnDesktop ? 'row-reverse' : 'row' }}
       gap={{ base: 8, md: 12 }}
-      alignItems="center"
+      align={{ base: 'stretch', md: 'center' }}
       py={{ base: 10, md: 14 }}
     >
-      <GridItem order={{ base: 1, md: reverseOnDesktop ? 2 : 1 }}>{left}</GridItem>
-      <GridItem order={{ base: 2, md: reverseOnDesktop ? 1 : 2 }}>{right}</GridItem>
-    </Grid>
+      <Box flex={1} minW={0}>
+        {textColumn}
+      </Box>
+      <Box flex={1} minW={0}>
+        {previewColumn}
+      </Box>
+    </Flex>
   )
 }
 
@@ -195,9 +219,10 @@ function HomePage() {
               </Button>
               <Button
                 variant="outline"
-                borderColor="rgba(255,255,255,0.25)"
+                borderColor={CYAN}
+                borderWidth="1px"
                 color="gray.200"
-                _hover={{ bg: 'whiteAlpha.100' }}
+                _hover={{ bg: 'whiteAlpha.100', borderColor: 'cyan.300' }}
                 size="lg"
                 flex={1}
                 onClick={() => navigate('/scenarios')}
@@ -213,7 +238,7 @@ function HomePage() {
         {/* Step 1 */}
         <StepRow
           step={1}
-          icon={SettingsIcon}
+          icon={UsersStepIcon}
           title="Add your team size"
           body="Create a new scenario by setting your planning period and defining how many UX designers and content designers are on your team."
           preview={
@@ -274,7 +299,7 @@ function HomePage() {
         {/* Step 2 */}
         <StepRow
           step={2}
-          icon={ViewIcon}
+          icon={ClipboardStepIcon}
           title="Paste your roadmap"
           body="Copy your roadmap directly from Google Sheets, Excel, or any spreadsheet and paste it into the tool to get started."
           reverseOnDesktop
@@ -340,7 +365,7 @@ function HomePage() {
         {/* Step 3 */}
         <StepRow
           step={3}
-          icon={CheckCircleIcon}
+          icon={CalculatorStepIcon}
           title="Estimate effort"
           body="Size your initiatives using factor-based complexity scoring for accurate estimates."
           preview={
