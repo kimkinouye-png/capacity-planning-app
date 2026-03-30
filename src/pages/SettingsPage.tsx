@@ -11,12 +11,15 @@ import {
   HStack,
   Flex,
   Badge,
+  Button,
   Link,
   Input,
+  Select,
   Slider,
   SliderTrack,
   SliderFilledTrack,
   SliderThumb,
+  Switch,
   useToast,
   Spinner,
 } from '@chakra-ui/react'
@@ -120,9 +123,6 @@ export default function SettingsPage() {
     }
   }
 
-  void handleSave
-  void handleReset
-
   if (loading) {
     return (
       <Box minH="100vh" bg="gray.900" color="white">
@@ -138,7 +138,7 @@ export default function SettingsPage() {
 
   return (
     <Box minH="100vh" bg="gray.900" color="white" aria-busy={saving}>
-      <Box maxW="860px" mx="auto" px={6} py={8}>
+      <Box maxW="860px" mx="auto" px={6} py={8} pb={28}>
 
         {/* Breadcrumb */}
         <Breadcrumb
@@ -382,9 +382,300 @@ export default function SettingsPage() {
           </Box>
         </Box>
 
-        {/* ---- Chunks 4–7 go here ---- */}
+        {/* SIZE BAND THRESHOLDS */}
+        <Box id="size-band-thresholds" mb={12}>
+          <Heading size="md" fontWeight="semibold" mb={1}>Size band thresholds</Heading>
+          <Text fontSize="sm" color="gray.400" mb={6}>
+            Min–max score bands. XL has no upper bound.
+          </Text>
 
+          <Grid templateColumns="80px 1fr 1fr" gap={3} alignItems="center" maxW="420px">
+            {/* Header row */}
+            <GridItem />
+            <GridItem>
+              <Text fontSize="xs" color="gray.400" fontWeight="semibold">Min</Text>
+            </GridItem>
+            <GridItem>
+              <Text fontSize="xs" color="gray.400" fontWeight="semibold">Max</Text>
+            </GridItem>
+
+            {/* One row per band */}
+            {(['xs', 's', 'm', 'l', 'xl'] as const).flatMap((band) => [
+              <GridItem key={`${band}-label`}>
+                <Text fontSize="sm" fontWeight="semibold" color="gray.200" textTransform="uppercase">
+                  {band}
+                </Text>
+              </GridItem>,
+
+              <GridItem key={`${band}-min`}>
+                <Input
+                  size="sm"
+                  bg="gray.700"
+                  border="1px solid"
+                  borderColor="gray.600"
+                  borderRadius="md"
+                  color="white"
+                  _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
+                  type="number"
+                  value={formData.size_band_thresholds[band].min}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      size_band_thresholds: {
+                        ...prev.size_band_thresholds,
+                        [band]: {
+                          ...prev.size_band_thresholds[band],
+                          min: Number(e.target.value),
+                        },
+                      },
+                    }))
+                  }
+                />
+              </GridItem>,
+
+              <GridItem key={`${band}-max`}>
+                {band === 'xl' ? (
+                  <Box
+                    h="32px"
+                    display="flex"
+                    alignItems="center"
+                    px={3}
+                    fontSize="sm"
+                    color="gray.500"
+                  >
+                    —
+                  </Box>
+                ) : (
+                  <Input
+                    size="sm"
+                    bg="gray.700"
+                    border="1px solid"
+                    borderColor="gray.600"
+                    borderRadius="md"
+                    color="white"
+                    _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
+                    type="number"
+                    value={formData.size_band_thresholds[band].max ?? ''}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        size_band_thresholds: {
+                          ...prev.size_band_thresholds,
+                          [band]: {
+                            ...prev.size_band_thresholds[band],
+                            max: Number(e.target.value),
+                          },
+                        },
+                      }))
+                    }
+                  />
+                )}
+              </GridItem>,
+            ])}
+          </Grid>
+        </Box>
+
+        {/* PROJECT-TYPE DEMAND */}
+        <Box id="project-type-demand" mb={12}>
+          <Heading size="md" fontWeight="semibold" mb={1}>Project-type demand</Heading>
+          <Text fontSize="sm" color="gray.400" mb={6}>
+            Default UX and content size bands by project type.
+          </Text>
+
+          <Grid templateColumns="160px 1fr 1fr" gap={3} alignItems="center" maxW="480px">
+            {/* Header row */}
+            <GridItem />
+            <GridItem>
+              <Text fontSize="xs" color="gray.400" fontWeight="semibold">UX</Text>
+            </GridItem>
+            <GridItem>
+              <Text fontSize="xs" color="gray.400" fontWeight="semibold">Content</Text>
+            </GridItem>
+
+            {/* One row per project type */}
+            {(['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).flatMap((projectType) => [
+              <GridItem key={`${projectType}-label`}>
+                <Text fontSize="sm" color="gray.200">{projectType}</Text>
+              </GridItem>,
+              <GridItem key={`${projectType}-ux`}>
+                <Select
+                  size="sm"
+                  bg="gray.700"
+                  border="1px solid"
+                  borderColor="gray.600"
+                  borderRadius="md"
+                  color="white"
+                  _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
+                  value={formData.project_type_demand[projectType].ux}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      project_type_demand: {
+                        ...prev.project_type_demand,
+                        [projectType]: {
+                          ...prev.project_type_demand[projectType],
+                          ux: e.target.value as 'XS' | 'S' | 'M' | 'L' | 'XL',
+                        },
+                      },
+                    }))
+                  }
+                >
+                  {(['XS', 'S', 'M', 'L', 'XL'] as const).map((size) => (
+                    <option key={size} value={size} style={{ background: '#2D3748' }}>
+                      {size}
+                    </option>
+                  ))}
+                </Select>
+              </GridItem>,
+              <GridItem key={`${projectType}-content`}>
+                <Select
+                  size="sm"
+                  bg="gray.700"
+                  border="1px solid"
+                  borderColor="gray.600"
+                  borderRadius="md"
+                  color="white"
+                  _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
+                  value={formData.project_type_demand[projectType].content}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      project_type_demand: {
+                        ...prev.project_type_demand,
+                        [projectType]: {
+                          ...prev.project_type_demand[projectType],
+                          content: e.target.value as 'XS' | 'S' | 'M' | 'L' | 'XL',
+                        },
+                      },
+                    }))
+                  }
+                >
+                  {(['XS', 'S', 'M', 'L', 'XL'] as const).map((size) => (
+                    <option key={size} value={size} style={{ background: '#2D3748' }}>
+                      {size}
+                    </option>
+                  ))}
+                </Select>
+              </GridItem>,
+            ])}
+          </Grid>
+        </Box>
+
+        {/* EFFORT MODEL WEIGHTS */}
+        <Box id="effort-model-weights" mb={12}>
+          <Flex align="center" justify="space-between" mb={1}>
+            <Heading size="md" fontWeight="semibold">Effort model weights</Heading>
+            <Switch
+              isChecked={formData.effort_model_enabled}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, effort_model_enabled: e.target.checked }))
+              }
+              colorScheme="cyan"
+              size="md"
+            />
+          </Flex>
+          <Text fontSize="sm" color="gray.400" mb={6}>
+            Relative importance of each complexity factor. Weights are 1–10; displayed as a multiplier (weight ÷ 10).
+          </Text>
+
+          <Flex direction="column" gap={8} maxW="480px"
+            opacity={formData.effort_model_enabled ? 1 : 0.4}
+            pointerEvents={formData.effort_model_enabled ? 'auto' : 'none'}
+          >
+            {(
+              [
+                { key: 'productRisk',       label: 'Product risk',       description: 'Multiplier on base effort' },
+                { key: 'problemAmbiguity',  label: 'Problem ambiguity',  description: 'Additive weeks (UX)' },
+                { key: 'contentSurface',    label: 'Content surface',    description: 'Multiplier (Content)' },
+                { key: 'localizationScope', label: 'Localization scope', description: 'Multiplier (Content)' },
+              ] as { key: keyof typeof formData.effort_weights; label: string; description: string }[]
+            ).map(({ key, label, description }) => (
+              <Box key={key}>
+                <Flex justify="space-between" mb={1}>
+                  <Box>
+                    <Text fontSize="sm" fontWeight="medium" color="gray.200">{label}</Text>
+                    <Text fontSize="xs" color="gray.500">{description}</Text>
+                  </Box>
+                  <Flex align="center" gap={3}>
+                    <Text fontSize="xs" color="gray.500">
+                      ×{(formData.effort_weights[key] / 10).toFixed(1)}
+                    </Text>
+                    <Text fontSize="sm" fontWeight="semibold" color="cyan.400" minW="24px" textAlign="right">
+                      {formData.effort_weights[key]}
+                    </Text>
+                  </Flex>
+                </Flex>
+                <Slider
+                  min={1}
+                  max={10}
+                  step={1}
+                  value={formData.effort_weights[key]}
+                  onChange={(val) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      effort_weights: { ...prev.effort_weights, [key]: val },
+                    }))
+                  }
+                  focusThumbOnChange={false}
+                >
+                  <SliderTrack bg="gray.600">
+                    <SliderFilledTrack bg="cyan.400" />
+                  </SliderTrack>
+                  <SliderThumb boxSize={4} bg="cyan.400" />
+                </Slider>
+                <Flex justify="space-between" mt={1}>
+                  <Text fontSize="xs" color="gray.500">1</Text>
+                  <Text fontSize="xs" color="gray.500">10</Text>
+                </Flex>
+              </Box>
+            ))}
+          </Flex>
+        </Box>
+
+        {/* ---- Chunk 7 goes here ---- */}
+
+      {/* end maxW="860px" */}
       </Box>
+
+      {/* STICKY FOOTER */}
+      <Box
+        position="fixed"
+        bottom={0}
+        left={0}
+        right={0}
+        bg="gray.900"
+        borderTop="1px solid"
+        borderColor="gray.700"
+        px={6}
+        py={4}
+        zIndex={100}
+      >
+        <Flex maxW="860px" mx="auto" justify="flex-end" gap={3}>
+          <Button
+            variant="outline"
+            borderColor="gray.600"
+            color="gray.300"
+            _hover={{ borderColor: 'gray.400', color: 'white' }}
+            onClick={() => void handleReset()}
+            isDisabled={saving}
+          >
+            Reset to defaults
+          </Button>
+          <Button
+            bg="cyan.400"
+            color="gray.900"
+            fontWeight="semibold"
+            _hover={{ bg: 'cyan.300' }}
+            onClick={() => void handleSave()}
+            isLoading={saving}
+            loadingText="Saving…"
+          >
+            Save settings
+          </Button>
+        </Flex>
+      </Box>
+
+    {/* end outer Box bg="gray.900" */}
     </Box>
   )
 }
