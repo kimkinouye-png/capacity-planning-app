@@ -7,7 +7,6 @@ import {
   Tr,
   Th,
   Td,
-  TableContainer,
   Stack,
   Text,
   Badge,
@@ -143,13 +142,23 @@ function SessionCapacityCard({
         {title}
       </Heading>
       <VStack spacing={3} align="stretch">
-        <Flex justify="space-between" align="center" gap={3} wrap="wrap">
-          <Text fontSize="sm" color="gray.500">
+        <Flex justify="space-between" align="center" w="full" gap={3} wrap="wrap">
+          <Text fontSize="sm" color="gray.500" display={{ base: 'none', md: 'block' }} flexShrink={0}>
             Team Size
           </Text>
-          <Box fontSize="xl" fontWeight="bold" color="white" textAlign="right">
-            {teamSizeControl}
-          </Box>
+          <HStack
+            spacing={2}
+            flex={{ base: 1, md: 'auto' }}
+            justify={{ base: 'flex-start', md: 'flex-end' }}
+            align="center"
+          >
+            <Box fontSize="xl" fontWeight="bold" color="white" textAlign={{ base: 'left', md: 'right' }}>
+              {teamSizeControl}
+            </Box>
+            <Text color="gray.400" display={{ base: 'block', md: 'none' }}>
+              designers
+            </Text>
+          </HStack>
         </Flex>
         <Flex justify="space-between" align="center" gap={3} wrap="wrap">
           <Text fontSize="sm" color="gray.500">
@@ -1031,7 +1040,7 @@ function SessionSummaryPage() {
 
         {/* Capacity Overview Cards */}
         {capacityMetrics && (
-          <SimpleGrid columns={{ base: 1, md: 2 }} gap={4} mb={8}>
+          <SimpleGrid w="full" columns={{ base: 1, md: 2 }} gap={4} mb={8}>
             <SessionCapacityCard
               title="UX Design Capacity"
               metrics={capacityMetrics.ux}
@@ -1149,9 +1158,8 @@ function SessionSummaryPage() {
             </VStack>
           ) : (
             <>
-              <Box overflowX="auto">
-                <TableContainer>
-                  <Table variant="simple">
+              <Box width="100%" overflowX="auto" sx={{ WebkitOverflowScrolling: 'touch' }}>
+                <Table variant="simple" minW="max-content">
                     <Thead>
                       <Tr>
                         <Th
@@ -1414,8 +1422,7 @@ function SessionSummaryPage() {
                         )
                       })}
                     </Tbody>
-                  </Table>
-                </TableContainer>
+                </Table>
               </Box>
 
               <HStack mt={6} spacing={3} justify="flex-start">
