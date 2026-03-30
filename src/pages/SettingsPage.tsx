@@ -49,11 +49,11 @@ export default function SettingsPage() {
         effort_weights: { ...settings.effort_weights },
         effort_model_enabled: settings.effort_model_enabled,
         workstream_impact_enabled: settings.workstream_impact_enabled,
-        workstream_penalty: settings.workstream_penalty,
-        focus_time_ratio: settings.focus_time_ratio,
+        workstream_penalty: Number(settings.workstream_penalty),
+        focus_time_ratio: Number(settings.focus_time_ratio),
         planning_periods: { ...settings.planning_periods },
-        size_band_thresholds: JSON.parse(JSON.stringify(settings.size_band_thresholds)) as Settings['size_band_thresholds'],
-        project_type_demand: JSON.parse(JSON.stringify(settings.project_type_demand)) as Settings['project_type_demand'],
+        size_band_thresholds: JSON.parse(JSON.stringify(settings.size_band_thresholds)),
+        project_type_demand: JSON.parse(JSON.stringify(settings.project_type_demand)),
       })
     }
   }, [settings])
