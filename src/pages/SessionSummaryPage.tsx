@@ -46,19 +46,24 @@ import {
   Progress,
   Flex,
 } from '@chakra-ui/react'
-import { DeleteIcon, CheckIcon } from '@chakra-ui/icons'
+import {
+  DeleteIcon,
+  EditIcon,
+  StarIcon,
+  AddIcon,
+  SettingsIcon,
+  RepeatIcon,
+  InfoIcon,
+} from '@chakra-ui/icons'
 import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useMemo, useRef, useEffect, useState, type ReactNode } from 'react'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
-import { useSettings } from '../context/SettingsContext'
 import { getWeeksForPeriod } from '../config/quarterConfig'
-import { estimateSprints, formatSprintEstimate } from '../config/sprints'
 import { calculateWorkWeeks } from '../config/effortModel'
 import InlineEditableText from '../components/InlineEditableText'
 import EditableNumberCell from '../components/EditableNumberCell'
 import EditableTextCell from '../components/EditableTextCell'
-import EditableDateCell from '../components/EditableDateCell'
 import PasteTableImportModal from '../features/scenarios/pasteTableImport/PasteTableImportModal'
 import type { PlanningSession, RoadmapItem } from '../domain/types'
 
@@ -169,6 +174,44 @@ function SessionCapacityCard({
   )
 }
 
+function formatQuarterShort(period: string | undefined): string {
+  if (!period) return '—'
+  const m = period.match(/(\d{4})-Q([1-4])/)
+  if (!m) return period
+  const yy = m[1].slice(2)
+  return `Q${m[2]}'${yy}`
+}
+
+const PROJECT_TYPE_LABELS: Record<NonNullable<RoadmapItem['projectType']>, string> = {
+  'net-new': 'Net new',
+  'new-feature': 'New feature',
+  enhancement: 'Enhancement',
+  optimization: 'Optimization',
+  'fix-polish': 'Fix / polish',
+}
+
+const PROJECT_TYPE_ICONS: Record<NonNullable<RoadmapItem['projectType']>, typeof StarIcon> = {
+  'net-new': StarIcon,
+  'new-feature': AddIcon,
+  enhancement: SettingsIcon,
+  optimization: RepeatIcon,
+  'fix-polish': InfoIcon,
+}
+
+function priorityPillProps(p: RoadmapItem['priority'] | undefined): { bg: string; color: string; borderColor: string } {
+  switch (p) {
+    case 'P0':
+      return { bg: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', borderColor: 'rgba(239, 68, 68, 0.5)' }
+    case 'P1':
+      return { bg: 'rgba(249, 115, 22, 0.15)', color: '#fdba74', borderColor: 'rgba(249, 115, 22, 0.5)' }
+    case 'P2':
+      return { bg: 'rgba(234, 179, 8, 0.15)', color: '#fde047', borderColor: 'rgba(234, 179, 8, 0.45)' }
+    case 'P3':
+    default:
+      return { bg: 'rgba(107, 114, 128, 0.25)', color: '#d1d5db', borderColor: 'rgba(156, 163, 175, 0.5)' }
+  }
+}
+
 function coerceImportedPriority(raw: unknown): RoadmapItem['priority'] {
   if (raw === 'P0' || raw === 'P1' || raw === 'P2' || raw === 'P3') return raw
   if (typeof raw === 'string') {
@@ -191,7 +234,6 @@ function SessionSummaryPage() {
   const toast = useToast()
   const { sessions, getSessionById, commitSession, uncommitSession, updateSession, isLoading: sessionsLoading, error: sessionsError, loadSessions } = usePlanningSessions()
   const { getItemsForSession, removeItem, createItem, updateItem, loadItemsForSession, error: roadmapError } = useRoadmapItems()
-  const { settings } = useSettings()
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { isOpen: isCreateModalOpen, onOpen: onCreateModalOpen, onClose: onCreateModalClose } = useDisclosure()
   const { isOpen: isPasteModalOpen, onOpen: onPasteModalOpen, onClose: onPasteModalClose } = useDisclosure()
@@ -322,122 +364,9 @@ function SessionSummaryPage() {
     }
   }, [session, items])
 
-  // Format priority for display (P0–P3; legacy numeric values normalized in context)
-  const formatPriority = (priority: RoadmapItem['priority'] | undefined) => {
-    if (priority === undefined || priority === null) return '—'
-    return priority
-  }
-
-  // Format status for display
-  const formatStatus = (status: string | undefined) => {
-    if (!status) return '—'
-    return status
-      .split('_')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
-  }
-
   // Handle row click (navigate to item detail)
   const handleRowClick = (itemId: string) => {
     navigate(`/sessions/${id}/items/${itemId}`)
-  }
-
-  // Handle updating UX focus weeks from inline edit
-  const handleUpdateUXFocusWeeks = async (itemId: string, newValue: number | undefined) => {
-    if (!id) return
-
-    console.log('🔵 [handleUpdateUXFocusWeeks] Called with:', { itemId, newValue, sessionId: id })
-
-    const focusTimeRatio = settings?.time_model.focusTimeRatio ?? 0.75
-    const updates: {
-      uxFocusWeeks?: number
-      uxWorkWeeks?: number
-    } = {}
-
-    if (newValue !== undefined) {
-      updates.uxFocusWeeks = newValue
-      updates.uxWorkWeeks = calculateWorkWeeks(newValue, focusTimeRatio)
-    } else {
-      // If undefined, let normalization handle defaults
-      // But we still need to update work weeks based on current focus weeks
-      const item = items.find((i) => i.id === itemId)
-      if (item && typeof item.uxFocusWeeks === 'number') {
-        updates.uxWorkWeeks = calculateWorkWeeks(item.uxFocusWeeks, focusTimeRatio)
-      }
-    }
-
-    try {
-      console.log('🔵 [handleUpdateUXFocusWeeks] Calling updateItem with:', { itemId, updates })
-      await updateItem(itemId, updates)
-      console.log('🟢 [handleUpdateUXFocusWeeks] Update successful, checking state...')
-      
-      // Verify the update in state
-      const updatedItems = getItemsForSession(id)
-      const updatedItem = updatedItems.find(i => i.id === itemId)
-      console.log('🟢 [handleUpdateUXFocusWeeks] State after update:', {
-        itemId,
-        uxFocusWeeks: updatedItem?.uxFocusWeeks,
-        expected: newValue
-      })
-    } catch (error) {
-      console.error('🔴 [handleUpdateUXFocusWeeks] Error:', error)
-      toast({
-        title: 'Update failed',
-        description: 'Failed to update UX focus weeks. Please try again.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      })
-    }
-  }
-
-  // Handle updating Content focus weeks from inline edit
-  const handleUpdateContentFocusWeeks = async (itemId: string, newValue: number | undefined) => {
-    if (!id) return
-
-    console.log('🔵 [handleUpdateContentFocusWeeks] Called with:', { itemId, newValue, sessionId: id })
-
-    const focusTimeRatio = settings?.time_model.focusTimeRatio ?? 0.75
-    const updates: {
-      contentFocusWeeks?: number
-      contentWorkWeeks?: number
-    } = {}
-
-    if (newValue !== undefined) {
-      updates.contentFocusWeeks = newValue
-      updates.contentWorkWeeks = calculateWorkWeeks(newValue, focusTimeRatio)
-    } else {
-      // If undefined, let normalization handle defaults
-      // But we still need to update work weeks based on current focus weeks
-      const item = items.find((i) => i.id === itemId)
-      if (item && typeof item.contentFocusWeeks === 'number') {
-        updates.contentWorkWeeks = calculateWorkWeeks(item.contentFocusWeeks, focusTimeRatio)
-      }
-    }
-
-    try {
-      console.log('🔵 [handleUpdateContentFocusWeeks] Calling updateItem with:', { itemId, updates })
-      await updateItem(itemId, updates)
-      console.log('🟢 [handleUpdateContentFocusWeeks] Update successful, checking state...')
-      
-      // Verify the update in state
-      const updatedItems = getItemsForSession(id)
-      const updatedItem = updatedItems.find(i => i.id === itemId)
-      console.log('🟢 [handleUpdateContentFocusWeeks] State after update:', {
-        itemId,
-        contentFocusWeeks: updatedItem?.contentFocusWeeks,
-        expected: newValue
-      })
-    } catch (error) {
-      console.error('🔴 [handleUpdateContentFocusWeeks] Error:', error)
-      toast({
-        title: 'Update failed',
-        description: 'Failed to update Content focus weeks. Please try again.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      })
-    }
   }
 
   // Handle updating item name from inline edit
@@ -479,68 +408,6 @@ function SessionSummaryPage() {
   // Validate short_key: non-empty and no spaces
   const validateShortKey = (value: string): boolean => {
     return value.length > 0 && !value.includes(' ')
-  }
-
-  // Handle updating item startDate from inline edit
-  const handleUpdateStartDate = async (itemId: string, newValue: string | null) => {
-    if (!id) return
-
-    console.log('🔵 [handleUpdateStartDate] Called with:', { itemId, newValue, sessionId: id })
-
-    try {
-      console.log('🔵 [handleUpdateStartDate] Calling updateItem with:', { itemId, startDate: newValue })
-      await updateItem(itemId, { startDate: newValue })
-      console.log('🟢 [handleUpdateStartDate] Update successful, checking state...')
-      
-      // Verify the update in state
-      const updatedItems = getItemsForSession(id)
-      const updatedItem = updatedItems.find(i => i.id === itemId)
-      console.log('🟢 [handleUpdateStartDate] State after update:', {
-        itemId,
-        startDate: updatedItem?.startDate,
-        expected: newValue
-      })
-    } catch (error) {
-      console.error('🔴 [handleUpdateStartDate] Error:', error)
-      toast({
-        title: 'Update failed',
-        description: 'Failed to update start date. Please try again.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      })
-    }
-  }
-
-  // Handle updating item endDate from inline edit
-  const handleUpdateEndDate = async (itemId: string, newValue: string | null) => {
-    if (!id) return
-
-    console.log('🔵 [handleUpdateEndDate] Called with:', { itemId, newValue, sessionId: id })
-
-    try {
-      console.log('🔵 [handleUpdateEndDate] Calling updateItem with:', { itemId, endDate: newValue })
-      await updateItem(itemId, { endDate: newValue })
-      console.log('🟢 [handleUpdateEndDate] Update successful, checking state...')
-      
-      // Verify the update in state
-      const updatedItems = getItemsForSession(id)
-      const updatedItem = updatedItems.find(i => i.id === itemId)
-      console.log('🟢 [handleUpdateEndDate] State after update:', {
-        itemId,
-        endDate: updatedItem?.endDate,
-        expected: newValue
-      })
-    } catch (error) {
-      console.error('🔴 [handleUpdateEndDate] Error:', error)
-      toast({
-        title: 'Update failed',
-        description: 'Failed to update end date. Please try again.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      })
-    }
   }
 
   // Handle remove item
@@ -1212,9 +1079,14 @@ function SessionSummaryPage() {
 
         {/* Roadmap Items Table */}
         <Box bg="#141419" borderRadius="md" p={6} border="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
-          <Heading size="md" mb={6} fontWeight="bold" color="white">
-            Roadmap Items
-          </Heading>
+          <Box mb={6}>
+            <Heading size="md" fontWeight="bold" color="white">
+              Roadmap Items
+            </Heading>
+            <Text fontSize="sm" color="gray.500" mt={1}>
+              Demand shown in focus weeks
+            </Text>
+          </Box>
 
           {/* Error message for RoadmapItemsContext */}
           {roadmapError && (
@@ -1228,17 +1100,13 @@ function SessionSummaryPage() {
           )}
 
           {items.length === 0 ? (
-            // Empty State
-            <VStack spacing={4} py={12}>
+            <VStack spacing={4} py={12} align="stretch">
               <Text color="gray.300" fontSize="16px">
                 No roadmap items yet. Add items to see capacity calculations.
               </Text>
-              <HStack spacing={3}>
-                <Button
-                  onClick={onCreateModalOpen}
-                  colorScheme="cyan"
-                >
-                  + Add Your First Item
+              <HStack spacing={3} justify="flex-start">
+                <Button onClick={onCreateModalOpen} colorScheme="cyan">
+                  + Add new item
                 </Button>
                 <Button
                   onClick={onPasteModalOpen}
@@ -1257,260 +1125,293 @@ function SessionSummaryPage() {
             </VStack>
           ) : (
             <>
-              <TableContainer>
-                <Table variant="simple">
-                  <Thead>
-                    <Tr>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Key</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Name</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Start</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">End</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Priority</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Status</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider" borderLeft="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
-                        UX Size
-                      </Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">UX Focus Weeks</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">UX Sprints</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider" borderLeft="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
-                        Content Size
-                      </Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Content Focus Weeks</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Content Sprints</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600" textTransform="uppercase" letterSpacing="wider">Actions</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {items.map((item) => {
-                      const uxSprintEstimate = item.uxFocusWeeks
-                        ? estimateSprints(item.uxFocusWeeks)
-                        : 0
-                      const contentSprintEstimate = item.contentFocusWeeks
-                        ? estimateSprints(item.contentFocusWeeks)
-                        : 0
-
-                      return (
-                        <Tr
-                          key={item.id}
-                          _hover={{ bg: 'rgba(255, 255, 255, 0.05)', cursor: 'pointer' }}
-                          onClick={() => handleRowClick(item.id)}
+              <Box overflowX="auto">
+                <TableContainer>
+                  <Table variant="simple">
+                    <Thead>
+                      <Tr>
+                        <Th
+                          color="gray.500"
+                          fontSize="xs"
+                          fontWeight="600"
+                          textTransform="uppercase"
+                          letterSpacing="wider"
                           borderBottom="1px solid"
-                          borderColor="rgba(255, 255, 255, 0.05)"
+                          borderColor="whiteAlpha.200"
+                          py={3}
+                          px={3}
                         >
-                          <Td onClick={(e) => e.stopPropagation()}>
-                            <EditableTextCell
-                              value={item.short_key}
-                              onChange={() => {
-                                // Local state update happens immediately via context
-                              }}
-                              onUpdate={(newValue) => handleUpdateShortKey(item.id, newValue)}
-                              validate={validateShortKey}
-                              placeholder="Key"
-                              color="gray.300"
-                            />
-                          </Td>
-                          <Td onClick={(e) => e.stopPropagation()}>
-                            <EditableTextCell
-                              value={item.name}
-                              onChange={() => {
-                                // Local state update happens immediately via context
-                              }}
-                              onUpdate={(newValue) => handleUpdateName(item.id, newValue)}
-                              placeholder="Name"
-                              color="gray.300"
-                            />
-                          </Td>
-                          <Td onClick={(e) => e.stopPropagation()}>
-                            <EditableDateCell
-                              value={item.startDate}
-                              onChange={() => {
-                                // Local state update happens immediately via context
-                              }}
-                              onUpdate={(newValue) => handleUpdateStartDate(item.id, newValue)}
-                              placeholder="—"
-                              color="gray.300"
-                            />
-                          </Td>
-                          <Td onClick={(e) => e.stopPropagation()}>
-                            <EditableDateCell
-                              value={item.endDate}
-                              onChange={() => {
-                                // Local state update happens immediately via context
-                              }}
-                              onUpdate={(newValue) => handleUpdateEndDate(item.id, newValue)}
-                              placeholder="—"
-                              color="gray.300"
-                            />
-                          </Td>
-                          <Td>
-                            <Badge
-                              bg="rgba(245, 158, 11, 0.1)"
-                              color="#f59e0b"
-                              border="1px solid"
-                              borderColor="rgba(245, 158, 11, 0.5)"
-                              borderRadius="4px"
-                              px={2}
-                              py={1}
-                              fontWeight={500}
-                            >
-                              {formatPriority(item.priority)}
-                            </Badge>
-                          </Td>
-                          <Td>
-                            <Badge
-                              bg="rgba(255, 255, 255, 0.1)"
-                              color="gray.300"
-                              borderRadius="full"
-                              px={2}
-                              py={1}
-                            >
-                              {formatStatus(item.status)}
-                            </Badge>
-                          </Td>
-                          <Td borderLeft="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
-                            {item.uxSizeBand ? (
-                              <Text
-                                fontWeight={600}
-                                fontSize="14px"
-                                color="gray.300"
-                              >
-                                {item.uxSizeBand}
-                              </Text>
-                            ) : (
-                              <Text color="gray.500">—</Text>
-                            )}
-                          </Td>
-                          <Td onClick={(e) => e.stopPropagation()}>
-                            <EditableNumberCell
-                              value={item.uxFocusWeeks}
-                              onChange={() => {
-                                // Local state update happens immediately via context
-                              }}
-                              onUpdate={(newValue) => handleUpdateUXFocusWeeks(item.id, newValue)}
-                              min={0}
-                              step={0.1}
-                              precision={1}
-                              color="gray.300"
-                            />
-                          </Td>
-                          <Td color="gray.300">
-                            {item.uxFocusWeeks
-                              ? formatSprintEstimate(uxSprintEstimate)
-                              : '—'}
-                          </Td>
-                          <Td borderLeft="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
-                            {item.contentSizeBand ? (
-                              <Text
-                                fontWeight={600}
-                                fontSize="14px"
-                                color="gray.300"
-                              >
-                                {item.contentSizeBand}
-                              </Text>
-                            ) : (
-                              <Text color="gray.500">—</Text>
-                            )}
-                          </Td>
-                          <Td onClick={(e) => e.stopPropagation()}>
-                            <EditableNumberCell
-                              value={item.contentFocusWeeks}
-                              onChange={() => {
-                                // Local state update happens immediately via context
-                              }}
-                              onUpdate={(newValue) => handleUpdateContentFocusWeeks(item.id, newValue)}
-                              min={0}
-                              step={0.1}
-                              precision={1}
-                              color="gray.300"
-                            />
-                          </Td>
-                          <Td color="gray.300">
-                            {item.contentFocusWeeks
-                              ? formatSprintEstimate(contentSprintEstimate)
-                              : '—'}
-                          </Td>
-                          <Td 
-                            onClick={(e) => e.stopPropagation()}
-                            onMouseDown={(e) => e.stopPropagation()}
+                          Key
+                        </Th>
+                        <Th
+                          color="gray.500"
+                          fontSize="xs"
+                          fontWeight="600"
+                          textTransform="uppercase"
+                          letterSpacing="wider"
+                          borderBottom="1px solid"
+                          borderColor="whiteAlpha.200"
+                          py={3}
+                          px={3}
+                        >
+                          Name
+                        </Th>
+                        <Th
+                          color="gray.500"
+                          fontSize="xs"
+                          fontWeight="600"
+                          textTransform="uppercase"
+                          letterSpacing="wider"
+                          borderBottom="1px solid"
+                          borderColor="whiteAlpha.200"
+                          py={3}
+                          px={3}
+                        >
+                          Type
+                        </Th>
+                        <Th
+                          color="gray.500"
+                          fontSize="xs"
+                          fontWeight="600"
+                          textTransform="uppercase"
+                          letterSpacing="wider"
+                          borderBottom="1px solid"
+                          borderColor="whiteAlpha.200"
+                          py={3}
+                          px={3}
+                        >
+                          Quarter
+                        </Th>
+                        <Th
+                          color="gray.500"
+                          fontSize="xs"
+                          fontWeight="600"
+                          textTransform="uppercase"
+                          letterSpacing="wider"
+                          borderBottom="1px solid"
+                          borderColor="whiteAlpha.200"
+                          py={3}
+                          px={3}
+                        >
+                          Priority
+                        </Th>
+                        <Th
+                          color="gray.500"
+                          fontSize="xs"
+                          fontWeight="600"
+                          textTransform="uppercase"
+                          letterSpacing="wider"
+                          borderBottom="1px solid"
+                          borderColor="whiteAlpha.200"
+                          py={3}
+                          px={3}
+                        >
+                          UX
+                        </Th>
+                        <Th
+                          color="gray.500"
+                          fontSize="xs"
+                          fontWeight="600"
+                          textTransform="uppercase"
+                          letterSpacing="wider"
+                          borderBottom="1px solid"
+                          borderColor="whiteAlpha.200"
+                          py={3}
+                          px={3}
+                        >
+                          Content
+                        </Th>
+                        <Th
+                          color="gray.500"
+                          fontSize="xs"
+                          fontWeight="600"
+                          textTransform="uppercase"
+                          letterSpacing="wider"
+                          borderBottom="1px solid"
+                          borderColor="whiteAlpha.200"
+                          py={3}
+                          px={3}
+                        >
+                          Actions
+                        </Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {items.map((item) => {
+                        const pt = item.projectType
+                        const TypeIcon = pt ? PROJECT_TYPE_ICONS[pt] : null
+                        const pri = priorityPillProps(item.priority)
+
+                        return (
+                          <Tr
+                            key={item.id}
+                            onClick={() => handleRowClick(item.id)}
+                            cursor="pointer"
                           >
-                            <HStack 
-                              spacing={2}
+                            <Td
+                              onClick={(e) => e.stopPropagation()}
+                              py={3}
+                              px={3}
+                              borderBottom="1px solid"
+                              borderColor="whiteAlpha.100"
+                            >
+                              <EditableTextCell
+                                value={item.short_key}
+                                onChange={() => {}}
+                                onUpdate={(newValue) => handleUpdateShortKey(item.id, newValue)}
+                                validate={validateShortKey}
+                                placeholder="Key"
+                                color="gray.300"
+                              />
+                            </Td>
+                            <Td
+                              onClick={(e) => e.stopPropagation()}
+                              py={3}
+                              px={3}
+                              borderBottom="1px solid"
+                              borderColor="whiteAlpha.100"
+                            >
+                              <EditableTextCell
+                                value={item.name}
+                                onChange={() => {}}
+                                onUpdate={(newValue) => handleUpdateName(item.id, newValue)}
+                                placeholder="Name"
+                                color="gray.300"
+                              />
+                            </Td>
+                            <Td
+                              py={3}
+                              px={3}
+                              borderBottom="1px solid"
+                              borderColor="whiteAlpha.100"
+                            >
+                              {pt && TypeIcon ? (
+                                <HStack spacing={2}>
+                                  <TypeIcon boxSize={3} color="gray.400" aria-hidden />
+                                  <Text fontSize="sm" color="gray.300">
+                                    {PROJECT_TYPE_LABELS[pt]}
+                                  </Text>
+                                </HStack>
+                              ) : (
+                                <Text color="gray.500">—</Text>
+                              )}
+                            </Td>
+                            <Td
+                              py={3}
+                              px={3}
+                              borderBottom="1px solid"
+                              borderColor="whiteAlpha.100"
+                              color="gray.300"
+                              fontSize="sm"
+                            >
+                              {formatQuarterShort(planningPeriod)}
+                            </Td>
+                            <Td py={3} px={3} borderBottom="1px solid" borderColor="whiteAlpha.100">
+                              <Badge
+                                borderRadius="full"
+                                px={2}
+                                py={0.5}
+                                fontSize="xs"
+                                fontWeight="semibold"
+                                bg={pri.bg}
+                                color={pri.color}
+                                border="1px solid"
+                                borderColor={pri.borderColor}
+                              >
+                                {item.priority}
+                              </Badge>
+                            </Td>
+                            <Td
+                              py={3}
+                              px={3}
+                              borderBottom="1px solid"
+                              borderColor="whiteAlpha.100"
+                            >
+                              {item.uxSizeBand ? (
+                                <Text fontWeight={600} fontSize="sm" color="gray.300">
+                                  {item.uxSizeBand}
+                                </Text>
+                              ) : (
+                                <Text color="gray.500">—</Text>
+                              )}
+                            </Td>
+                            <Td
+                              py={3}
+                              px={3}
+                              borderBottom="1px solid"
+                              borderColor="whiteAlpha.100"
+                            >
+                              {item.contentSizeBand ? (
+                                <Text fontWeight={600} fontSize="sm" color="gray.300">
+                                  {item.contentSizeBand}
+                                </Text>
+                              ) : (
+                                <Text color="gray.500">—</Text>
+                              )}
+                            </Td>
+                            <Td
                               onClick={(e) => e.stopPropagation()}
                               onMouseDown={(e) => e.stopPropagation()}
+                              py={3}
+                              px={3}
+                              borderBottom="1px solid"
+                              borderColor="whiteAlpha.100"
                             >
-                              <IconButton
-                                aria-label="Save item"
-                                icon={<CheckIcon />}
-                                size="sm"
-                                bg="#10b981"
-                                color="white"
-                                _hover={{ bg: '#059669', boxShadow: '0 0 8px rgba(16, 185, 129, 0.5)' }}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  e.preventDefault()
-                                  toast({
-                                    title: 'Item saved',
-                                    status: 'success',
-                                    duration: 2000,
-                                    isClosable: true,
-                                  })
-                                }}
-                                onMouseDown={(e) => e.stopPropagation()}
-                                zIndex={10}
-                                position="relative"
-                              />
-                              <IconButton
-                                aria-label="Remove item"
-                                icon={<DeleteIcon />}
-                                size="sm"
-                                bg="#ef4444"
-                                color="white"
-                                _hover={{ bg: '#dc2626', boxShadow: '0 0 8px rgba(239, 68, 68, 0.5)' }}
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  e.preventDefault()
-                                  handleRemoveClick(e, item.id, item.name)
-                                }}
-                                onMouseDown={(e) => {
-                                  e.stopPropagation()
-                                  e.preventDefault()
-                                }}
-                                zIndex={10}
-                                position="relative"
-                              />
-                            </HStack>
-                          </Td>
-                        </Tr>
-                      )
-                    })}
-                  </Tbody>
-                </Table>
-              </TableContainer>
-
-              {/* Add another feature button */}
-              <Box mt={6} textAlign="center">
-                <HStack spacing={3}>
-                  <Button
-                    variant="link"
-                    color="#00d9ff"
-                    fontSize="14px"
-                    onClick={onCreateModalOpen}
-                    _hover={{ color: '#00b8d9', textDecoration: 'underline' }}
-                  >
-                    + Add another feature
-                  </Button>
-                  <Text color="gray.500" fontSize="14px">•</Text>
-                  <Button
-                    variant="link"
-                    color="#00d9ff"
-                    fontSize="14px"
-                    onClick={onPasteModalOpen}
-                    _hover={{ color: '#00b8d9', textDecoration: 'underline' }}
-                  >
-                    Paste from table
-                  </Button>
-                </HStack>
+                              <HStack spacing={1}>
+                                <IconButton
+                                  aria-label="Edit item"
+                                  icon={<EditIcon />}
+                                  variant="ghost"
+                                  size="sm"
+                                  color="#00d9ff"
+                                  _hover={{ color: '#00b8d9', bg: 'rgba(0, 217, 255, 0.1)' }}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    e.preventDefault()
+                                    handleRowClick(item.id)
+                                  }}
+                                />
+                                <IconButton
+                                  aria-label="Remove item"
+                                  icon={<DeleteIcon />}
+                                  variant="ghost"
+                                  size="sm"
+                                  color="#ef4444"
+                                  _hover={{ bg: 'rgba(239, 68, 68, 0.15)' }}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    e.preventDefault()
+                                    handleRemoveClick(e, item.id, item.name)
+                                  }}
+                                />
+                              </HStack>
+                            </Td>
+                          </Tr>
+                        )
+                      })}
+                    </Tbody>
+                  </Table>
+                </TableContainer>
               </Box>
+
+              <HStack mt={6} spacing={3} justify="flex-start">
+                <Button colorScheme="cyan" onClick={onCreateModalOpen}>
+                  + Add new item
+                </Button>
+                <Button
+                  variant="outline"
+                  borderColor="rgba(255, 255, 255, 0.1)"
+                  color="gray.300"
+                  onClick={onPasteModalOpen}
+                  _hover={{
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    color: 'white',
+                    bg: 'rgba(255, 255, 255, 0.05)',
+                  }}
+                >
+                  Paste from table
+                </Button>
+              </HStack>
             </>
           )}
         </Box>
