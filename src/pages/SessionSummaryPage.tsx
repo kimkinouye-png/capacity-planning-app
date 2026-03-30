@@ -86,13 +86,13 @@ function sessionStatusBadgeProps(status: PlanningSession['status']): { bg: strin
   }
 }
 
-/** Leading dot in status menu (In Review = blue per design, not orange) */
+/** Leading dot in status menu */
 function sessionStatusDotColor(status: PlanningSession['status']): string {
   switch (status) {
     case 'in-review':
       return '#3b82f6'
     case 'committed':
-      return 'purple.400'
+      return '#a855f7'
     case 'archived':
       return 'gray.500'
     case 'draft':
@@ -101,7 +101,7 @@ function sessionStatusDotColor(status: PlanningSession['status']): string {
   }
 }
 
-const ADJUSTABLE_SCENARIO_STATUSES = ['draft', 'in-review', 'archived'] as const satisfies readonly PlanningSession['status'][]
+const ALL_SCENARIO_STATUSES = ['draft', 'in-review', 'committed', 'archived'] as const satisfies readonly PlanningSession['status'][]
 
 type SessionCapacityCardMetrics = {
   capacity: number
@@ -832,6 +832,66 @@ function SessionSummaryPage() {
   const planningPeriod = session.planning_period || session.planningPeriod
   const statusBadge = sessionStatusBadgeProps(session.status)
 
+  /** Commit flow (kept for reuse; status menu calls this when choosing Committed) */
+  const handleCommitScenario = async () => {
+    if (!session?.id) return
+    if (items.length === 0) {
+      toast({
+        title: 'Cannot commit empty scenario',
+        description: 'Add at least one roadmap item before committing this scenario.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      })
+      return
+    }
+    await commitSession(session.id, items.length)
+    toast({
+      title: 'Scenario committed',
+      description: `${session.name} is now the committed plan for ${formatQuarter(planningPeriod)}.`,
+      status: 'success',
+      duration: 3000,
+      isClosable: true,
+    })
+  }
+
+  const handleScenarioStatusChange = async (next: PlanningSession['status']) => {
+    if (!session?.id || session.status === next) return
+    try {
+      if (next === 'committed') {
+        await handleCommitScenario()
+        return
+      }
+      if (session.status === 'committed' && next === 'draft') {
+        await uncommitSession(session.id)
+        toast({
+          title: 'Scenario uncommitted',
+          description: `${session.name} has been uncommitted.`,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        })
+        return
+      }
+      await updateSession(session.id, { status: next })
+      toast({
+        title: 'Status updated',
+        description: `Scenario is now ${sessionStatusBadgeProps(next).label}.`,
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      })
+    } catch {
+      toast({
+        title: 'Update failed',
+        description: 'Could not update scenario status.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      })
+    }
+  }
+
   return (
     <Box bg="#0a0a0f" minH="100vh" pb={8}>
       <Box maxW="1400px" mx="auto" px={6} pt={6}>
@@ -882,9 +942,9 @@ function SessionSummaryPage() {
           </BreadcrumbItem>
         </Breadcrumb>
 
-        <HStack justify="space-between" align="start" mb={4} flexWrap="wrap" gap={4}>
+        <Flex justify="space-between" align="flex-start" mb={4} gap={4} flexWrap="wrap" w="full">
           <Box flex="1" minW={0}>
-            <HStack align="center" spacing={3} mb={2} flexWrap="wrap">
+            <Box mb={2}>
               <InlineEditableText
                 value={session.name}
                 onChange={async (newName) => {
@@ -903,207 +963,71 @@ function SessionSummaryPage() {
                 fontSize="2xl"
                 fontWeight="bold"
               />
-              {session.status === 'committed' ? (
-                <Badge
-                  borderRadius="full"
-                  px={3}
-                  py={1}
-                  fontSize="xs"
-                  fontWeight="semibold"
-                  bg={statusBadge.bg}
-                  color={statusBadge.color}
-                >
-                  {statusBadge.label}
-                </Badge>
-              ) : (
-                <Menu placement="bottom-end" gutter={8}>
-                  <MenuButton
-                    as={Button}
-                    variant="unstyled"
-                    h="auto"
-                    borderRadius="full"
-                    px={3}
-                    py={1}
-                    fontSize="xs"
-                    fontWeight="semibold"
-                    bg={statusBadge.bg}
-                    color={statusBadge.color}
-                    _hover={{ opacity: 0.92 }}
-                    _active={{ opacity: 0.85 }}
-                  >
-                    <HStack spacing={2}>
-                      <Box
-                        w={2}
-                        h={2}
-                        borderRadius="full"
-                        bg={sessionStatusDotColor(session.status)}
-                        flexShrink={0}
-                        aria-hidden
-                      />
-                      <Text as="span">{statusBadge.label}</Text>
-                      <ChevronDownIcon w={3} h={3} opacity={0.85} aria-hidden />
-                    </HStack>
-                  </MenuButton>
-                  <MenuList bg="#141419" borderColor="whiteAlpha.200" py={1} zIndex={50} minW="200px">
-                    {ADJUSTABLE_SCENARIO_STATUSES.map((st) => {
-                      const opt = sessionStatusBadgeProps(st)
-                      return (
-                        <MenuItem
-                          key={st}
-                          bg={session.status === st ? 'whiteAlpha.100' : 'transparent'}
-                          color="gray.100"
-                          _hover={{ bg: 'whiteAlpha.100' }}
-                          onClick={async () => {
-                            if (!session.id || session.status === st) return
-                            try {
-                              await updateSession(session.id, { status: st })
-                              toast({
-                                title: 'Status updated',
-                                description: `Scenario is now ${opt.label}.`,
-                                status: 'success',
-                                duration: 2000,
-                                isClosable: true,
-                              })
-                            } catch {
-                              toast({
-                                title: 'Update failed',
-                                description: 'Could not update scenario status.',
-                                status: 'error',
-                                duration: 3000,
-                                isClosable: true,
-                              })
-                            }
-                          }}
-                        >
-                          <HStack spacing={2}>
-                            <Box
-                              w={2}
-                              h={2}
-                              borderRadius="full"
-                              bg={sessionStatusDotColor(st)}
-                              flexShrink={0}
-                              aria-hidden
-                            />
-                            <Text>{opt.label}</Text>
-                          </HStack>
-                        </MenuItem>
-                      )
-                    })}
-                  </MenuList>
-                </Menu>
-              )}
-            </HStack>
+            </Box>
             <Text fontSize="14px" color="gray.400">
               {formatQuarter(planningPeriod)} • {session.ux_designers} UX Designers • {session.content_designers} Content Designers
             </Text>
           </Box>
-          <HStack spacing={3} flexShrink={0}>
-            {session.status === 'committed' && (
-              <Button
-                variant="outline"
-                size="md"
-                onClick={async (e) => {
-                  e.stopPropagation()
-                  e.preventDefault()
-                  console.log('🔄 [SessionSummaryPage] Uncommit button clicked:', { sessionId: session.id, sessionName: session.name })
-                  if (session.id) {
-                    // Show loading toast immediately
-                    const loadingToast = toast({
-                      title: 'Uncommitting scenario...',
-                      description: `Updating ${session.name}. This may take a moment if the database is waking up.`,
-                      status: 'info',
-                      duration: null, // Don't auto-close
-                      isClosable: false,
-                    })
-                    
-                    try {
-                      const startTime = performance.now()
-                      console.log('🔄 [SessionSummaryPage] Calling uncommitSession...', {
-                        sessionId: session.id,
-                        timestamp: new Date().toISOString()
-                      })
-                      await uncommitSession(session.id)
-                      
-                      const endTime = performance.now()
-                      const duration = endTime - startTime
-                      console.log('✅ [SessionSummaryPage] Uncommit successful', {
-                        duration: `${duration.toFixed(2)}ms`,
-                        durationSeconds: `${(duration / 1000).toFixed(2)}s`
-                      })
-                      
-                      // Close loading toast and show success
-                      toast.close(loadingToast)
-                      toast({
-                        title: 'Scenario uncommitted',
-                        description: `${session.name} has been uncommitted.`,
-                        status: 'success',
-                        duration: 3000,
-                        isClosable: true,
-                      })
-                    } catch (error) {
-                      console.error('❌ [SessionSummaryPage] Error uncommitting scenario:', error)
-                      
-                      // Close loading toast and show error
-                      toast.close(loadingToast)
-                      toast({
-                        title: 'Failed to uncommit',
-                        description: error instanceof Error ? error.message : 'An error occurred while uncommitting the scenario. Please try again.',
-                        status: 'error',
-                        duration: 5000,
-                        isClosable: true,
-                      })
-                      
-                      // Reload sessions to restore state
-                      loadSessions().catch(err => {
-                        console.error('Failed to reload sessions after uncommit error:', err)
-                      })
-                    }
-                  } else {
-                    console.warn('⚠️ [SessionSummaryPage] Cannot uncommit: session.id is missing')
-                  }
-                }}
-                borderColor="rgba(255, 255, 255, 0.1)"
-                color="gray.300"
-                _hover={{
-                  borderColor: 'rgba(255, 255, 255, 0.3)',
-                  color: 'white',
-                  bg: 'rgba(255, 255, 255, 0.05)',
-                }}
+          <Box flexShrink={0} ml="auto" alignSelf="flex-start">
+            <Menu placement="bottom-end" gutter={8}>
+              <MenuButton
+                as={Button}
+                variant="unstyled"
+                h="auto"
+                borderRadius="full"
+                px={3}
+                py={1}
+                fontSize="xs"
+                fontWeight="semibold"
+                bg={statusBadge.bg}
+                color={statusBadge.color}
+                _hover={{ opacity: 0.92 }}
+                _active={{ opacity: 0.85 }}
               >
-                Uncommit
-              </Button>
-            )}
-            {session.status !== 'committed' && (
-              <Button
-                colorScheme="cyan"
-                size="md"
-                isDisabled={items.length === 0}
-                onClick={async () => {
-                  if (session.id && items.length > 0) {
-                    await commitSession(session.id, items.length)
-                    toast({
-                      title: 'Scenario committed',
-                      description: `${session.name} is now the committed plan for ${formatQuarter(planningPeriod)}.`,
-                      status: 'success',
-                      duration: 3000,
-                      isClosable: true,
-                    })
-                  } else if (items.length === 0) {
-                    toast({
-                      title: 'Cannot commit empty scenario',
-                      description: 'Add at least one roadmap item before committing this scenario.',
-                      status: 'warning',
-                      duration: 3000,
-                      isClosable: true,
-                    })
-                  }
-                }}
-              >
-                Commit this scenario
-              </Button>
-            )}
-          </HStack>
-        </HStack>
+                <HStack spacing={2}>
+                  <Box
+                    w={2}
+                    h={2}
+                    borderRadius="full"
+                    bg={sessionStatusDotColor(session.status)}
+                    flexShrink={0}
+                    aria-hidden
+                  />
+                  <Text as="span">{statusBadge.label}</Text>
+                  <ChevronDownIcon w={3} h={3} opacity={0.85} aria-hidden />
+                </HStack>
+              </MenuButton>
+              <MenuList bg="#141419" borderColor="whiteAlpha.200" py={1} zIndex={50} minW="200px">
+                {ALL_SCENARIO_STATUSES.map((st) => {
+                  const opt = sessionStatusBadgeProps(st)
+                  return (
+                    <MenuItem
+                      key={st}
+                      bg={session.status === st ? 'whiteAlpha.100' : 'transparent'}
+                      color="gray.100"
+                      _hover={{ bg: 'whiteAlpha.100' }}
+                      onClick={() => {
+                        void handleScenarioStatusChange(st)
+                      }}
+                    >
+                      <HStack spacing={2}>
+                        <Box
+                          w={2}
+                          h={2}
+                          borderRadius="full"
+                          bg={sessionStatusDotColor(st)}
+                          flexShrink={0}
+                          aria-hidden
+                        />
+                        <Text>{opt.label}</Text>
+                      </HStack>
+                    </MenuItem>
+                  )
+                })}
+              </MenuList>
+            </Menu>
+          </Box>
+        </Flex>
 
         {/* Capacity Overview Cards */}
         {capacityMetrics && (
