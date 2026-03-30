@@ -22,6 +22,7 @@ import {
   HStack,
   Badge,
   Box,
+  Select,
 } from '@chakra-ui/react'
 import { useState, useCallback, KeyboardEvent } from 'react'
 import { parsePastedRoadmapItems, getImportSummary, type ParsedRow } from './parsePastedRoadmapItems'
@@ -29,14 +30,16 @@ import { parsePastedRoadmapItems, getImportSummary, type ParsedRow } from './par
 interface PasteTableImportModalProps {
   isOpen: boolean
   onClose: () => void
-  onImport: (items: Array<{ 
+  onImport: (items: Array<{
     name: string
     short_key: string
     initiative: string
-    priority: number
-    effortWeeks?: number // Legacy 4-column format
-    uxEffortWeeks?: number // 5-column format
-    contentEffortWeeks?: number // 5-column format
+    priority: 'P0' | 'P1' | 'P2' | 'P3'
+    status: 'draft' | 'in-review' | 'committed' | 'archived'
+    projectType: string
+    uxEffortWeeks?: number
+    contentEffortWeeks?: number
+    effortWeeks?: number
     startDate?: string
     endDate?: string
   }>) => Promise<void>
@@ -53,6 +56,28 @@ export default function PasteTableImportModal({
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('paste')
   const [isImporting, setIsImporting] = useState(false)
+  const [rowMeta, setRowMeta] = useState<
+    Record<
+      number,
+      {
+        status: 'draft' | 'in-review' | 'committed' | 'archived'
+        projectType: string
+      }
+    >
+  >({})
+
+  const getRowMeta = (index: number) =>
+    rowMeta[index] ?? {
+      status: 'draft',
+      projectType: 'new-feature',
+    }
+
+  const setRowField = (index: number, field: 'status' | 'projectType', value: string) => {
+    setRowMeta((prev) => ({
+      ...prev,
+      [index]: { ...getRowMeta(index), [field]: value },
+    }))
+  }
 
   const handlePreview = useCallback(() => {
     const parsed = parsePastedRoadmapItems(rawText)
@@ -68,17 +93,17 @@ export default function PasteTableImportModal({
 
     setIsImporting(true)
     try {
-      // Map to the format expected by createItem
       const itemsToImport = validRows.map((row) => {
-        // Generate short_key from title (first 3-5 chars, uppercase, remove spaces)
-        const shortKey = row.item.title
-          .substring(0, 5)
-          .toUpperCase()
-          .replace(/\s+/g, '')
-          .replace(/[^A-Z0-9]/g, '') || 'ITEM'
+        const originalIndex = parsedRows.indexOf(row)
+        const meta = getRowMeta(originalIndex)
 
-        // Store dates in initiative field (temporary workaround until proper date fields are added)
-        // Format: "Start: {startDate}, End: {endDate}"
+        const shortKey =
+          row.item.title
+            .substring(0, 5)
+            .toUpperCase()
+            .replace(/\s+/g, '')
+            .replace(/[^A-Z0-9]/g, '') || 'ITEM'
+
         let initiative = ''
         if (row.item.startDate || row.item.endDate) {
           const parts: string[] = []
@@ -87,48 +112,44 @@ export default function PasteTableImportModal({
           initiative = parts.join(', ')
         }
 
-        // Check if this is 5-column format (has separate UX/Content effort)
-        const isFiveColumn = row.item.uxEffortWeeks !== undefined || row.item.contentEffortWeeks !== undefined
+        const isFiveColumn =
+          row.item.uxEffortWeeks !== undefined || row.item.contentEffortWeeks !== undefined
 
-        if (isFiveColumn) {
-          return {
-            name: row.item.title,
-            short_key: shortKey,
-            initiative,
-            priority: 1, // Default priority
-            uxEffortWeeks: row.item.uxEffortWeeks,
-            contentEffortWeeks: row.item.contentEffortWeeks,
-            startDate: row.item.startDate,
-            endDate: row.item.endDate,
-          }
-        } else {
-          // Legacy 4-column format: single effort column
-          return {
-            name: row.item.title,
-            short_key: shortKey,
-            initiative,
-            priority: 1, // Default priority
-            effortWeeks: row.item.effortWeeks, // Will be split 50/50 into uxFocusWeeks and contentFocusWeeks
-            startDate: row.item.startDate,
-            endDate: row.item.endDate,
-          }
+        return {
+          name: row.item.title,
+          short_key: shortKey,
+          initiative,
+          priority: 'P1' as const,
+          status: meta.status,
+          projectType: meta.projectType,
+          ...(isFiveColumn
+            ? {
+                uxEffortWeeks: row.item.uxEffortWeeks,
+                contentEffortWeeks: row.item.contentEffortWeeks,
+              }
+            : {
+                effortWeeks: row.item.effortWeeks,
+              }),
+          startDate: row.item.startDate,
+          endDate: row.item.endDate,
         }
       })
 
       await onImport(itemsToImport)
-      
+
       // Reset state
       setRawText('')
       setParsedRows([])
       setViewMode('paste')
       onClose()
+      setRowMeta({})
     } catch (error) {
       console.error('Error importing items:', error)
       // Error handling is done by the parent component
     } finally {
       setIsImporting(false)
     }
-  }, [parsedRows, onImport, onClose])
+  }, [parsedRows, onImport, onClose, rowMeta])
 
   const handleTextareaKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
     // Prevent Enter from submitting, but allow Shift+Enter for new lines
@@ -188,6 +209,8 @@ export default function PasteTableImportModal({
                       <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">End date</Th>
                       <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">UX effort</Th>
                       <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Content effort</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Project type</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Status</Th>
                       <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Status</Th>
                     </Tr>
                   </Thead>
@@ -223,6 +246,40 @@ export default function PasteTableImportModal({
                               ? (row.item.contentEffortWeeks !== undefined ? row.item.contentEffortWeeks.toFixed(1) : '—')
                               : (row.item.effortWeeks !== undefined ? (row.item.effortWeeks / 2).toFixed(1) : '—')
                             }
+                          </Td>
+                          <Td>
+                            <Select
+                              size="xs"
+                              bg="gray.700"
+                              border="1px solid"
+                              borderColor="gray.600"
+                              borderRadius="md"
+                              color="white"
+                              value={getRowMeta(index).projectType}
+                              onChange={(e) => setRowField(index, 'projectType', e.target.value)}
+                              isDisabled={!row.isValid}
+                            >
+                              {(['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).map((t) => (
+                                <option key={t} value={t} style={{ background: '#2D3748' }}>{t}</option>
+                              ))}
+                            </Select>
+                          </Td>
+                          <Td>
+                            <Select
+                              size="xs"
+                              bg="gray.700"
+                              border="1px solid"
+                              borderColor="gray.600"
+                              borderRadius="md"
+                              color="white"
+                              value={getRowMeta(index).status}
+                              onChange={(e) => setRowField(index, 'status', e.target.value)}
+                              isDisabled={!row.isValid}
+                            >
+                              {(['draft', 'in-review', 'committed', 'archived'] as const).map((s) => (
+                                <option key={s} value={s} style={{ background: '#2D3748' }}>{s}</option>
+                              ))}
+                            </Select>
                           </Td>
                           <Td>
                             {row.isValid ? (
