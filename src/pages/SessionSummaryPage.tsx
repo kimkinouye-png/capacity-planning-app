@@ -12,6 +12,10 @@ import {
   Text,
   Badge,
   Button,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
   HStack,
   VStack,
   IconButton,
@@ -54,6 +58,7 @@ import {
   SettingsIcon,
   RepeatIcon,
   InfoIcon,
+  ChevronDownIcon,
 } from '@chakra-ui/icons'
 import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom'
 import { useMemo, useRef, useEffect, useState, type ReactNode } from 'react'
@@ -80,6 +85,23 @@ function sessionStatusBadgeProps(status: PlanningSession['status']): { bg: strin
       return { bg: 'gray.600', color: 'gray.100', label: 'Draft' }
   }
 }
+
+/** Leading dot in status menu (In Review = blue per design, not orange) */
+function sessionStatusDotColor(status: PlanningSession['status']): string {
+  switch (status) {
+    case 'in-review':
+      return '#3b82f6'
+    case 'committed':
+      return 'purple.400'
+    case 'archived':
+      return 'gray.500'
+    case 'draft':
+    default:
+      return 'gray.500'
+  }
+}
+
+const ADJUSTABLE_SCENARIO_STATUSES = ['draft', 'in-review', 'archived'] as const satisfies readonly PlanningSession['status'][]
 
 type SessionCapacityCardMetrics = {
   capacity: number
@@ -855,7 +877,7 @@ function SessionSummaryPage() {
           </BreadcrumbItem>
           <BreadcrumbItem isCurrentPage>
             <Text color="white" fontWeight="medium">
-              {session.name}
+              {session.name?.trim() ? session.name.trim() : 'Unnamed scenario'}
             </Text>
           </BreadcrumbItem>
         </Breadcrumb>
@@ -881,17 +903,95 @@ function SessionSummaryPage() {
                 fontSize="2xl"
                 fontWeight="bold"
               />
-              <Badge
-                borderRadius="full"
-                px={3}
-                py={1}
-                fontSize="xs"
-                fontWeight="semibold"
-                bg={statusBadge.bg}
-                color={statusBadge.color}
-              >
-                {statusBadge.label}
-              </Badge>
+              {session.status === 'committed' ? (
+                <Badge
+                  borderRadius="full"
+                  px={3}
+                  py={1}
+                  fontSize="xs"
+                  fontWeight="semibold"
+                  bg={statusBadge.bg}
+                  color={statusBadge.color}
+                >
+                  {statusBadge.label}
+                </Badge>
+              ) : (
+                <Menu placement="bottom-end" gutter={8}>
+                  <MenuButton
+                    as={Button}
+                    variant="unstyled"
+                    h="auto"
+                    borderRadius="full"
+                    px={3}
+                    py={1}
+                    fontSize="xs"
+                    fontWeight="semibold"
+                    bg={statusBadge.bg}
+                    color={statusBadge.color}
+                    _hover={{ opacity: 0.92 }}
+                    _active={{ opacity: 0.85 }}
+                  >
+                    <HStack spacing={2}>
+                      <Box
+                        w={2}
+                        h={2}
+                        borderRadius="full"
+                        bg={sessionStatusDotColor(session.status)}
+                        flexShrink={0}
+                        aria-hidden
+                      />
+                      <Text as="span">{statusBadge.label}</Text>
+                      <ChevronDownIcon w={3} h={3} opacity={0.85} aria-hidden />
+                    </HStack>
+                  </MenuButton>
+                  <MenuList bg="#141419" borderColor="whiteAlpha.200" py={1} zIndex={50} minW="200px">
+                    {ADJUSTABLE_SCENARIO_STATUSES.map((st) => {
+                      const opt = sessionStatusBadgeProps(st)
+                      return (
+                        <MenuItem
+                          key={st}
+                          bg={session.status === st ? 'whiteAlpha.100' : 'transparent'}
+                          color="gray.100"
+                          _hover={{ bg: 'whiteAlpha.100' }}
+                          onClick={async () => {
+                            if (!session.id || session.status === st) return
+                            try {
+                              await updateSession(session.id, { status: st })
+                              toast({
+                                title: 'Status updated',
+                                description: `Scenario is now ${opt.label}.`,
+                                status: 'success',
+                                duration: 2000,
+                                isClosable: true,
+                              })
+                            } catch {
+                              toast({
+                                title: 'Update failed',
+                                description: 'Could not update scenario status.',
+                                status: 'error',
+                                duration: 3000,
+                                isClosable: true,
+                              })
+                            }
+                          }}
+                        >
+                          <HStack spacing={2}>
+                            <Box
+                              w={2}
+                              h={2}
+                              borderRadius="full"
+                              bg={sessionStatusDotColor(st)}
+                              flexShrink={0}
+                              aria-hidden
+                            />
+                            <Text>{opt.label}</Text>
+                          </HStack>
+                        </MenuItem>
+                      )
+                    })}
+                  </MenuList>
+                </Menu>
+              )}
             </HStack>
             <Text fontSize="14px" color="gray.400">
               {formatQuarter(planningPeriod)} • {session.ux_designers} UX Designers • {session.content_designers} Content Designers
