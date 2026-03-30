@@ -232,22 +232,6 @@ function priorityPillProps(p: RoadmapItem['priority'] | undefined): { bg: string
   }
 }
 
-function coerceImportedPriority(raw: unknown): RoadmapItem['priority'] {
-  if (raw === 'P0' || raw === 'P1' || raw === 'P2' || raw === 'P3') return raw
-  if (typeof raw === 'string') {
-    const t = raw.trim().toUpperCase()
-    if (t === 'P0' || t === 'P1' || t === 'P2' || t === 'P3') return t as RoadmapItem['priority']
-    const parsed = Number(raw)
-    if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 3) {
-      return (['P0', 'P1', 'P2', 'P3'] as const)[Math.trunc(parsed)]
-    }
-  }
-  if (typeof raw === 'number' && Number.isFinite(raw) && raw >= 0 && raw <= 3) {
-    return (['P0', 'P1', 'P2', 'P3'] as const)[Math.trunc(raw)]
-  }
-  return 'P2'
-}
-
 function SessionSummaryPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -533,90 +517,68 @@ function SessionSummaryPage() {
     }
   }
 
-  // Handle paste import
   const handlePasteImport = async (
-    items: Array<{ 
+    items: Array<{
       name: string
       short_key: string
       initiative: string
-      priority: number | RoadmapItem['priority']
-      effortWeeks?: number // Legacy 4-column format
-      uxEffortWeeks?: number // 5-column format
-      contentEffortWeeks?: number // 5-column format
+      priority: 'P0' | 'P1' | 'P2' | 'P3'
+      status: 'draft' | 'in-review' | 'committed' | 'archived'
+      projectType: string
+      effortWeeks?: number
+      uxEffortWeeks?: number
+      contentEffortWeeks?: number
       startDate?: string
       endDate?: string
     }>
   ) => {
     if (!id) return
-
     try {
-      const focusTimeRatio = 0.75 // Default ratio
+      const focusTimeRatio = 0.75
 
-      // Import items sequentially
       for (const item of items) {
-        const priority = coerceImportedPriority(item.priority)
-
         const newItem = await createItem(id, {
           short_key: item.short_key,
           name: item.name,
           initiative: item.initiative,
-          priority,
+          priority: item.priority,
+          projectType: item.projectType as RoadmapItem['projectType'],
         })
+        await updateItem(newItem.id, { status: item.status })
 
-        // Map start/end dates from paste into the item
-        const dateUpdates: {
-          startDate?: string | null
-          endDate?: string | null
-        } = {}
-        
-        if (item.startDate !== undefined) {
-          dateUpdates.startDate = item.startDate || null
-        }
-        if (item.endDate !== undefined) {
-          dateUpdates.endDate = item.endDate || null
-        }
-        
-        // Update dates if provided
+        // Date updates
+        const dateUpdates: { startDate?: string | null; endDate?: string | null } = {}
+        if (item.startDate !== undefined) dateUpdates.startDate = item.startDate || null
+        if (item.endDate !== undefined) dateUpdates.endDate = item.endDate || null
         if (Object.keys(dateUpdates).length > 0) {
           await updateItem(newItem.id, dateUpdates)
         }
 
-        // Check if this is 5-column format (has separate UX/Content effort)
+        // Effort updates
         const hasSeparateEffort = item.uxEffortWeeks !== undefined || item.contentEffortWeeks !== undefined
 
         if (hasSeparateEffort) {
-          // 5-column format: use separate UX and Content effort values
-          // These values are mapped to uxFocusWeeks and contentFocusWeeks fields,
-          // which are displayed in the Roadmap Items grid and used by scenario
-          // summary and committed plan calculations.
-          // Only update fields that were explicitly provided (undefined means use default)
           const updates: {
             uxFocusWeeks?: number
             uxWorkWeeks?: number
             contentFocusWeeks?: number
             contentWorkWeeks?: number
           } = {}
-          
+
           if (item.uxEffortWeeks !== undefined) {
             updates.uxFocusWeeks = item.uxEffortWeeks
             updates.uxWorkWeeks = calculateWorkWeeks(item.uxEffortWeeks, focusTimeRatio)
           }
-          
           if (item.contentEffortWeeks !== undefined) {
             updates.contentFocusWeeks = item.contentEffortWeeks
             updates.contentWorkWeeks = calculateWorkWeeks(item.contentEffortWeeks, focusTimeRatio)
           }
-          
-          // Only update if we have values to set
           if (Object.keys(updates).length > 0) {
             await updateItem(newItem.id, updates)
           }
         } else if (item.effortWeeks !== undefined && item.effortWeeks > 0) {
-          // Legacy 4-column format: split effort weeks evenly between UX and Content
-          // Note: This preserves backward compatibility with existing paste behavior
           const focusWeeks = item.effortWeeks / 2
           const workWeeks = calculateWorkWeeks(focusWeeks, focusTimeRatio)
-
           await updateItem(newItem.id, {
             uxFocusWeeks: focusWeeks,
             uxWorkWeeks: workWeeks,
