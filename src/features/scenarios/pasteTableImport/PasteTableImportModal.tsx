@@ -23,6 +23,7 @@ import {
   Badge,
   Box,
   Select,
+  useColorModeValue,
 } from '@chakra-ui/react'
 import { useState, useCallback, KeyboardEvent } from 'react'
 import { parsePastedRoadmapItems, getImportSummary, type ParsedRow } from './parsePastedRoadmapItems'
@@ -168,36 +169,65 @@ export default function PasteTableImportModal({
 
   const summary = getImportSummary(parsedRows)
 
+  const bgModal = useColorModeValue('white', '#141419')
+  const borderColor = useColorModeValue('gray.200', 'rgba(255, 255, 255, 0.1)')
+  const textPrimary = useColorModeValue('gray.900', 'white')
+  const textSecondary = useColorModeValue('gray.600', 'gray.300')
+  const textMuted = useColorModeValue('gray.500', 'gray.500')
+  const textareaFocusBorder = useColorModeValue('cyan.400', '#00d9ff')
+  const textareaFocusShadow = useColorModeValue(
+    '0 0 0 1px rgba(0, 212, 255, 0.4)',
+    '0 0 0 1px rgba(0, 217, 255, 0.5)'
+  )
+  const inputBg = useColorModeValue('white', '#1a1a20')
+  const tableHeaderBg = useColorModeValue('gray.50', '#1a1a20')
+  const tableHeaderColor = useColorModeValue('gray.500', 'gray.400')
+  const invalidRowBg = useColorModeValue('orange.50', 'rgba(245, 158, 11, 0.1)')
+  const invalidRowBorder = useColorModeValue('orange.300', '#f59e0b')
+  const cancelBorder = useColorModeValue('gray.200', 'rgba(255, 255, 255, 0.1)')
+  const cancelColor = useColorModeValue('gray.600', 'gray.300')
+  const cancelHoverBorder = useColorModeValue('gray.300', 'rgba(255, 255, 255, 0.3)')
+  const cancelHoverBg = useColorModeValue('gray.50', 'rgba(255, 255, 255, 0.05)')
+  const optionBg = useColorModeValue('#f7fafc', '#2D3748')
+  const selectBg = useColorModeValue('white', 'gray.700')
+  const selectBorder = useColorModeValue('gray.200', 'gray.600')
+  const okBadgeBg = useColorModeValue('green.50', 'rgba(16, 185, 129, 0.1)')
+  const okBadgeColor = useColorModeValue('green.700', '#10b981')
+  const okBadgeBorder = useColorModeValue('green.200', 'rgba(16, 185, 129, 0.3)')
+  const warnBadgeBg = useColorModeValue('orange.50', 'rgba(245, 158, 11, 0.1)')
+  const warnBadgeColor = useColorModeValue('orange.700', '#f59e0b')
+  const warnBadgeBorder = useColorModeValue('orange.200', 'rgba(245, 158, 11, 0.3)')
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl" closeOnOverlayClick={!isImporting}>
       <ModalOverlay bg="blackAlpha.700" backdropFilter="blur(4px)" />
-      <ModalContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
-        <ModalHeader color="white">Paste roadmap items</ModalHeader>
-        <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
+      <ModalContent bg={bgModal} border="1px solid" borderColor={borderColor}>
+        <ModalHeader color={textPrimary}>Paste roadmap items</ModalHeader>
+        <ModalCloseButton color={textMuted} _hover={{ color: textPrimary }} />
 
         <ModalBody>
           {viewMode === 'paste' ? (
             <VStack spacing={4} align="stretch">
               <FormControl>
-                <FormLabel color="gray.300">Paste from spreadsheet</FormLabel>
+                <FormLabel color={textSecondary}>Paste from spreadsheet</FormLabel>
                 <Textarea
                   value={rawText}
                   onChange={(e) => setRawText(e.target.value)}
                   onKeyDown={handleTextareaKeyDown}
                   placeholder="Paste your data here..."
-                  bg="#1a1a20"
-                  borderColor="rgba(255, 255, 255, 0.1)"
-                  color="white"
+                  bg={inputBg}
+                  borderColor={borderColor}
+                  color={textPrimary}
                   _focus={{
-                    borderColor: '#00d9ff',
-                    boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
+                    borderColor: textareaFocusBorder,
+                    boxShadow: textareaFocusShadow,
                   }}
-                  _placeholder={{ color: 'gray.500' }}
+                  _placeholder={{ color: textMuted }}
                   rows={10}
                   fontFamily="mono"
                   fontSize="sm"
                 />
-                <Text fontSize="xs" color="gray.400" mt={2}>
+                <Text fontSize="xs" color={textMuted} mt={2}>
                   <strong>Preferred format:</strong> Name | Short Key | Initiative | Priority | Project Type
                   <br />
                   <strong>Minimum required:</strong> Name only. All other columns are optional.
@@ -212,47 +242,47 @@ export default function PasteTableImportModal({
                 <Table variant="simple" size="sm">
                   <Thead>
                     <Tr>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Name</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Short Key</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Initiative</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Priority</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Project Type</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Status</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Valid</Th>
+                      <Th bg={tableHeaderBg} color={tableHeaderColor} fontSize="12px" fontWeight="600">Name</Th>
+                      <Th bg={tableHeaderBg} color={tableHeaderColor} fontSize="12px" fontWeight="600">Short Key</Th>
+                      <Th bg={tableHeaderBg} color={tableHeaderColor} fontSize="12px" fontWeight="600">Initiative</Th>
+                      <Th bg={tableHeaderBg} color={tableHeaderColor} fontSize="12px" fontWeight="600">Priority</Th>
+                      <Th bg={tableHeaderBg} color={tableHeaderColor} fontSize="12px" fontWeight="600">Project Type</Th>
+                      <Th bg={tableHeaderBg} color={tableHeaderColor} fontSize="12px" fontWeight="600">Status</Th>
+                      <Th bg={tableHeaderBg} color={tableHeaderColor} fontSize="12px" fontWeight="600">Valid</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
                     {parsedRows.map((row, index) => (
                       <Tr
                         key={index}
-                        bg={row.isValid ? 'transparent' : 'rgba(245, 158, 11, 0.1)'}
+                        bg={row.isValid ? 'transparent' : invalidRowBg}
                         borderLeft={row.isValid ? 'none' : '3px solid'}
-                        borderLeftColor={row.isValid ? 'transparent' : '#f59e0b'}
+                        borderLeftColor={row.isValid ? 'transparent' : invalidRowBorder}
                       >
-                        <Td color={row.isValid ? 'gray.300' : 'gray.400'}>{row.item.title || '—'}</Td>
-                        <Td color="gray.400">
+                        <Td color={row.isValid ? textSecondary : textMuted}>{row.item.title || '—'}</Td>
+                        <Td color={textMuted}>
                           {row.item.title
                             .substring(0, 5)
                             .toUpperCase()
                             .replace(/\s+/g, '')
                             .replace(/[^A-Z0-9]/g, '') || 'ITEM'}
                         </Td>
-                        <Td color="gray.400">—</Td>
-                        <Td color="gray.400">P1</Td>
+                        <Td color={textMuted}>—</Td>
+                        <Td color={textMuted}>P1</Td>
                         <Td>
                           <Select
                             size="xs"
-                            bg="gray.700"
+                            bg={selectBg}
                             border="1px solid"
-                            borderColor="gray.600"
+                            borderColor={selectBorder}
                             borderRadius="md"
-                            color="white"
+                            color={textPrimary}
                             value={getRowMeta(index).projectType}
                             onChange={(e) => setRowField(index, 'projectType', e.target.value)}
                             isDisabled={!row.isValid}
                           >
                             {(['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).map((t) => (
-                              <option key={t} value={t} style={{ background: '#2D3748' }}>
+                              <option key={t} value={t} style={{ background: optionBg }}>
                                 {PROJECT_TYPE_OPTION_LABELS[t]}
                               </option>
                             ))}
@@ -261,25 +291,25 @@ export default function PasteTableImportModal({
                         <Td>
                           <Select
                             size="xs"
-                            bg="gray.700"
+                            bg={selectBg}
                             border="1px solid"
-                            borderColor="gray.600"
+                            borderColor={selectBorder}
                             borderRadius="md"
-                            color="white"
+                            color={textPrimary}
                             value={getRowMeta(index).status}
                             onChange={(e) => setRowField(index, 'status', e.target.value)}
                             isDisabled={!row.isValid}
                           >
                             {(['draft', 'in-review', 'committed', 'archived'] as const).map((s) => (
-                              <option key={s} value={s} style={{ background: '#2D3748' }}>{s}</option>
+                              <option key={s} value={s} style={{ background: optionBg }}>{s}</option>
                             ))}
                           </Select>
                         </Td>
                         <Td>
                           {row.isValid ? (
-                            <Badge bg="rgba(16, 185, 129, 0.1)" color="#10b981" border="1px solid" borderColor="rgba(16, 185, 129, 0.3)">OK</Badge>
+                            <Badge bg={okBadgeBg} color={okBadgeColor} border="1px solid" borderColor={okBadgeBorder}>OK</Badge>
                           ) : (
-                            <Badge bg="rgba(245, 158, 11, 0.1)" color="#f59e0b" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)">
+                            <Badge bg={warnBadgeBg} color={warnBadgeColor} border="1px solid" borderColor={warnBadgeBorder}>
                               {row.errorMessage || 'Invalid'}
                             </Badge>
                           )}
@@ -291,7 +321,7 @@ export default function PasteTableImportModal({
               </TableContainer>
 
               <Box>
-                <Text fontSize="sm" color="gray.300">
+                <Text fontSize="sm" color={textSecondary}>
                   {summary.validCount} {summary.validCount === 1 ? 'item' : 'items'} ready to import
                   {summary.invalidCount > 0 && (
                     <>, {summary.invalidCount} {summary.invalidCount === 1 ? 'row has' : 'rows have'} issues</>
@@ -314,12 +344,12 @@ export default function PasteTableImportModal({
                 }
               }}
               isDisabled={isImporting}
-              borderColor="rgba(255, 255, 255, 0.1)"
-              color="gray.300"
+              borderColor={cancelBorder}
+              color={cancelColor}
               _hover={{
-                borderColor: 'rgba(255, 255, 255, 0.3)',
-                color: 'white',
-                bg: 'rgba(255, 255, 255, 0.05)',
+                borderColor: cancelHoverBorder,
+                color: textPrimary,
+                bg: cancelHoverBg,
               }}
             >
               {viewMode === 'preview' ? 'Back' : 'Cancel'}

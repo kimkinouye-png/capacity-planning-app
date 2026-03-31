@@ -36,6 +36,8 @@ import {
   Divider,
   Progress,
   Flex,
+  useColorModeValue,
+  useColorMode,
 } from '@chakra-ui/react'
 import {
   DeleteIcon,
@@ -102,10 +104,22 @@ function SessionCapacityCard({
   title,
   teamSizeControl,
   metrics,
+  bgCard,
+  borderSubtle,
+  textPrimary,
+  textSecondary,
+  textMuted,
+  progressTrack,
 }: {
   title: string
   teamSizeControl: ReactNode
   metrics: SessionCapacityCardMetrics
+  bgCard: string
+  borderSubtle: string
+  textPrimary: string
+  textSecondary: string
+  textMuted: string
+  progressTrack: string
 }) {
   const { capacity, demand, surplus, utilization } = metrics
   const isSurplus = surplus >= 0
@@ -121,18 +135,18 @@ function SessionCapacityCard({
 
   return (
     <Box
-      bg="#1a1d2e"
+      bg={bgCard}
       border="1px solid"
-      borderColor="whiteAlpha.200"
+      borderColor={borderSubtle}
       borderRadius="md"
       p={6}
     >
-      <Heading size="sm" mb={4} fontWeight="bold" color="white">
+      <Heading size="sm" mb={4} fontWeight="bold" color={textPrimary}>
         {title}
       </Heading>
       <VStack spacing={3} align="stretch">
         <Flex justify="space-between" align="center" w="full" gap={3} wrap="wrap">
-          <Text fontSize="sm" color="gray.500" display={{ base: 'none', md: 'block' }} flexShrink={0}>
+          <Text fontSize="sm" color={textMuted} display={{ base: 'none', md: 'block' }} flexShrink={0}>
             Team Size
           </Text>
           <HStack
@@ -141,33 +155,33 @@ function SessionCapacityCard({
             justify={{ base: 'flex-start', md: 'flex-end' }}
             align="center"
           >
-            <Box fontSize="xl" fontWeight="bold" color="white" textAlign={{ base: 'left', md: 'right' }}>
+            <Box fontSize="xl" fontWeight="bold" color={textPrimary} textAlign={{ base: 'left', md: 'right' }}>
               {teamSizeControl}
             </Box>
-            <Text color="gray.400" display={{ base: 'block', md: 'none' }}>
+            <Text color={textSecondary} display={{ base: 'block', md: 'none' }}>
               designers
             </Text>
           </HStack>
         </Flex>
         <Flex justify="space-between" align="center" gap={3} wrap="wrap">
-          <Text fontSize="sm" color="gray.500">
+          <Text fontSize="sm" color={textMuted}>
             Total Capacity
           </Text>
-          <Text fontSize="xl" fontWeight="bold" color="white">
+          <Text fontSize="xl" fontWeight="bold" color={textPrimary}>
             {capacityStr} focus weeks
           </Text>
         </Flex>
         <Flex justify="space-between" align="center" gap={3} wrap="wrap">
-          <Text fontSize="sm" color="gray.500">
+          <Text fontSize="sm" color={textMuted}>
             Total Demand
           </Text>
-          <Text fontSize="xl" fontWeight="bold" color="white">
+          <Text fontSize="xl" fontWeight="bold" color={textPrimary}>
             {demandStr} focus weeks
           </Text>
         </Flex>
       </VStack>
 
-      <Divider borderColor="whiteAlpha.200" my={4} />
+      <Divider borderColor={borderSubtle} my={4} />
 
       <VStack spacing={3} align="stretch">
         <HStack spacing={2} align="center">
@@ -179,7 +193,7 @@ function SessionCapacityCard({
             {surplusAbsStr} focus weeks
           </Text>
         </HStack>
-        <Text fontSize="sm" color="gray.500">
+        <Text fontSize="sm" color={textMuted}>
           {isSurplus ? 'Surplus' : 'Deficit'} • {utilizedPctStr}% utilized
         </Text>
         <Progress
@@ -188,6 +202,7 @@ function SessionCapacityCard({
           size="sm"
           borderRadius="full"
           w="100%"
+          bg={progressTrack}
         />
       </VStack>
     </Box>
@@ -218,18 +233,30 @@ const PROJECT_TYPE_ICONS: Record<NonNullable<RoadmapItem['projectType']>, typeof
   'fix-polish': InfoIcon,
 }
 
-function priorityPillProps(p: RoadmapItem['priority'] | undefined): { bg: string; color: string; borderColor: string } {
-  switch (p) {
-    case 'P0':
-      return { bg: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', borderColor: 'rgba(239, 68, 68, 0.5)' }
-    case 'P1':
-      return { bg: 'rgba(249, 115, 22, 0.15)', color: '#fdba74', borderColor: 'rgba(249, 115, 22, 0.5)' }
-    case 'P2':
-      return { bg: 'rgba(234, 179, 8, 0.15)', color: '#fde047', borderColor: 'rgba(234, 179, 8, 0.45)' }
-    case 'P3':
-    default:
-      return { bg: 'rgba(107, 114, 128, 0.25)', color: '#d1d5db', borderColor: 'rgba(156, 163, 175, 0.5)' }
+function priorityPillProps(priority: string, isDark: boolean): { bg: string; color: string; borderColor: string } {
+  const pills: Record<string, { bg: string; borderColor: string; color: string }> = {
+    P0: {
+      bg: isDark ? 'rgba(239,68,68,0.15)' : 'red.50',
+      borderColor: isDark ? 'rgba(239,68,68,0.4)' : 'red.200',
+      color: isDark ? '#fca5a5' : 'red.700',
+    },
+    P1: {
+      bg: isDark ? 'rgba(249,115,22,0.15)' : 'orange.50',
+      borderColor: isDark ? 'rgba(249,115,22,0.4)' : 'orange.200',
+      color: isDark ? '#fdba74' : 'orange.700',
+    },
+    P2: {
+      bg: isDark ? 'rgba(234,179,8,0.15)' : 'yellow.50',
+      borderColor: isDark ? 'rgba(234,179,8,0.4)' : 'yellow.200',
+      color: isDark ? '#fde047' : 'yellow.700',
+    },
+    P3: {
+      bg: isDark ? 'rgba(107,114,128,0.15)' : 'gray.100',
+      borderColor: isDark ? 'rgba(107,114,128,0.4)' : 'gray.300',
+      color: isDark ? '#d1d5db' : 'gray.600',
+    },
   }
+  return pills[priority] ?? pills['P3']
 }
 
 function SessionSummaryPage() {
@@ -245,6 +272,32 @@ function SessionSummaryPage() {
   const itemToDeleteRef = useRef<{ id: string; name: string } | null>(null)
 
   const [isCreating, setIsCreating] = useState(false)
+
+  const { colorMode } = useColorMode()
+  const isDark = colorMode === 'dark'
+
+  const bgPage = useColorModeValue('gray.50', '#0a0a0f')
+  const bgCard = useColorModeValue('white', '#1a1d2e')
+  const bgPanel = useColorModeValue('white', '#141419')
+  const borderColor = useColorModeValue('gray.200', 'rgba(255, 255, 255, 0.1)')
+  const borderSubtle = useColorModeValue('gray.100', 'whiteAlpha.200')
+  const textPrimary = useColorModeValue('gray.900', 'white')
+  const textSecondary = useColorModeValue('gray.600', 'gray.400')
+  const textMuted = useColorModeValue('gray.500', 'gray.500')
+  const cyan = useColorModeValue('cyan.500', '#00d9ff')
+  const cyanHover = useColorModeValue('cyan.600', '#00b8d9')
+  const cyanHoverBg = useColorModeValue('cyan.50', 'rgba(0, 217, 255, 0.1)')
+  const inputBg = useColorModeValue('white', '#1a1a20')
+  const inputBorder = useColorModeValue('gray.200', 'rgba(255, 255, 255, 0.1)')
+  const tableHeaderColor = useColorModeValue('gray.500', 'gray.500')
+  const tableBorder = useColorModeValue('gray.100', 'whiteAlpha.100')
+  const progressTrack = useColorModeValue('gray.100', 'whiteAlpha.100')
+  const outlineButtonBorder = useColorModeValue('gray.200', 'rgba(255, 255, 255, 0.1)')
+  const outlineButtonColor = useColorModeValue('gray.600', 'gray.300')
+  const menuBg = useColorModeValue('white', '#141419')
+  const outlineButtonHoverBg = useColorModeValue('gray.50', 'whiteAlpha.50')
+  const outlineButtonHoverBorder = useColorModeValue('gray.400', 'rgba(255, 255, 255, 0.3)')
+  const menuItemSelectedBg = useColorModeValue('gray.100', 'whiteAlpha.100')
 
   // Ensure sessions are loaded when navigating to this page
   // This handles the case where you navigate directly to a session URL
@@ -610,8 +663,8 @@ function SessionSummaryPage() {
   // Handle missing session ID
   if (!id) {
     return (
-      <Box minH="100vh" bg="#0a0a0f" p={8}>
-        <Text color="gray.300">Invalid session ID</Text>
+      <Box minH="100vh" bg={bgPage} p={8}>
+        <Text color={textSecondary}>Invalid session ID</Text>
         <Button mt={4} onClick={() => navigate('/')} colorScheme="cyan">
           Go Home
         </Button>
@@ -622,8 +675,8 @@ function SessionSummaryPage() {
   // Show loading state while sessions are loading
   if (sessionsLoading) {
     return (
-      <Box minH="100vh" bg="#0a0a0f" p={8}>
-        <Text color="gray.300">Loading session...</Text>
+      <Box minH="100vh" bg={bgPage} p={8}>
+        <Text color={textSecondary}>Loading session...</Text>
       </Box>
     )
   }
@@ -637,19 +690,19 @@ function SessionSummaryPage() {
     const isServerError = sessionsError.toLowerCase().includes('server error')
     
     return (
-      <Box minH="100vh" bg="#0a0a0f" p={8}>
+      <Box minH="100vh" bg={bgPage} p={8}>
         <Box maxW="600px" mx="auto">
           <VStack spacing={4} align="stretch">
             <Box>
               <Text color="red.400" fontSize="lg" fontWeight="bold" mb={2}>
                 Error Loading Session
               </Text>
-              <Text color="gray.300" mb={4}>{sessionsError}</Text>
+              <Text color={textSecondary} mb={4}>{sessionsError}</Text>
             </Box>
             
             {isTimeout && (
-              <Box bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" p={4}>
-                <Text color="gray.300" fontSize="sm">
+              <Box bg={bgPanel} border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" p={4}>
+                <Text color={textSecondary} fontSize="sm">
                   The database connection timed out. This may happen when the database is waking up from inactivity. 
                   Please wait a moment and try again.
                 </Text>
@@ -657,16 +710,16 @@ function SessionSummaryPage() {
             )}
             
             {isConnectionError && (
-              <Box bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" p={4}>
-                <Text color="gray.300" fontSize="sm">
+              <Box bg={bgPanel} border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" p={4}>
+                <Text color={textSecondary} fontSize="sm">
                   Cannot connect to the database. Please check your internet connection and try again.
                 </Text>
               </Box>
             )}
             
             {isServerError && (
-              <Box bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" p={4}>
-                <Text color="gray.300" fontSize="sm">
+              <Box bg={bgPanel} border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" p={4}>
+                <Text color={textSecondary} fontSize="sm">
                   The database server is experiencing issues. Please try again in a few moments.
                 </Text>
               </Box>
@@ -685,9 +738,9 @@ function SessionSummaryPage() {
               <Button 
                 onClick={() => navigate('/')} 
                 variant="outline"
-                borderColor="rgba(255, 255, 255, 0.1)"
-                color="gray.300"
-                _hover={{ bg: 'rgba(255, 255, 255, 0.05)' }}
+                borderColor={outlineButtonBorder}
+                color={outlineButtonColor}
+                _hover={{ bg: outlineButtonHoverBg, borderColor: outlineButtonHoverBorder }}
               >
                 Go to Scenarios List
               </Button>
@@ -701,24 +754,24 @@ function SessionSummaryPage() {
   // Handle missing session (only show if not loading and no error)
   if (!session && !sessionsLoading && !sessionsError) {
     return (
-      <Box minH="100vh" bg="#0a0a0f" p={8}>
+      <Box minH="100vh" bg={bgPage} p={8}>
         <Box maxW="600px" mx="auto">
           <VStack spacing={4} align="stretch">
             <Box>
               <Text color="red.400" fontSize="lg" fontWeight="bold" mb={2}>
                 Session Not Found
               </Text>
-              <Text color="gray.300" mb={2}>
+              <Text color={textSecondary} mb={2}>
                 The session with ID "{id}" could not be found.
               </Text>
-              <Text color="gray.500" fontSize="sm" mb={4}>
+              <Text color={textMuted} fontSize="sm" mb={4}>
                 It may have been deleted, or you may be accessing a session from a different database. 
                 Please check the scenarios list to see available sessions.
               </Text>
             </Box>
             
-            <Box bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" p={4}>
-              <Text color="gray.300" fontSize="sm">
+            <Box bg={bgPanel} border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" p={4}>
+              <Text color={textSecondary} fontSize="sm">
                 💡 <strong>Tip:</strong> If you're switching between different database environments, 
                 make sure you're accessing the correct site URL.
               </Text>
@@ -743,9 +796,9 @@ function SessionSummaryPage() {
               <Button 
                 onClick={() => navigate('/')} 
                 variant="outline"
-                borderColor="rgba(255, 255, 255, 0.1)"
-                color="gray.300"
-                _hover={{ bg: 'rgba(255, 255, 255, 0.05)' }}
+                borderColor={outlineButtonBorder}
+                color={outlineButtonColor}
+                _hover={{ bg: outlineButtonHoverBg, borderColor: outlineButtonHoverBorder }}
               >
                 Go to Scenarios List
               </Button>
@@ -766,8 +819,8 @@ function SessionSummaryPage() {
   if (!session) {
     // This should never happen due to early returns, but TypeScript needs this check
     return (
-      <Box minH="100vh" bg="#0a0a0f" p={8}>
-        <Text color="gray.300">Loading session...</Text>
+      <Box minH="100vh" bg={bgPage} p={8}>
+        <Text color={textSecondary}>Loading session...</Text>
       </Box>
     )
   }
@@ -837,15 +890,15 @@ function SessionSummaryPage() {
   }
 
   return (
-    <Box bg="#0a0a0f" minH="100vh" pb={8}>
+    <Box bg={bgPage} minH="100vh" pb={8}>
       <Box maxW="1400px" mx="auto" px={6} pt={6}>
         {/* Only show error banner if we have data loaded (not on error page) */}
         {/* Error banner should only appear when data loads but there was a warning */}
         {sessionsError && session && (
-          <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
+          <Alert status="warning" bg={bgPanel} border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
             <AlertIcon color="#f59e0b" />
-            <AlertTitle color="white" mr={2}>Warning:</AlertTitle>
-            <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
+            <AlertTitle color={textPrimary} mr={2}>Warning:</AlertTitle>
+            <AlertDescription color={textSecondary}>{sessionsError}</AlertDescription>
             <Button
               size="sm"
               colorScheme="cyan"
@@ -860,19 +913,19 @@ function SessionSummaryPage() {
         )}
 
         {/* Header Section */}
-        <Breadcrumb mb={6} fontSize="sm" color="gray.400" separator="→">
+        <Breadcrumb mb={6} fontSize="sm" color={textSecondary} separator="→">
           <BreadcrumbItem>
             <BreadcrumbLink
               as={Link}
               to="/scenarios"
-              color="gray.400"
+              color={textSecondary}
               _hover={{ color: 'cyan.400' }}
             >
               Plans
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbItem isCurrentPage>
-            <BreadcrumbLink color="white">
+            <BreadcrumbLink color={textPrimary}>
               {session.name?.trim() ? session.name.trim() : 'Unnamed plan'}
             </BreadcrumbLink>
           </BreadcrumbItem>
@@ -900,7 +953,7 @@ function SessionSummaryPage() {
                 fontWeight="bold"
               />
             </Box>
-            <Text fontSize="14px" color="gray.400">
+            <Text fontSize="14px" color={textSecondary}>
               {formatQuarter(planningPeriod)} • {session.ux_designers} UX Designers • {session.content_designers} Content Designers
             </Text>
           </Box>
@@ -933,15 +986,15 @@ function SessionSummaryPage() {
                   <ChevronDownIcon w={3} h={3} opacity={0.85} aria-hidden />
                 </HStack>
               </MenuButton>
-              <MenuList bg="#141419" borderColor="whiteAlpha.200" py={1} zIndex={50} minW="200px">
+              <MenuList bg={menuBg} borderColor={borderSubtle} py={1} zIndex={50} minW="200px">
                 {ALL_SCENARIO_STATUSES.map((st) => {
                   const opt = sessionStatusBadgeProps(st)
                   return (
                     <MenuItem
                       key={st}
-                      bg={session.status === st ? 'whiteAlpha.100' : 'transparent'}
-                      color="gray.100"
-                      _hover={{ bg: 'whiteAlpha.100' }}
+                      bg={session.status === st ? menuItemSelectedBg : 'transparent'}
+                      color={textPrimary}
+                      _hover={{ bg: menuItemSelectedBg }}
                       onClick={() => {
                         void handleScenarioStatusChange(st)
                       }}
@@ -971,6 +1024,12 @@ function SessionSummaryPage() {
             <SessionCapacityCard
               title="UX Design Capacity"
               metrics={capacityMetrics.ux}
+              bgCard={bgCard}
+              borderSubtle={borderSubtle}
+              textPrimary={textPrimary}
+              textSecondary={textSecondary}
+              textMuted={textMuted}
+              progressTrack={progressTrack}
               teamSizeControl={
                 <EditableNumberCell
                   value={session.ux_designers}
@@ -997,13 +1056,19 @@ function SessionSummaryPage() {
                   max={100}
                   step={1}
                   precision={0}
-                  color="white"
+                  color={textPrimary}
                 />
               }
             />
             <SessionCapacityCard
               title="Content Design Capacity"
               metrics={capacityMetrics.content}
+              bgCard={bgCard}
+              borderSubtle={borderSubtle}
+              textPrimary={textPrimary}
+              textSecondary={textSecondary}
+              textMuted={textMuted}
+              progressTrack={progressTrack}
               teamSizeControl={
                 <EditableNumberCell
                   value={session.content_designers}
@@ -1030,7 +1095,7 @@ function SessionSummaryPage() {
                   max={100}
                   step={1}
                   precision={0}
-                  color="white"
+                  color={textPrimary}
                 />
               }
             />
@@ -1038,22 +1103,22 @@ function SessionSummaryPage() {
         )}
 
         {/* Roadmap Items Table */}
-        <Box bg="#141419" borderRadius="md" p={6} border="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
+        <Box bg={bgPanel} borderRadius="md" p={6} border="1px solid" borderColor={borderColor}>
           <Box mb={6}>
-            <Heading size="md" fontWeight="bold" color="white">
+            <Heading size="md" fontWeight="bold" color={textPrimary}>
               Roadmap Items
             </Heading>
-            <Text fontSize="sm" color="gray.500" mt={1}>
+            <Text fontSize="sm" color={textMuted} mt={1}>
               Demand shown in focus weeks
             </Text>
           </Box>
 
           {/* Error message for RoadmapItemsContext */}
           {roadmapError && (
-            <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
+            <Alert status="warning" bg={bgPanel} border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
               <AlertIcon color="#f59e0b" />
-              <AlertTitle color="white" mr={2}>Sync Error:</AlertTitle>
-              <AlertDescription color="gray.300">
+              <AlertTitle color={textPrimary} mr={2}>Sync Error:</AlertTitle>
+              <AlertDescription color={textSecondary}>
                 {roadmapError} Changes were saved locally. You may need to retry syncing to the database.
               </AlertDescription>
             </Alert>
@@ -1061,7 +1126,7 @@ function SessionSummaryPage() {
 
           {items.length === 0 ? (
             <VStack spacing={4} py={12} align="stretch">
-              <Text color="gray.300" fontSize="16px">
+              <Text color={textSecondary} fontSize="16px">
                 No roadmap items yet. Add items to see capacity calculations.
               </Text>
               <HStack spacing={3} justify="flex-start">
@@ -1071,12 +1136,12 @@ function SessionSummaryPage() {
                 <Button
                   onClick={onPasteModalOpen}
                   variant="outline"
-                  borderColor="rgba(255, 255, 255, 0.1)"
-                  color="gray.300"
+                  borderColor={outlineButtonBorder}
+                  color={outlineButtonColor}
                   _hover={{
-                    borderColor: 'rgba(255, 255, 255, 0.3)',
-                    color: 'white',
-                    bg: 'rgba(255, 255, 255, 0.05)',
+                    borderColor: outlineButtonHoverBorder,
+                    color: textPrimary,
+                    bg: outlineButtonHoverBg,
                   }}
                 >
                   Paste from table
@@ -1090,104 +1155,104 @@ function SessionSummaryPage() {
                     <Thead>
                       <Tr>
                         <Th
-                          color="gray.500"
+                          color={tableHeaderColor}
                           fontSize="xs"
                           fontWeight="600"
                           textTransform="uppercase"
                           letterSpacing="wider"
                           borderBottom="1px solid"
-                          borderColor="whiteAlpha.200"
+                          borderColor={borderSubtle}
                           py={3}
                           px={3}
                         >
                           Key
                         </Th>
                         <Th
-                          color="gray.500"
+                          color={tableHeaderColor}
                           fontSize="xs"
                           fontWeight="600"
                           textTransform="uppercase"
                           letterSpacing="wider"
                           borderBottom="1px solid"
-                          borderColor="whiteAlpha.200"
+                          borderColor={borderSubtle}
                           py={3}
                           px={3}
                         >
                           Name
                         </Th>
                         <Th
-                          color="gray.500"
+                          color={tableHeaderColor}
                           fontSize="xs"
                           fontWeight="600"
                           textTransform="uppercase"
                           letterSpacing="wider"
                           borderBottom="1px solid"
-                          borderColor="whiteAlpha.200"
+                          borderColor={borderSubtle}
                           py={3}
                           px={3}
                         >
                           Type
                         </Th>
                         <Th
-                          color="gray.500"
+                          color={tableHeaderColor}
                           fontSize="xs"
                           fontWeight="600"
                           textTransform="uppercase"
                           letterSpacing="wider"
                           borderBottom="1px solid"
-                          borderColor="whiteAlpha.200"
+                          borderColor={borderSubtle}
                           py={3}
                           px={3}
                         >
                           Quarter
                         </Th>
                         <Th
-                          color="gray.500"
+                          color={tableHeaderColor}
                           fontSize="xs"
                           fontWeight="600"
                           textTransform="uppercase"
                           letterSpacing="wider"
                           borderBottom="1px solid"
-                          borderColor="whiteAlpha.200"
+                          borderColor={borderSubtle}
                           py={3}
                           px={3}
                         >
                           Priority
                         </Th>
                         <Th
-                          color="gray.500"
+                          color={tableHeaderColor}
                           fontSize="xs"
                           fontWeight="600"
                           textTransform="uppercase"
                           letterSpacing="wider"
                           borderBottom="1px solid"
-                          borderColor="whiteAlpha.200"
+                          borderColor={borderSubtle}
                           py={3}
                           px={3}
                         >
                           UX
                         </Th>
                         <Th
-                          color="gray.500"
+                          color={tableHeaderColor}
                           fontSize="xs"
                           fontWeight="600"
                           textTransform="uppercase"
                           letterSpacing="wider"
                           borderBottom="1px solid"
-                          borderColor="whiteAlpha.200"
+                          borderColor={borderSubtle}
                           py={3}
                           px={3}
                         >
                           Content
                         </Th>
                         <Th
-                          color="gray.500"
+                          color={tableHeaderColor}
                           fontSize="xs"
                           fontWeight="600"
                           textTransform="uppercase"
                           letterSpacing="wider"
                           borderBottom="1px solid"
-                          borderColor="whiteAlpha.200"
+                          borderColor={borderSubtle}
                           py={3}
                           px={3}
                         >
@@ -1199,7 +1264,7 @@ function SessionSummaryPage() {
                       {items.map((item) => {
                         const pt = item.projectType
                         const TypeIcon = pt ? PROJECT_TYPE_ICONS[pt] : null
-                        const pri = priorityPillProps(item.priority)
+                        const pri = priorityPillProps(item.priority ?? 'P3', isDark)
 
                         return (
                           <Tr
@@ -1212,7 +1277,7 @@ function SessionSummaryPage() {
                               py={3}
                               px={3}
                               borderBottom="1px solid"
-                              borderColor="whiteAlpha.100"
+                              borderColor={tableBorder}
                             >
                               <EditableTextCell
                                 value={item.short_key}
@@ -1220,7 +1285,7 @@ function SessionSummaryPage() {
                                 onUpdate={(newValue) => handleUpdateShortKey(item.id, newValue)}
                                 validate={validateShortKey}
                                 placeholder="Key"
-                                color="gray.300"
+                                color={textSecondary}
                               />
                             </Td>
                             <Td
@@ -1228,44 +1293,44 @@ function SessionSummaryPage() {
                               py={3}
                               px={3}
                               borderBottom="1px solid"
-                              borderColor="whiteAlpha.100"
+                              borderColor={tableBorder}
                             >
                               <EditableTextCell
                                 value={item.name}
                                 onChange={() => {}}
                                 onUpdate={(newValue) => handleUpdateName(item.id, newValue)}
                                 placeholder="Name"
-                                color="gray.300"
+                                color={textSecondary}
                               />
                             </Td>
                             <Td
                               py={3}
                               px={3}
                               borderBottom="1px solid"
-                              borderColor="whiteAlpha.100"
+                              borderColor={tableBorder}
                             >
                               {pt && TypeIcon ? (
                                 <HStack spacing={2}>
-                                  <TypeIcon boxSize={3} color="gray.400" aria-hidden />
-                                  <Text fontSize="sm" color="gray.300">
+                                  <TypeIcon boxSize={3} color={textSecondary} aria-hidden />
+                                  <Text fontSize="sm" color={textSecondary}>
                                     {PROJECT_TYPE_LABELS[pt]}
                                   </Text>
                                 </HStack>
                               ) : (
-                                <Text color="gray.500">—</Text>
+                                <Text color={textMuted}>—</Text>
                               )}
                             </Td>
                             <Td
                               py={3}
                               px={3}
                               borderBottom="1px solid"
-                              borderColor="whiteAlpha.100"
-                              color="gray.300"
+                              borderColor={tableBorder}
+                              color={textSecondary}
                               fontSize="sm"
                             >
                               {formatQuarterShort(planningPeriod)}
                             </Td>
-                            <Td py={3} px={3} borderBottom="1px solid" borderColor="whiteAlpha.100">
+                            <Td py={3} px={3} borderBottom="1px solid" borderColor={tableBorder}>
                               <Badge
                                 borderRadius="full"
                                 px={2}
@@ -1284,28 +1349,28 @@ function SessionSummaryPage() {
                               py={3}
                               px={3}
                               borderBottom="1px solid"
-                              borderColor="whiteAlpha.100"
+                              borderColor={tableBorder}
                             >
                               {item.uxSizeBand ? (
-                                <Text fontWeight={600} fontSize="sm" color="gray.300">
+                                <Text fontWeight={600} fontSize="sm" color={textSecondary}>
                                   {item.uxSizeBand}
                                 </Text>
                               ) : (
-                                <Text color="gray.500">—</Text>
+                                <Text color={textMuted}>—</Text>
                               )}
                             </Td>
                             <Td
                               py={3}
                               px={3}
                               borderBottom="1px solid"
-                              borderColor="whiteAlpha.100"
+                              borderColor={tableBorder}
                             >
                               {item.contentSizeBand ? (
-                                <Text fontWeight={600} fontSize="sm" color="gray.300">
+                                <Text fontWeight={600} fontSize="sm" color={textSecondary}>
                                   {item.contentSizeBand}
                                 </Text>
                               ) : (
-                                <Text color="gray.500">—</Text>
+                                <Text color={textMuted}>—</Text>
                               )}
                             </Td>
                             <Td
@@ -1314,7 +1379,7 @@ function SessionSummaryPage() {
                               py={3}
                               px={3}
                               borderBottom="1px solid"
-                              borderColor="whiteAlpha.100"
+                              borderColor={tableBorder}
                             >
                               <HStack spacing={1}>
                                 <IconButton
@@ -1322,8 +1387,8 @@ function SessionSummaryPage() {
                                   icon={<EditIcon />}
                                   variant="ghost"
                                   size="sm"
-                                  color="#00d9ff"
-                                  _hover={{ color: '#00b8d9', bg: 'rgba(0, 217, 255, 0.1)' }}
+                                  color={cyan}
+                                  _hover={{ color: cyanHover, bg: cyanHoverBg }}
                                   onClick={(e) => {
                                     e.stopPropagation()
                                     e.preventDefault()
@@ -1358,13 +1423,13 @@ function SessionSummaryPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  borderColor="rgba(255, 255, 255, 0.1)"
-                  color="gray.300"
+                  borderColor={outlineButtonBorder}
+                  color={outlineButtonColor}
                   onClick={onPasteModalOpen}
                   _hover={{
-                    borderColor: 'rgba(255, 255, 255, 0.3)',
-                    color: 'white',
-                    bg: 'rgba(255, 255, 255, 0.05)',
+                    borderColor: outlineButtonHoverBorder,
+                    color: textPrimary,
+                    bg: outlineButtonHoverBg,
                   }}
                 >
                   Paste from table
@@ -1382,15 +1447,22 @@ function SessionSummaryPage() {
         onClose={onClose}
       >
         <AlertDialogOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)">
-          <AlertDialogContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white" borderBottom="1px solid" borderColor="rgba(255, 255, 255, 0.1)" px={6} py={4}>
+          <AlertDialogContent bg={bgPanel} border="1px solid" borderColor={borderColor} boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color={textPrimary} borderBottom="1px solid" borderColor={borderColor} px={6} py={4}>
               Delete Item
             </AlertDialogHeader>
-            <AlertDialogBody color="gray.300" px={6} py={4}>
+            <AlertDialogBody color={textSecondary} px={6} py={4}>
               Delete <strong>{itemToDeleteRef.current?.name || 'this item'}</strong>? This cannot be undone.
             </AlertDialogBody>
-            <AlertDialogFooter borderTop="1px solid" borderColor="rgba(255, 255, 255, 0.1)" px={6} py={4}>
-              <Button ref={cancelRef} onClick={onClose} variant="outline">
+            <AlertDialogFooter borderTop="1px solid" borderColor={borderColor} px={6} py={4}>
+              <Button
+                ref={cancelRef}
+                onClick={onClose}
+                variant="outline"
+                borderColor={inputBorder}
+                color={outlineButtonColor}
+                _hover={{ bg: inputBg, borderColor: inputBorder }}
+              >
                 Cancel
               </Button>
               <Button

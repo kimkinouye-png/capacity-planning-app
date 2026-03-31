@@ -12,6 +12,7 @@ import {
   SliderThumb,
   Button,
   IconButton,
+  useColorModeValue,
 } from '@chakra-ui/react'
 import { useState } from 'react'
 import { AddIcon, MinusIcon } from '@chakra-ui/icons'
@@ -25,148 +26,6 @@ const DEFAULTS = {
   focusTimeRatio: 0.75,
 }
 
-function StepInput({
-  label,
-  value,
-  onChange,
-  min = 0,
-  hint,
-}: {
-  label: string
-  value: number
-  onChange: (v: number) => void
-  min?: number
-  hint?: string
-}) {
-  return (
-    <Box>
-      <Text fontSize="sm" color="gray.300" mb={2}>
-        {label}
-      </Text>
-      <Flex
-        align="center"
-        bg="gray.700"
-        border="1px solid"
-        borderColor="gray.600"
-        borderRadius="md"
-        overflow="hidden"
-      >
-        <IconButton
-          aria-label="Decrease"
-          icon={<MinusIcon boxSize={3} />}
-          size="sm"
-          variant="ghost"
-          color="gray.400"
-          _hover={{ color: 'white', bg: 'gray.600' }}
-          borderRadius={0}
-          onClick={() => onChange(Math.max(min, value - 1))}
-        />
-        <Text flex={1} textAlign="center" fontSize="md" fontWeight="semibold" color="white">
-          {value}
-        </Text>
-        <IconButton
-          aria-label="Increase"
-          icon={<AddIcon boxSize={3} />}
-          size="sm"
-          variant="ghost"
-          color="gray.400"
-          _hover={{ color: 'white', bg: 'gray.600' }}
-          borderRadius={0}
-          onClick={() => onChange(value + 1)}
-        />
-      </Flex>
-      {hint && (
-        <Text fontSize="xs" color="gray.500" mt={1}>
-          {hint}
-        </Text>
-      )}
-    </Box>
-  )
-}
-
-function MetricCard({
-  label,
-  value,
-  highlight,
-  info,
-}: {
-  label: string
-  value: string
-  highlight?: boolean
-  info?: string
-}) {
-  return (
-    <Box
-      bg={highlight ? 'blue.900' : 'gray.700'}
-      border="1px solid"
-      borderColor={highlight ? 'blue.700' : 'gray.600'}
-      borderRadius="lg"
-      p={4}
-    >
-      <Flex align="center" gap={2} mb={1}>
-        <Text fontSize="sm" color={highlight ? 'cyan.400' : 'gray.400'}>
-          {label}
-        </Text>
-        {info && (
-          <Text fontSize="xs" color="gray.500" title={info}>
-            ⓘ
-          </Text>
-        )}
-      </Flex>
-      <Text fontSize="3xl" fontWeight="bold" color={highlight ? 'cyan.400' : 'white'}>
-        {value}
-      </Text>
-    </Box>
-  )
-}
-
-function CapacityStatus({ focusWeeks }: { focusWeeks: number }) {
-  let label: string
-  let description: string
-  let color: string
-
-  if (focusWeeks >= 6) {
-    label = 'Healthy'
-    description = 'You have healthy capacity for design work'
-    color = 'green.400'
-  } else if (focusWeeks >= 3) {
-    label = 'Limited'
-    description = 'Capacity is limited — consider reducing scope'
-    color = 'yellow.400'
-  } else {
-    label = 'At Risk'
-    description = 'Very low capacity — review commitments'
-    color = 'red.400'
-  }
-
-  return (
-    <Box bg="gray.800" border="1px solid" borderColor="gray.700" borderRadius="lg" p={5} mt={4}>
-      <Text fontWeight="semibold" fontSize="sm" color="gray.300" mb={3}>
-        Capacity Status
-      </Text>
-      <Flex
-        align="center"
-        gap={3}
-        bg="gray.700"
-        border="1px solid"
-        borderColor="gray.600"
-        borderRadius="md"
-        p={3}
-      >
-        <Box w={3} h={3} borderRadius="full" bg={color} flexShrink={0} />
-        <Box>
-          <Text fontSize="sm" fontWeight="semibold" color={color}>
-            {label}
-          </Text>
-          <Text fontSize="xs" color="gray.400">
-            {description}
-          </Text>
-        </Box>
-      </Flex>
-    </Box>
-  )
-}
-
 export default function CapacityCalculatorPage() {
   const [planningPeriodWeeks, setPlanningPeriodWeeks] = useState(DEFAULTS.planningPeriodWeeks)
   const [daysPerWeek, setDaysPerWeek] = useState(DEFAULTS.daysPerWeek)
@@ -174,6 +33,158 @@ export default function CapacityCalculatorPage() {
   const [companyHolidays, setCompanyHolidays] = useState(DEFAULTS.companyHolidays)
   const [workstreams, setWorkstreams] = useState(DEFAULTS.workstreams)
   const [focusTimeRatio, setFocusTimeRatio] = useState(DEFAULTS.focusTimeRatio)
+
+  const bgPage = useColorModeValue('gray.50', 'gray.900')
+  const bgCard = useColorModeValue('white', 'gray.800')
+  const bgElevated = useColorModeValue('gray.50', 'gray.700')
+  const borderColor = useColorModeValue('gray.200', 'gray.600')
+  const textPrimary = useColorModeValue('gray.900', 'white')
+  const textSecondary = useColorModeValue('gray.600', 'gray.400')
+  const textMuted = useColorModeValue('gray.500', 'gray.500')
+  const metricHighlightBg = useColorModeValue('cyan.50', 'blue.900')
+  const metricHighlightBorder = useColorModeValue('cyan.200', 'blue.700')
+
+  function StepInput({
+    label,
+    value,
+    onChange,
+    min = 0,
+    hint,
+  }: {
+    label: string
+    value: number
+    onChange: (v: number) => void
+    min?: number
+    hint?: string
+  }) {
+    return (
+      <Box>
+        <Text fontSize="sm" color={textSecondary} mb={2}>
+          {label}
+        </Text>
+        <Flex
+          align="center"
+          bg={bgElevated}
+          border="1px solid"
+          borderColor={borderColor}
+          borderRadius="md"
+          overflow="hidden"
+        >
+          <IconButton
+            aria-label="Decrease"
+            icon={<MinusIcon boxSize={3} />}
+            size="sm"
+            variant="ghost"
+            color={textSecondary}
+            _hover={{ color: textPrimary, bg: borderColor }}
+            borderRadius={0}
+            onClick={() => onChange(Math.max(min, value - 1))}
+          />
+          <Text flex={1} textAlign="center" fontSize="md" fontWeight="semibold" color={textPrimary}>
+            {value}
+          </Text>
+          <IconButton
+            aria-label="Increase"
+            icon={<AddIcon boxSize={3} />}
+            size="sm"
+            variant="ghost"
+            color={textSecondary}
+            _hover={{ color: textPrimary, bg: borderColor }}
+            borderRadius={0}
+            onClick={() => onChange(value + 1)}
+          />
+        </Flex>
+        {hint && (
+          <Text fontSize="xs" color={textMuted} mt={1}>
+            {hint}
+          </Text>
+        )}
+      </Box>
+    )
+  }
+
+  function MetricCard({
+    label,
+    value,
+    highlight,
+    info,
+  }: {
+    label: string
+    value: string
+    highlight?: boolean
+    info?: string
+  }) {
+    return (
+      <Box
+        bg={highlight ? metricHighlightBg : bgElevated}
+        border="1px solid"
+        borderColor={highlight ? metricHighlightBorder : borderColor}
+        borderRadius="lg"
+        p={4}
+      >
+        <Flex align="center" gap={2} mb={1}>
+          <Text fontSize="sm" color={highlight ? 'cyan.500' : textSecondary}>
+            {label}
+          </Text>
+          {info && (
+            <Text fontSize="xs" color={textMuted} title={info}>
+              ⓘ
+            </Text>
+          )}
+        </Flex>
+        <Text fontSize="3xl" fontWeight="bold" color={highlight ? 'cyan.500' : textPrimary}>
+          {value}
+        </Text>
+      </Box>
+    )
+  }
+
+  function CapacityStatus({ focusWeeks }: { focusWeeks: number }) {
+    let label: string
+    let description: string
+    let color: string
+
+    if (focusWeeks >= 6) {
+      label = 'Healthy'
+      description = 'You have healthy capacity for design work'
+      color = 'green.400'
+    } else if (focusWeeks >= 3) {
+      label = 'Limited'
+      description = 'Capacity is limited — consider reducing scope'
+      color = 'yellow.400'
+    } else {
+      label = 'At Risk'
+      description = 'Very low capacity — review commitments'
+      color = 'red.400'
+    }
+
+    return (
+      <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg" p={5} mt={4}>
+        <Text fontWeight="semibold" fontSize="sm" color={textSecondary} mb={3}>
+          Capacity Status
+        </Text>
+        <Flex
+          align="center"
+          gap={3}
+          bg={bgElevated}
+          border="1px solid"
+          borderColor={borderColor}
+          borderRadius="md"
+          p={3}
+        >
+          <Box w={3} h={3} borderRadius="full" bg={color} flexShrink={0} />
+          <Box>
+            <Text fontSize="sm" fontWeight="semibold" color={color}>
+              {label}
+            </Text>
+            <Text fontSize="xs" color={textSecondary}>
+              {description}
+            </Text>
+          </Box>
+        </Flex>
+      </Box>
+    )
+  }
 
   const workstreamPenalty = 0.1
   const availableDays = planningPeriodWeeks * daysPerWeek - vacationDays - companyHolidays
@@ -194,24 +205,24 @@ export default function CapacityCalculatorPage() {
   }
 
   return (
-    <Box minH="100vh" bg="gray.900" color="white">
+    <Box minH="100vh" bg={bgPage} color={textPrimary}>
       <Box maxW="1100px" mx="auto" px={6} py={8}>
         {/* Header */}
         <Heading size="xl" fontWeight="bold" mb={2}>
           Designer Capacity Calculator
         </Heading>
-        <Text fontSize="sm" color="gray.400" mb={10}>
+        <Text fontSize="sm" color={textSecondary} mb={10}>
           Estimate your realistic design time for any planning period.
         </Text>
 
         <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={8} alignItems="start">
           {/* LEFT — Summary + Status */}
           <GridItem>
-            <Box bg="gray.800" border="1px solid" borderColor="gray.700" borderRadius="lg" p={5}>
-              <Text fontWeight="semibold" fontSize="sm" color="gray.300" mb={4}>
+            <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg" p={5}>
+              <Text fontWeight="semibold" fontSize="sm" color={textSecondary} mb={4}>
                 Your Capacity Summary
               </Text>
-              <Text fontSize="xs" color="gray.500" mb={4}>
+              <Text fontSize="xs" color={textMuted} mb={4}>
                 Calculated based on your inputs
               </Text>
               <Flex direction="column" gap={3}>
@@ -232,11 +243,11 @@ export default function CapacityCalculatorPage() {
 
           {/* RIGHT — Inputs */}
           <GridItem>
-            <Box bg="gray.800" border="1px solid" borderColor="gray.700" borderRadius="lg" p={5}>
-              <Text fontWeight="semibold" fontSize="sm" color="gray.300" mb={1}>
+            <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg" p={5}>
+              <Text fontWeight="semibold" fontSize="sm" color={textSecondary} mb={1}>
                 Your Capacity
               </Text>
-              <Text fontSize="xs" color="gray.500" mb={6}>
+              <Text fontSize="xs" color={textMuted} mb={6}>
                 Adjust your planning period and availability
               </Text>
 
@@ -270,7 +281,7 @@ export default function CapacityCalculatorPage() {
                 {/* Focus Time Ratio slider */}
                 <FormControl>
                   <Flex justify="space-between" mb={2}>
-                    <Text fontSize="sm" color="gray.300">
+                    <Text fontSize="sm" color={textSecondary}>
                       Focus-Time Ratio
                     </Text>
                     <Text fontSize="sm" fontWeight="semibold" color="cyan.400">
@@ -285,12 +296,12 @@ export default function CapacityCalculatorPage() {
                     onChange={(v) => setFocusTimeRatio(v / 100)}
                     focusThumbOnChange={false}
                   >
-                    <SliderTrack bg="gray.600">
+                    <SliderTrack bg={borderColor}>
                       <SliderFilledTrack bg="cyan.400" />
                     </SliderTrack>
                     <SliderThumb boxSize={4} bg="cyan.400" />
                   </Slider>
-                  <Text fontSize="xs" color="gray.500" mt={1}>
+                  <Text fontSize="xs" color={textMuted} mt={1}>
                     Accounts for meetings, context switching, and interruptions. Lower = more overhead.
                   </Text>
                 </FormControl>
@@ -298,8 +309,8 @@ export default function CapacityCalculatorPage() {
                 {/* Reset */}
                 <Button
                   variant="ghost"
-                  color="gray.400"
-                  _hover={{ color: 'white', bg: 'gray.700' }}
+                  color={textSecondary}
+                  _hover={{ color: textPrimary, bg: bgElevated }}
                   leftIcon={<Text>↺</Text>}
                   onClick={handleReset}
                   size="sm"

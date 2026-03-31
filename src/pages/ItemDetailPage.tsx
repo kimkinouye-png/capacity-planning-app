@@ -19,6 +19,7 @@ import {
   Badge,
   Spinner,
   useToast,
+  useColorModeValue,
 } from '@chakra-ui/react'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
@@ -92,17 +93,28 @@ export default function ItemDetailPage() {
     setRecalcedEffort(null)
   }, [item])
 
+  const bgPage = useColorModeValue('gray.50', 'gray.900')
+  const bgCard = useColorModeValue('white', 'gray.800')
+  const borderColor = useColorModeValue('gray.200', 'gray.700')
+  const textPrimary = useColorModeValue('gray.900', 'white')
+  const textSecondary = useColorModeValue('gray.600', 'gray.400')
+  const textMuted = useColorModeValue('gray.500', 'gray.500')
+  const inputBg = useColorModeValue('white', 'gray.700')
+  const inputBorder = useColorModeValue('gray.200', 'gray.600')
+  const optionBg = useColorModeValue('#f7fafc', '#2D3748')
+  const saveButtonBg = useColorModeValue('cyan.500', 'cyan.400')
+
   if (!itemId) {
     return (
-      <Box minH="100vh" bg="gray.900" display="flex" alignItems="center" justifyContent="center">
-        <Text color="gray.400">Invalid item ID.</Text>
+      <Box minH="100vh" bg={bgPage} display="flex" alignItems="center" justifyContent="center">
+        <Text color={textSecondary}>Invalid item ID.</Text>
       </Box>
     )
   }
 
   if (!item) {
     return (
-      <Box minH="100vh" bg="gray.900" display="flex" alignItems="center" justifyContent="center">
+      <Box minH="100vh" bg={bgPage} display="flex" alignItems="center" justifyContent="center">
         <Spinner color="cyan.400" />
       </Box>
     )
@@ -191,13 +203,13 @@ export default function ItemDetailPage() {
   const displayContentSizeBand = recalcedEffort?.contentSizeBand ?? item.contentSizeBand
 
   return (
-    <Box minH="100vh" bg="gray.900" color="white">
+    <Box minH="100vh" bg={bgPage} color={textPrimary}>
       <Box maxW="860px" mx="auto" px={6} py={8}>
         {/* Breadcrumb */}
-        <Breadcrumb mb={6} fontSize="sm" color="gray.400" separator="→">
+        <Breadcrumb mb={6} fontSize="sm" color={textSecondary} separator="→">
           <BreadcrumbItem>
             <BreadcrumbLink
-              color="gray.400"
+              color={textSecondary}
               _hover={{ color: 'cyan.400' }}
               onClick={() => navigate('/scenarios')}
             >
@@ -206,7 +218,7 @@ export default function ItemDetailPage() {
           </BreadcrumbItem>
           <BreadcrumbItem>
             <BreadcrumbLink
-              color="gray.400"
+              color={textSecondary}
               _hover={{ color: 'cyan.400' }}
               onClick={() => navigate(`/sessions/${id}`)}
             >
@@ -214,7 +226,7 @@ export default function ItemDetailPage() {
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbItem isCurrentPage>
-            <BreadcrumbLink color="white">
+            <BreadcrumbLink color={textPrimary}>
               {item.short_key}
             </BreadcrumbLink>
           </BreadcrumbItem>
@@ -227,29 +239,29 @@ export default function ItemDetailPage() {
           </Heading>
           <Badge colorScheme={STATUS_COLORS[formData.status ?? 'draft']}>{formData.status ?? 'draft'}</Badge>
         </Flex>
-        <Text fontSize="sm" color="gray.400" mb={8}>
+        <Text fontSize="sm" color={textSecondary} mb={8}>
           {item.planning_session_id}
         </Text>
 
         {/* Edit form */}
-        <Box bg="gray.800" border="1px solid" borderColor="gray.700" borderRadius="lg" p={6} mb={6}>
-          <Heading size="sm" fontWeight="semibold" mb={6} color="gray.200">
+        <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg" p={6} mb={6}>
+          <Heading size="sm" fontWeight="semibold" mb={6} color={textPrimary}>
             Item details
           </Heading>
 
           <Flex direction="column" gap={5}>
             {/* Name */}
             <FormControl>
-              <FormLabel fontSize="xs" color="gray.400">
+              <FormLabel fontSize="xs" color={textSecondary}>
                 Name
               </FormLabel>
               <Input
                 size="sm"
-                bg="gray.700"
+                bg={inputBg}
                 border="1px solid"
-                borderColor="gray.600"
+                borderColor={inputBorder}
                 borderRadius="md"
-                color="white"
+                color={textPrimary}
                 _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
                 value={formData.name}
                 onChange={set('name')}
@@ -258,16 +270,16 @@ export default function ItemDetailPage() {
 
             {/* Initiative */}
             <FormControl>
-              <FormLabel fontSize="xs" color="gray.400">
+              <FormLabel fontSize="xs" color={textSecondary}>
                 Initiative
               </FormLabel>
               <Input
                 size="sm"
-                bg="gray.700"
+                bg={inputBg}
                 border="1px solid"
-                borderColor="gray.600"
+                borderColor={inputBorder}
                 borderRadius="md"
-                color="white"
+                color={textPrimary}
                 _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
                 value={formData.initiative ?? ''}
                 onChange={set('initiative')}
@@ -278,22 +290,22 @@ export default function ItemDetailPage() {
             <Grid templateColumns="1fr 1fr 1fr" gap={4}>
               <GridItem>
                 <FormControl>
-                  <FormLabel fontSize="xs" color="gray.400">
+                  <FormLabel fontSize="xs" color={textSecondary}>
                     Priority
                   </FormLabel>
                   <Select
                     size="sm"
-                    bg="gray.700"
+                    bg={inputBg}
                     border="1px solid"
-                    borderColor="gray.600"
+                    borderColor={inputBorder}
                     borderRadius="md"
-                    color="white"
+                    color={textPrimary}
                     _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
                     value={formData.priority}
                     onChange={set('priority')}
                   >
                     {(['P0', 'P1', 'P2', 'P3'] as const).map((p) => (
-                      <option key={p} value={p} style={{ background: '#2D3748' }}>
+                      <option key={p} value={p} style={{ background: optionBg }}>
                         {p}
                       </option>
                     ))}
@@ -303,22 +315,22 @@ export default function ItemDetailPage() {
 
               <GridItem>
                 <FormControl>
-                  <FormLabel fontSize="xs" color="gray.400">
+                  <FormLabel fontSize="xs" color={textSecondary}>
                     Status
                   </FormLabel>
                   <Select
                     size="sm"
-                    bg="gray.700"
+                    bg={inputBg}
                     border="1px solid"
-                    borderColor="gray.600"
+                    borderColor={inputBorder}
                     borderRadius="md"
-                    color="white"
+                    color={textPrimary}
                     _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
                     value={formData.status ?? 'draft'}
                     onChange={set('status')}
                   >
                     {(['draft', 'in-review', 'committed', 'archived'] as const).map((s) => (
-                      <option key={s} value={s} style={{ background: '#2D3748' }}>
+                      <option key={s} value={s} style={{ background: optionBg }}>
                         {s}
                       </option>
                     ))}
@@ -328,22 +340,22 @@ export default function ItemDetailPage() {
 
               <GridItem>
                 <FormControl>
-                  <FormLabel fontSize="xs" color="gray.400">
+                  <FormLabel fontSize="xs" color={textSecondary}>
                     Project type
                   </FormLabel>
                   <Select
                     size="sm"
-                    bg="gray.700"
+                    bg={inputBg}
                     border="1px solid"
-                    borderColor="gray.600"
+                    borderColor={inputBorder}
                     borderRadius="md"
-                    color="white"
+                    color={textPrimary}
                     _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
                     value={formData.projectType ?? ''}
                     onChange={set('projectType')}
                   >
                     {(['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).map((t) => (
-                      <option key={t} value={t} style={{ background: '#2D3748' }}>
+                      <option key={t} value={t} style={{ background: optionBg }}>
                         {PROJECT_TYPE_OPTION_LABELS[t]}
                       </option>
                     ))}
@@ -354,16 +366,16 @@ export default function ItemDetailPage() {
 
             {/* Notes */}
             <FormControl>
-              <FormLabel fontSize="xs" color="gray.400">
+              <FormLabel fontSize="xs" color={textSecondary}>
                 Notes
               </FormLabel>
               <Textarea
                 size="sm"
-                bg="gray.700"
+                bg={inputBg}
                 border="1px solid"
-                borderColor="gray.600"
+                borderColor={inputBorder}
                 borderRadius="md"
-                color="white"
+                color={textPrimary}
                 _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
                 rows={4}
                 value={formData.notes ?? ''}
@@ -374,13 +386,13 @@ export default function ItemDetailPage() {
         </Box>
 
         {/* Effort summary (read-only) */}
-        <Box bg="gray.800" border="1px solid" borderColor="gray.700" borderRadius="lg" p={6} mb={8}>
-          <Heading size="sm" fontWeight="semibold" mb={4} color="gray.200">
+        <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg" p={6} mb={8}>
+          <Heading size="sm" fontWeight="semibold" mb={4} color={textPrimary}>
             Effort estimate
           </Heading>
           <Grid templateColumns="1fr 1fr" gap={6}>
             <GridItem>
-              <Text fontSize="xs" color="gray.400" mb={1}>
+              <Text fontSize="xs" color={textSecondary} mb={1}>
                 UX
               </Text>
               <Flex align="baseline" gap={2}>
@@ -389,11 +401,11 @@ export default function ItemDetailPage() {
                     ? displayUxFocusWeeks.toFixed(1)
                     : '—'}
                 </Text>
-                <Text fontSize="sm" color="gray.400">
+                <Text fontSize="sm" color={textSecondary}>
                   focus weeks
                 </Text>
               </Flex>
-              <Text fontSize="xs" color="gray.500" mt={1}>
+              <Text fontSize="xs" color={textMuted} mt={1}>
                 {displayUxWorkWeeks !== undefined && displayUxWorkWeeks !== null
                   ? displayUxWorkWeeks.toFixed(1)
                   : '—'}{' '}
@@ -401,7 +413,7 @@ export default function ItemDetailPage() {
               </Text>
             </GridItem>
             <GridItem>
-              <Text fontSize="xs" color="gray.400" mb={1}>
+              <Text fontSize="xs" color={textSecondary} mb={1}>
                 Content
               </Text>
               <Flex align="baseline" gap={2}>
@@ -410,11 +422,11 @@ export default function ItemDetailPage() {
                     ? displayContentFocusWeeks.toFixed(1)
                     : '—'}
                 </Text>
-                <Text fontSize="sm" color="gray.400">
+                <Text fontSize="sm" color={textSecondary}>
                   focus weeks
                 </Text>
               </Flex>
-              <Text fontSize="xs" color="gray.500" mt={1}>
+              <Text fontSize="xs" color={textMuted} mt={1}>
                 {displayContentWorkWeeks !== undefined && displayContentWorkWeeks !== null
                   ? displayContentWorkWeeks.toFixed(1)
                   : '—'}{' '}
@@ -428,15 +440,15 @@ export default function ItemDetailPage() {
         <Flex justify="space-between" align="center">
           <Button
             variant="ghost"
-            color="gray.400"
-            _hover={{ color: 'white' }}
+            color={textSecondary}
+            _hover={{ color: textPrimary }}
             onClick={() => navigate(`/sessions/${id}`)}
           >
             ← Back to plan
           </Button>
           <Button
-            bg="cyan.400"
-            color="gray.900"
+            bg={saveButtonBg}
+            color="white"
             fontWeight="semibold"
             _hover={{ bg: 'cyan.300' }}
             onClick={handleSave}

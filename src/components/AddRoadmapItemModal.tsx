@@ -15,6 +15,7 @@ import {
   VStack,
   Grid,
   GridItem,
+  useColorModeValue,
 } from '@chakra-ui/react'
 import { useState, type ChangeEvent } from 'react'
 import type { RoadmapItem } from '../domain/types'
@@ -78,25 +79,39 @@ export default function AddRoadmapItemModal({
     (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setFormData((prev) => ({ ...prev, [field]: e.target.value }))
 
+  const bgModal = useColorModeValue('white', 'gray.800')
+  const borderColor = useColorModeValue('gray.200', 'gray.700')
+  const inputBg = useColorModeValue('white', 'gray.700')
+  const inputBorder = useColorModeValue('gray.200', 'gray.600')
+  const textPrimary = useColorModeValue('gray.900', 'white')
+  const textSecondary = useColorModeValue('gray.600', 'gray.400')
+  const textMuted = useColorModeValue('gray.500', 'gray.400')
+  const cancelBorder = useColorModeValue('gray.200', 'gray.600')
+  const cancelColor = useColorModeValue('gray.600', 'gray.300')
+  const submitBg = useColorModeValue('cyan.500', 'cyan.400')
+  const submitHover = useColorModeValue('cyan.600', 'cyan.300')
+  const submitColor = useColorModeValue('white', 'gray.900')
+  const optionBg = useColorModeValue('#f7fafc', '#2D3748')
+
   return (
     <Modal isOpen={isOpen} onClose={handleClose} size="lg" isCentered>
       <ModalOverlay bg="blackAlpha.700" />
       <ModalContent
-        bg="gray.800"
+        bg={bgModal}
         border="1px solid"
-        borderColor="gray.700"
+        borderColor={borderColor}
         borderRadius="lg"
       >
         <ModalHeader
-          color="white"
+          color={textPrimary}
           fontSize="md"
           fontWeight="semibold"
           borderBottom="1px solid"
-          borderColor="gray.700"
+          borderColor={borderColor}
         >
           Create roadmap item
         </ModalHeader>
-        <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
+        <ModalCloseButton color={textMuted} _hover={{ color: textPrimary }} />
 
         <ModalBody py={6}>
           <VStack spacing={5} align="stretch">
@@ -104,16 +119,16 @@ export default function AddRoadmapItemModal({
             <Grid templateColumns="120px 1fr" gap={4}>
               <GridItem>
                 <FormControl isRequired>
-                  <FormLabel fontSize="xs" color="gray.400">
+                  <FormLabel fontSize="xs" color={textSecondary}>
                     Short key
                   </FormLabel>
                   <Input
                     size="sm"
-                    bg="gray.700"
+                    bg={inputBg}
                     border="1px solid"
-                    borderColor="gray.600"
+                    borderColor={inputBorder}
                     borderRadius="md"
-                    color="white"
+                    color={textPrimary}
                     _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
                     placeholder="PROJ-001"
                     value={formData.short_key}
@@ -123,16 +138,16 @@ export default function AddRoadmapItemModal({
               </GridItem>
               <GridItem>
                 <FormControl isRequired>
-                  <FormLabel fontSize="xs" color="gray.400">
+                  <FormLabel fontSize="xs" color={textSecondary}>
                     Name
                   </FormLabel>
                   <Input
                     size="sm"
-                    bg="gray.700"
+                    bg={inputBg}
                     border="1px solid"
-                    borderColor="gray.600"
+                    borderColor={inputBorder}
                     borderRadius="md"
-                    color="white"
+                    color={textPrimary}
                     _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
                     placeholder="Feature name"
                     value={formData.name}
@@ -144,16 +159,16 @@ export default function AddRoadmapItemModal({
 
             {/* Initiative */}
             <FormControl>
-              <FormLabel fontSize="xs" color="gray.400">
+              <FormLabel fontSize="xs" color={textSecondary}>
                 Initiative
               </FormLabel>
               <Input
                 size="sm"
-                bg="gray.700"
+                bg={inputBg}
                 border="1px solid"
-                borderColor="gray.600"
+                borderColor={inputBorder}
                 borderRadius="md"
-                color="white"
+                color={textPrimary}
                 _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
                 placeholder="e.g. Growth Q2"
                 value={formData.initiative ?? ''}
@@ -165,22 +180,22 @@ export default function AddRoadmapItemModal({
             <Grid templateColumns="1fr 1fr 1fr" gap={4}>
               <GridItem>
                 <FormControl>
-                  <FormLabel fontSize="xs" color="gray.400">
+                  <FormLabel fontSize="xs" color={textSecondary}>
                     Priority
                   </FormLabel>
                   <Select
                     size="sm"
-                    bg="gray.700"
+                    bg={inputBg}
                     border="1px solid"
-                    borderColor="gray.600"
+                    borderColor={inputBorder}
                     borderRadius="md"
-                    color="white"
+                    color={textPrimary}
                     _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
                     value={formData.priority}
                     onChange={set('priority')}
                   >
                     {(['P0', 'P1', 'P2', 'P3'] as const).map((p) => (
-                      <option key={p} value={p} style={{ background: '#2D3748' }}>
+                      <option key={p} value={p} style={{ background: optionBg }}>
                         {p}
                       </option>
                     ))}
@@ -190,22 +205,22 @@ export default function AddRoadmapItemModal({
 
               <GridItem>
                 <FormControl>
-                  <FormLabel fontSize="xs" color="gray.400">
+                  <FormLabel fontSize="xs" color={textSecondary}>
                     Status
                   </FormLabel>
                   <Select
                     size="sm"
-                    bg="gray.700"
+                    bg={inputBg}
                     border="1px solid"
-                    borderColor="gray.600"
+                    borderColor={inputBorder}
                     borderRadius="md"
-                    color="white"
+                    color={textPrimary}
                     _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
                     value={formData.status}
                     onChange={set('status')}
                   >
                     {(['draft', 'in-review', 'committed', 'archived'] as const).map((s) => (
-                      <option key={s} value={s} style={{ background: '#2D3748' }}>
+                      <option key={s} value={s} style={{ background: optionBg }}>
                         {s}
                       </option>
                     ))}
@@ -215,22 +230,22 @@ export default function AddRoadmapItemModal({
 
               <GridItem>
                 <FormControl>
-                  <FormLabel fontSize="xs" color="gray.400">
+                  <FormLabel fontSize="xs" color={textSecondary}>
                     Project type
                   </FormLabel>
                   <Select
                     size="sm"
-                    bg="gray.700"
+                    bg={inputBg}
                     border="1px solid"
-                    borderColor="gray.600"
+                    borderColor={inputBorder}
                     borderRadius="md"
-                    color="white"
+                    color={textPrimary}
                     _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
                     value={formData.projectType ?? ''}
                     onChange={set('projectType')}
                   >
                     {(['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).map((t) => (
-                      <option key={t} value={t} style={{ background: '#2D3748' }}>
+                      <option key={t} value={t} style={{ background: optionBg }}>
                         {PROJECT_TYPE_OPTION_LABELS[t]}
                       </option>
                     ))}
@@ -241,16 +256,16 @@ export default function AddRoadmapItemModal({
 
             {/* Notes */}
             <FormControl>
-              <FormLabel fontSize="xs" color="gray.400">
+              <FormLabel fontSize="xs" color={textSecondary}>
                 Notes
               </FormLabel>
               <Textarea
                 size="sm"
-                bg="gray.700"
+                bg={inputBg}
                 border="1px solid"
-                borderColor="gray.600"
+                borderColor={inputBorder}
                 borderRadius="md"
-                color="white"
+                color={textPrimary}
                 _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
                 placeholder="Optional context or links"
                 rows={3}
@@ -261,22 +276,22 @@ export default function AddRoadmapItemModal({
           </VStack>
         </ModalBody>
 
-        <ModalFooter borderTop="1px solid" borderColor="gray.700" gap={3}>
+        <ModalFooter borderTop="1px solid" borderColor={borderColor} gap={3}>
           <Button
             variant="outline"
-            borderColor="gray.600"
-            color="gray.300"
-            _hover={{ borderColor: 'gray.400', color: 'white' }}
+            borderColor={cancelBorder}
+            color={cancelColor}
+            _hover={{ borderColor: inputBorder, color: textPrimary }}
             onClick={handleClose}
             isDisabled={isSubmitting}
           >
             Cancel
           </Button>
           <Button
-            bg="cyan.400"
-            color="gray.900"
+            bg={submitBg}
+            color={submitColor}
             fontWeight="semibold"
-            _hover={{ bg: 'cyan.300' }}
+            _hover={{ bg: submitHover }}
             onClick={handleSubmit}
             isLoading={isSubmitting}
             loadingText="Creating…"

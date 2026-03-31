@@ -10,6 +10,7 @@ import {
   AccordionButton,
   AccordionPanel,
   AccordionIcon,
+  useColorModeValue,
 } from '@chakra-ui/react'
 
 const FAQ_ITEMS = [
@@ -52,8 +53,16 @@ const FAQ_ITEMS = [
 ]
 
 export default function GuidePage() {
+  const bgPage = useColorModeValue('gray.50', 'gray.900')
+  const bgCard = useColorModeValue('white', 'gray.800')
+  const bgElevated = useColorModeValue('gray.50', 'gray.700')
+  const borderColor = useColorModeValue('gray.200', 'gray.700')
+  const textPrimary = useColorModeValue('gray.900', 'white')
+  const textSecondary = useColorModeValue('gray.600', 'gray.400')
+  const accordionHoverBg = useColorModeValue('gray.50', 'gray.700')
+
   return (
-    <Box minH="100vh" bg="gray.900" color="white">
+    <Box minH="100vh" bg={bgPage} color={textPrimary}>
       <Box maxW="900px" mx="auto" px={6} py={8}>
         {/* Header */}
         <Flex align="center" gap={3} mb={3}>
@@ -71,17 +80,17 @@ export default function GuidePage() {
             Capacity Planning Guide
           </Heading>
         </Flex>
-        <Text fontSize="sm" color="gray.400" mb={10}>
+        <Text fontSize="sm" color={textSecondary} mb={10}>
           Learn how to effectively use the Capacity Planner to manage and plan roadmaps across quarterly cycles.
         </Text>
 
         {/* Quick Start */}
-        <Box bg="gray.800" border="1px solid" borderColor="cyan.700" borderRadius="lg" p={6} mb={10}>
+        <Box bg={bgCard} border="1px solid" borderColor="cyan.700" borderRadius="lg" p={6} mb={10}>
           <Flex align="center" gap={2} mb={4}>
             <Text color="cyan.400" fontSize="lg">
               ▶
             </Text>
-            <Text fontWeight="semibold" color="white">
+            <Text fontWeight="semibold" color={textPrimary}>
               Quick Start
             </Text>
           </Flex>
@@ -109,7 +118,7 @@ export default function GuidePage() {
                 >
                   {i + 1}
                 </Box>
-                <Text fontSize="sm" color="gray.300">
+                <Text fontSize="sm" color={textSecondary}>
                   {step}
                 </Text>
               </Flex>
@@ -128,15 +137,15 @@ export default function GuidePage() {
         <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={4} mb={10}>
           {/* Focus Weeks */}
           <GridItem>
-            <Box bg="gray.800" border="1px solid" borderColor="gray.700" borderRadius="lg" p={5} h="full">
-              <Text fontWeight="semibold" color="white" mb={3}>
+            <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg" p={5} h="full">
+              <Text fontWeight="semibold" color={textPrimary} mb={3}>
                 Focus Weeks
               </Text>
-              <Text fontSize="sm" color="gray.400" mb={3}>
+              <Text fontSize="sm" color={textSecondary} mb={3}>
                 A feature requiring 3 focus weeks means 3 weeks of heads down + 0 disruptions. Example: Work Weeks =
                 Focus Weeks × 1.7x
               </Text>
-              <Box bg="gray.700" borderRadius="md" p={3}>
+              <Box bg={bgElevated} borderRadius="md" p={3}>
                 <Text fontSize="sm" color="cyan.400">
                   <strong>Example:</strong> Work Weeks = 3 focus weeks ÷ 0.7 ≈ 4–5 work weeks
                 </Text>
@@ -146,15 +155,15 @@ export default function GuidePage() {
 
           {/* Work Weeks */}
           <GridItem>
-            <Box bg="gray.800" border="1px solid" borderColor="gray.700" borderRadius="lg" p={5} h="full">
-              <Text fontWeight="semibold" color="white" mb={3}>
+            <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg" p={5} h="full">
+              <Text fontWeight="semibold" color={textPrimary} mb={3}>
                 Work Weeks
               </Text>
-              <Text fontSize="sm" color="gray.400" mb={3}>
+              <Text fontSize="sm" color={textSecondary} mb={3}>
                 Accounts for non-project time: meetings by dividing focus time by 0.7x. The group a designer needs
                 are included in work weeks calculations.
               </Text>
-              <Box bg="gray.700" borderRadius="md" p={3}>
+              <Box bg={bgElevated} borderRadius="md" p={3}>
                 <Text fontSize="sm" color="cyan.400">
                   <strong>Formula:</strong> Work Weeks = Focus Weeks ÷ 0.7
                 </Text>
@@ -164,11 +173,11 @@ export default function GuidePage() {
 
           {/* Complexity Factors */}
           <GridItem>
-            <Box bg="gray.800" border="1px solid" borderColor="gray.700" borderRadius="lg" p={5} h="full">
-              <Text fontWeight="semibold" color="white" mb={3}>
+            <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg" p={5} h="full">
+              <Text fontWeight="semibold" color={textPrimary} mb={3}>
                 Complexity Factors
               </Text>
-              <Text fontSize="sm" color="gray.400" mb={3}>
+              <Text fontSize="sm" color={textSecondary} mb={3}>
                 Score each factor from 1–5, calculated into effort, which are specific to Product Design, UX
                 Designers, and Content Design:
               </Text>
@@ -181,7 +190,7 @@ export default function GuidePage() {
                 ].map((factor) => (
                   <Flex key={factor} align="center" gap={2}>
                     <Box w={1.5} h={1.5} borderRadius="full" bg="cyan.400" flexShrink={0} />
-                    <Text fontSize="sm" color="gray.300">
+                    <Text fontSize="sm" color={textSecondary}>
                       {factor}
                     </Text>
                   </Flex>
@@ -192,11 +201,11 @@ export default function GuidePage() {
 
           {/* Capacity Status */}
           <GridItem>
-            <Box bg="gray.800" border="1px solid" borderColor="gray.700" borderRadius="lg" p={5} h="full">
-              <Text fontWeight="semibold" color="white" mb={3}>
+            <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg" p={5} h="full">
+              <Text fontWeight="semibold" color={textPrimary} mb={3}>
                 Capacity Status
               </Text>
-              <Text fontSize="sm" color="gray.400" mb={3}>
+              <Text fontSize="sm" color={textSecondary} mb={3}>
                 Visual indicators show if your team is under, near, or over capacity for the planning period:
               </Text>
               <Flex direction="column" gap={2}>
@@ -207,7 +216,7 @@ export default function GuidePage() {
                 ].map(({ color, label, description }) => (
                   <Flex key={label} align="center" gap={2}>
                     <Box w={2.5} h={2.5} borderRadius="full" bg={color} flexShrink={0} />
-                    <Text fontSize="sm" color="gray.300">
+                    <Text fontSize="sm" color={textSecondary}>
                       <strong>{label}</strong> {description}
                     </Text>
                   </Flex>
@@ -226,30 +235,30 @@ export default function GuidePage() {
           {FAQ_ITEMS.map(({ q, a }) => (
             <AccordionItem key={q} border="none" mb={2}>
               <AccordionButton
-                bg="gray.800"
+                bg={bgCard}
                 border="1px solid"
-                borderColor="gray.700"
+                borderColor={borderColor}
                 borderRadius="lg"
                 px={5}
                 py={4}
-                _hover={{ bg: 'gray.700', borderColor: 'gray.600' }}
-                _expanded={{ borderBottomRadius: 0, borderColor: 'gray.600' }}
+                _hover={{ bg: accordionHoverBg, borderColor }}
+                _expanded={{ borderBottomRadius: 0, borderColor }}
               >
-                <Box flex={1} textAlign="left" fontSize="sm" fontWeight="medium" color="white">
+                <Box flex={1} textAlign="left" fontSize="sm" fontWeight="medium" color={textPrimary}>
                   {q}
                 </Box>
-                <AccordionIcon color="gray.400" />
+                <AccordionIcon color={textSecondary} />
               </AccordionButton>
               <AccordionPanel
-                bg="gray.800"
+                bg={bgCard}
                 border="1px solid"
-                borderColor="gray.700"
+                borderColor={borderColor}
                 borderTopWidth={0}
                 borderBottomRadius="lg"
                 px={5}
                 py={4}
                 fontSize="sm"
-                color="gray.400"
+                color={textSecondary}
               >
                 {a}
               </AccordionPanel>
