@@ -6,12 +6,6 @@ import {
   Text,
   Button,
   Tooltip,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   useDisclosure,
   Drawer,
   DrawerBody,
@@ -22,12 +16,9 @@ import {
 } from '@chakra-ui/react'
 import { Link, useLocation } from 'react-router-dom'
 import { InfoIcon, HamburgerIcon } from '@chakra-ui/icons'
-import QRCodeDisplay from './QRCodeDisplay'
-import { resetWorkspace } from '../utils/session'
 
 export default function AppHeader() {
   const location = useLocation()
-  const { isOpen: isResetOpen, onOpen: onResetOpen, onClose: onResetClose } = useDisclosure()
   const { isOpen: isDrawerOpen, onOpen: onDrawerOpen, onClose: onDrawerClose } = useDisclosure()
 
   const navItems = [
@@ -83,20 +74,6 @@ export default function AppHeader() {
             </Box>
 
             <HStack spacing={3} align="center">
-              {/* Reset + QR — always visible */}
-              <Button
-                variant="outline"
-                size="sm"
-                borderColor="gray.600"
-                color="gray.300"
-                _hover={{ borderColor: 'gray.400', color: 'white' }}
-                onClick={onResetOpen}
-                display={{ base: 'none', md: 'flex' }}
-              >
-                Reset my workspace
-              </Button>
-              <QRCodeDisplay />
-
               {/* Desktop nav links */}
               <HStack spacing={1} display={{ base: 'none', md: 'flex' }}>
                 {navItems.map((item) => {
@@ -149,42 +126,6 @@ export default function AppHeader() {
         </Box>
       </Box>
 
-      <Modal isOpen={isResetOpen} onClose={onResetClose} isCentered>
-        <ModalOverlay bg="blackAlpha.700" />
-        <ModalContent bg="gray.800" border="1px solid" borderColor="gray.700" borderRadius="lg">
-          <ModalHeader color="white" fontSize="md" fontWeight="semibold">
-            Reset workspace
-          </ModalHeader>
-          <ModalBody>
-            <Text fontSize="sm" color="gray.300">
-              This will permanently delete all plans and roadmap items. This cannot be undone.
-            </Text>
-          </ModalBody>
-          <ModalFooter gap={3}>
-            <Button
-              variant="outline"
-              borderColor="gray.600"
-              color="gray.300"
-              _hover={{ borderColor: 'gray.400', color: 'white' }}
-              onClick={onResetClose}
-            >
-              Cancel
-            </Button>
-            <Button
-              bg="red.500"
-              color="white"
-              _hover={{ bg: 'red.400' }}
-              onClick={() => {
-                resetWorkspace()
-                onResetClose()
-              }}
-            >
-              Reset everything
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
       {/* Mobile nav drawer */}
       <Drawer isOpen={isDrawerOpen} placement="right" onClose={onDrawerClose}>
         <DrawerOverlay bg="blackAlpha.700" />
@@ -192,21 +133,6 @@ export default function AppHeader() {
           <DrawerCloseButton color="gray.400" _hover={{ color: 'white' }} />
           <DrawerBody pt={12} px={4}>
             <Flex direction="column" gap={2}>
-              <Button
-                variant="outline"
-                borderColor="gray.600"
-                color="gray.300"
-                _hover={{ borderColor: 'gray.400', color: 'white' }}
-                onClick={() => {
-                  onResetOpen()
-                  onDrawerClose()
-                }}
-                size="sm"
-                mb={4}
-              >
-                Reset my workspace
-              </Button>
-
               {navItems.map((item) => {
                 const isActive =
                   location.pathname === item.path ||

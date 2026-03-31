@@ -22,9 +22,18 @@ import {
   Switch,
   useToast,
   Spinner,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
 } from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
 import { useSettings, DEFAULT_SETTINGS, type Settings } from '../context/SettingsContext'
+import QRCodeDisplay from '../components/QRCodeDisplay'
+import { resetWorkspace } from '../utils/session'
 
 const PROJECT_TYPE_LABELS: Record<string, string> = {
   'net-new': 'New Product',
@@ -37,6 +46,7 @@ const PROJECT_TYPE_LABELS: Record<string, string> = {
 export default function SettingsPage() {
   const { settings, loading, error: settingsError, saveSettings, resetToDefaults } = useSettings()
   const toast = useToast()
+  const { isOpen: isResetOpen, onOpen: onResetOpen, onClose: onResetClose } = useDisclosure()
 
   const [formData, setFormData] = useState({
     effort_weights: { ...DEFAULT_SETTINGS.effort_weights },
@@ -646,8 +656,106 @@ export default function SettingsPage() {
 
         {/* ---- Chunk 7 goes here ---- */}
 
+        {/* DANGER ZONE */}
+        <Box id="danger-zone" mb={24}>
+          <Heading size="md" fontWeight="semibold" color="red.400" mb={1}>
+            Danger zone
+          </Heading>
+          <Text fontSize="sm" color="gray.400" mb={6}>
+            Irreversible actions. Use with caution.
+          </Text>
+
+          <Flex direction="column" gap={4}>
+            {/* QR Code */}
+            <Box
+              bg="gray.800"
+              border="1px solid"
+              borderColor="gray.700"
+              borderRadius="lg"
+              p={5}
+            >
+              <Flex justify="space-between" align="center">
+                <Box>
+                  <Text fontSize="sm" fontWeight="medium" color="gray.200">
+                    Share this app
+                  </Text>
+                  <Text fontSize="xs" color="gray.500" mt={1}>
+                    Generate a QR code or copy the app URL to share with your team.
+                  </Text>
+                </Box>
+                <QRCodeDisplay />
+              </Flex>
+            </Box>
+
+            {/* Reset workspace */}
+            <Box
+              bg="gray.800"
+              border="1px solid"
+              borderColor="red.800"
+              borderRadius="lg"
+              p={5}
+            >
+              <Flex justify="space-between" align="center">
+                <Box>
+                  <Text fontSize="sm" fontWeight="medium" color="gray.200">
+                    Reset workspace
+                  </Text>
+                  <Text fontSize="xs" color="gray.500" mt={1}>
+                    Permanently delete all plans and roadmap items. This cannot be undone.
+                  </Text>
+                </Box>
+                <Button
+                  size="sm"
+                  bg="red.500"
+                  color="white"
+                  _hover={{ bg: 'red.400' }}
+                  onClick={onResetOpen}
+                >
+                  Reset workspace
+                </Button>
+              </Flex>
+            </Box>
+          </Flex>
+        </Box>
+
       {/* end maxW="860px" */}
       </Box>
+
+      <Modal isOpen={isResetOpen} onClose={onResetClose} isCentered>
+        <ModalOverlay bg="blackAlpha.700" />
+        <ModalContent bg="gray.800" border="1px solid" borderColor="gray.700" borderRadius="lg">
+          <ModalHeader color="white" fontSize="md" fontWeight="semibold">
+            Reset workspace
+          </ModalHeader>
+          <ModalBody>
+            <Text fontSize="sm" color="gray.300">
+              This will permanently delete all plans and roadmap items. This cannot be undone.
+            </Text>
+          </ModalBody>
+          <ModalFooter gap={3}>
+            <Button
+              variant="outline"
+              borderColor="gray.600"
+              color="gray.300"
+              _hover={{ borderColor: 'gray.400', color: 'white' }}
+              onClick={onResetClose}
+            >
+              Cancel
+            </Button>
+            <Button
+              bg="red.500"
+              color="white"
+              _hover={{ bg: 'red.400' }}
+              onClick={() => {
+                resetWorkspace()
+                onResetClose()
+              }}
+            >
+              Reset everything
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       {/* STICKY FOOTER */}
       <Box
