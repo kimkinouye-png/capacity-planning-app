@@ -5,9 +5,6 @@ import {
   Flex,
   Grid,
   GridItem,
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
   Accordion,
   AccordionItem,
   AccordionButton,
@@ -58,18 +55,6 @@ export default function GuidePage() {
   return (
     <Box minH="100vh" bg="gray.900" color="white">
       <Box maxW="900px" mx="auto" px={6} py={8}>
-        {/* Breadcrumb */}
-        <Breadcrumb mb={6} fontSize="sm" color="gray.400" separator="/">
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/" color="gray.400" _hover={{ color: 'cyan.400' }}>
-              Get Started
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbItem isCurrentPage>
-            <BreadcrumbLink color="white">Help</BreadcrumbLink>
-          </BreadcrumbItem>
-        </Breadcrumb>
-
         {/* Header */}
         <Flex align="center" gap={3} mb={3}>
           <Box

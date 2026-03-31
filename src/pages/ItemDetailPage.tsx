@@ -194,27 +194,29 @@ export default function ItemDetailPage() {
     <Box minH="100vh" bg="gray.900" color="white">
       <Box maxW="860px" mx="auto" px={6} py={8}>
         {/* Breadcrumb */}
-        <Breadcrumb mb={6} fontSize="sm" color="gray.400" separator="/">
+        <Breadcrumb mb={6} fontSize="sm" color="gray.400" separator="→">
           <BreadcrumbItem>
             <BreadcrumbLink
-              color="cyan.400"
-              _hover={{ color: 'cyan.300' }}
-              onClick={() => navigate('/')}
+              color="gray.400"
+              _hover={{ color: 'cyan.400' }}
+              onClick={() => navigate('/scenarios')}
             >
-              Home
+              Plans
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbItem>
             <BreadcrumbLink
-              color="cyan.400"
-              _hover={{ color: 'cyan.300' }}
+              color="gray.400"
+              _hover={{ color: 'cyan.400' }}
               onClick={() => navigate(`/sessions/${id}`)}
             >
               {session?.name ?? 'Plan'}
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbItem isCurrentPage>
-            <BreadcrumbLink color="white">{item.short_key}</BreadcrumbLink>
+            <BreadcrumbLink color="white">
+              {item.short_key}
+            </BreadcrumbLink>
           </BreadcrumbItem>
         </Breadcrumb>
 

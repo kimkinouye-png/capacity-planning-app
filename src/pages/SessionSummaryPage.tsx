@@ -47,7 +47,7 @@ import {
   InfoIcon,
   ChevronDownIcon,
 } from '@chakra-ui/icons'
-import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useMemo, useRef, useEffect, useState, type ReactNode } from 'react'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
@@ -860,29 +860,21 @@ function SessionSummaryPage() {
         )}
 
         {/* Header Section */}
-        <Breadcrumb
-          mb={6}
-          spacing={2}
-          separator={
-            <Text color="gray.600" fontSize="sm" px={1}>
-              →
-            </Text>
-          }
-        >
+        <Breadcrumb mb={6} fontSize="sm" color="gray.400" separator="→">
           <BreadcrumbItem>
-            <BreadcrumbLink as={RouterLink} to="/" color="gray.500" _hover={{ color: 'gray.400' }}>
-              Get Started
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbItem>
-            <BreadcrumbLink as={RouterLink} to="/scenarios" color="gray.500" _hover={{ color: 'gray.400' }}>
+            <BreadcrumbLink
+              as={Link}
+              to="/scenarios"
+              color="gray.400"
+              _hover={{ color: 'cyan.400' }}
+            >
               Plans
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbItem isCurrentPage>
-            <Text color="white" fontWeight="medium">
-              {session.name?.trim() ? session.name.trim() : 'Unnamed scenario'}
-            </Text>
+            <BreadcrumbLink color="white">
+              {session.name?.trim() ? session.name.trim() : 'Unnamed plan'}
+            </BreadcrumbLink>
           </BreadcrumbItem>
         </Breadcrumb>
 

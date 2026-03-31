@@ -1,8 +1,5 @@
 import {
   Box,
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
   FormLabel,
   Grid,
   GridItem,
@@ -156,23 +153,6 @@ export default function SettingsPage() {
   return (
     <Box minH="100vh" bg="gray.900" color="white" aria-busy={saving}>
       <Box maxW="860px" mx="auto" px={6} py={8} pb={28}>
-
-        {/* Breadcrumb */}
-        <Breadcrumb
-          mb={6}
-          fontSize="sm"
-          color="gray.400"
-          separator="/"
-        >
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/" color="gray.400" _hover={{ color: 'cyan.400' }}>
-              Get Started
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbItem isCurrentPage>
-            <BreadcrumbLink color="white">Settings</BreadcrumbLink>
-          </BreadcrumbItem>
-        </Breadcrumb>
 
         {/* Page title */}
         <Flex align="center" gap={3} mb={2}>
