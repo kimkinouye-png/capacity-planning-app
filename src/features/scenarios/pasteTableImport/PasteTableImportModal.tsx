@@ -198,11 +198,11 @@ export default function PasteTableImportModal({
                   fontSize="sm"
                 />
                 <Text fontSize="xs" color="gray.400" mt={2}>
-                  <strong>Preferred format:</strong> Title | Start date | End date | UX effort weeks | Content effort weeks
+                  <strong>Preferred format:</strong> Name | Short Key | Initiative | Priority | Project Type
                   <br />
-                  <strong>Also supported:</strong> Title | Start date | End date | Effort weeks (legacy)
+                  <strong>Minimum required:</strong> Name only. All other columns are optional.
                   <br />
-                  You can paste directly from Google Sheets or Excel. The first row may be a header (will be auto-detected).
+                  You can paste directly from Google Sheets or Excel. The first row may be a header (will be auto-detected). Project type and status can be set per row in the preview step.
                 </Text>
               </FormControl>
             </VStack>
@@ -212,99 +212,80 @@ export default function PasteTableImportModal({
                 <Table variant="simple" size="sm">
                   <Thead>
                     <Tr>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Title</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Start date</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">End date</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">UX effort</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Content effort</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Project type</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Name</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Short Key</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Initiative</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Priority</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Project Type</Th>
                       <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Status</Th>
-                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Status</Th>
+                      <Th bg="#1a1a20" color="gray.400" fontSize="12px" fontWeight="600">Valid</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
-                    {parsedRows.map((row, index) => {
-                      // Determine if this is 5-column format (has UX/Content) or 4-column (legacy)
-                      const isFiveColumn = row.item.uxEffortWeeks !== undefined || row.item.contentEffortWeeks !== undefined
-                      
-                      return (
-                        <Tr
-                          key={index}
-                          bg={row.isValid ? 'transparent' : 'rgba(245, 158, 11, 0.1)'}
-                          borderLeft={row.isValid ? 'none' : '3px solid'}
-                          borderLeftColor={row.isValid ? 'transparent' : '#f59e0b'}
-                        >
-                          <Td color={row.isValid ? 'gray.300' : 'gray.400'}>
-                            {row.item.title || '—'}
-                          </Td>
-                          <Td color={row.isValid ? 'gray.400' : 'gray.500'}>
-                            {row.item.startDate || '—'}
-                          </Td>
-                          <Td color={row.isValid ? 'gray.400' : 'gray.500'}>
-                            {row.item.endDate || '—'}
-                          </Td>
-                          <Td color={row.isValid ? 'gray.400' : 'gray.500'}>
-                            {isFiveColumn 
-                              ? (row.item.uxEffortWeeks !== undefined ? row.item.uxEffortWeeks.toFixed(1) : '—')
-                              : (row.item.effortWeeks !== undefined ? row.item.effortWeeks.toFixed(1) : '—')
-                            }
-                          </Td>
-                          <Td color={row.isValid ? 'gray.400' : 'gray.500'}>
-                            {isFiveColumn 
-                              ? (row.item.contentEffortWeeks !== undefined ? row.item.contentEffortWeeks.toFixed(1) : '—')
-                              : (row.item.effortWeeks !== undefined ? (row.item.effortWeeks / 2).toFixed(1) : '—')
-                            }
-                          </Td>
-                          <Td>
-                            <Select
-                              size="xs"
-                              bg="gray.700"
-                              border="1px solid"
-                              borderColor="gray.600"
-                              borderRadius="md"
-                              color="white"
-                              value={getRowMeta(index).projectType}
-                              onChange={(e) => setRowField(index, 'projectType', e.target.value)}
-                              isDisabled={!row.isValid}
-                            >
-                              {(['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).map((t) => (
-                                <option key={t} value={t} style={{ background: '#2D3748' }}>
-                                  {PROJECT_TYPE_OPTION_LABELS[t]}
-                                </option>
-                              ))}
-                            </Select>
-                          </Td>
-                          <Td>
-                            <Select
-                              size="xs"
-                              bg="gray.700"
-                              border="1px solid"
-                              borderColor="gray.600"
-                              borderRadius="md"
-                              color="white"
-                              value={getRowMeta(index).status}
-                              onChange={(e) => setRowField(index, 'status', e.target.value)}
-                              isDisabled={!row.isValid}
-                            >
-                              {(['draft', 'in-review', 'committed', 'archived'] as const).map((s) => (
-                                <option key={s} value={s} style={{ background: '#2D3748' }}>{s}</option>
-                              ))}
-                            </Select>
-                          </Td>
-                          <Td>
-                            {row.isValid ? (
-                              <Badge bg="rgba(16, 185, 129, 0.1)" color="#10b981" border="1px solid" borderColor="rgba(16, 185, 129, 0.3)">
-                                OK
-                              </Badge>
-                            ) : (
-                              <Badge bg="rgba(245, 158, 11, 0.1)" color="#f59e0b" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)">
-                                {row.errorMessage || 'Invalid'}
-                              </Badge>
-                            )}
-                          </Td>
-                        </Tr>
-                      )
-                    })}
+                    {parsedRows.map((row, index) => (
+                      <Tr
+                        key={index}
+                        bg={row.isValid ? 'transparent' : 'rgba(245, 158, 11, 0.1)'}
+                        borderLeft={row.isValid ? 'none' : '3px solid'}
+                        borderLeftColor={row.isValid ? 'transparent' : '#f59e0b'}
+                      >
+                        <Td color={row.isValid ? 'gray.300' : 'gray.400'}>{row.item.title || '—'}</Td>
+                        <Td color="gray.400">
+                          {row.item.title
+                            .substring(0, 5)
+                            .toUpperCase()
+                            .replace(/\s+/g, '')
+                            .replace(/[^A-Z0-9]/g, '') || 'ITEM'}
+                        </Td>
+                        <Td color="gray.400">—</Td>
+                        <Td color="gray.400">P1</Td>
+                        <Td>
+                          <Select
+                            size="xs"
+                            bg="gray.700"
+                            border="1px solid"
+                            borderColor="gray.600"
+                            borderRadius="md"
+                            color="white"
+                            value={getRowMeta(index).projectType}
+                            onChange={(e) => setRowField(index, 'projectType', e.target.value)}
+                            isDisabled={!row.isValid}
+                          >
+                            {(['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).map((t) => (
+                              <option key={t} value={t} style={{ background: '#2D3748' }}>
+                                {PROJECT_TYPE_OPTION_LABELS[t]}
+                              </option>
+                            ))}
+                          </Select>
+                        </Td>
+                        <Td>
+                          <Select
+                            size="xs"
+                            bg="gray.700"
+                            border="1px solid"
+                            borderColor="gray.600"
+                            borderRadius="md"
+                            color="white"
+                            value={getRowMeta(index).status}
+                            onChange={(e) => setRowField(index, 'status', e.target.value)}
+                            isDisabled={!row.isValid}
+                          >
+                            {(['draft', 'in-review', 'committed', 'archived'] as const).map((s) => (
+                              <option key={s} value={s} style={{ background: '#2D3748' }}>{s}</option>
+                            ))}
+                          </Select>
+                        </Td>
+                        <Td>
+                          {row.isValid ? (
+                            <Badge bg="rgba(16, 185, 129, 0.1)" color="#10b981" border="1px solid" borderColor="rgba(16, 185, 129, 0.3)">OK</Badge>
+                          ) : (
+                            <Badge bg="rgba(245, 158, 11, 0.1)" color="#f59e0b" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)">
+                              {row.errorMessage || 'Invalid'}
+                            </Badge>
+                          )}
+                        </Td>
+                      </Tr>
+                    ))}
                   </Tbody>
                 </Table>
               </TableContainer>

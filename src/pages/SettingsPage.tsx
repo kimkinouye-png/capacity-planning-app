@@ -32,7 +32,6 @@ import {
 } from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
 import { useSettings, DEFAULT_SETTINGS, type Settings } from '../context/SettingsContext'
-import QRCodeDisplay from '../components/QRCodeDisplay'
 import { resetWorkspace } from '../utils/session'
 
 const PROJECT_TYPE_LABELS: Record<string, string> = {
@@ -666,27 +665,6 @@ export default function SettingsPage() {
           </Text>
 
           <Flex direction="column" gap={4}>
-            {/* QR Code */}
-            <Box
-              bg="gray.800"
-              border="1px solid"
-              borderColor="gray.700"
-              borderRadius="lg"
-              p={5}
-            >
-              <Flex justify="space-between" align="center">
-                <Box>
-                  <Text fontSize="sm" fontWeight="medium" color="gray.200">
-                    Share this app
-                  </Text>
-                  <Text fontSize="xs" color="gray.500" mt={1}>
-                    Generate a QR code or copy the app URL to share with your team.
-                  </Text>
-                </Box>
-                <QRCodeDisplay />
-              </Flex>
-            </Box>
-
             {/* Reset workspace */}
             <Box
               bg="gray.800"
