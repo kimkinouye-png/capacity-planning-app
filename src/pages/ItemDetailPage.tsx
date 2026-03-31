@@ -240,7 +240,7 @@ export default function ItemDetailPage() {
           <Badge colorScheme={STATUS_COLORS[formData.status ?? 'draft']}>{formData.status ?? 'draft'}</Badge>
         </Flex>
         <Text fontSize="sm" color={textSecondary} mb={8}>
-          {item.planning_session_id}
+          {item.short_key}
         </Text>
 
         {/* Edit form */}

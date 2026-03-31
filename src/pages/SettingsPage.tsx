@@ -9,7 +9,11 @@ import {
   Badge,
   Button,
   Link,
-  Input,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
   Select,
   Slider,
   SliderTrack,
@@ -198,8 +202,11 @@ export default function SettingsPage() {
         <Box id="planning-periods" mb={12}>
           <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg" p={6}>
             <Heading size="sm" fontWeight="semibold" mb={1} color={textPrimary}>Planning Periods</Heading>
-            <Text fontSize="sm" color={textSecondary} mb={6}>
+            <Text fontSize="sm" color={textSecondary} mb={4}>
               Configure work weeks, holidays, and planned time off for each quarter (Q2'26 – Q1'27). Focus weeks are automatically calculated based on the Focus Time Ratio setting.
+            </Text>
+            <Text fontSize="xs" color={textMuted} mb={4}>
+              Use the ↑ ↓ arrows to adjust values.
             </Text>
 
             {/* Table header */}
@@ -224,30 +231,40 @@ export default function SettingsPage() {
                       {quarter.replace('_', "'")}
                     </Text>
                     {(['baseWeeks', 'holidays', 'pto'] as const).map((field) => (
-                      <Input
+                      <NumberInput
                         key={field}
                         size="sm"
-                        bg={inputBg}
-                        border="1px solid"
-                        borderColor={inputBorder}
-                        borderRadius="md"
-                        color={textPrimary}
-                        _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
-                        type="number"
+                        w="full"
                         value={period[field]}
-                        onChange={(e) =>
+                        min={0}
+                        onChange={(_, val) =>
                           setFormData((prev) => ({
                             ...prev,
                             planning_periods: {
                               ...prev.planning_periods,
                               [quarter]: {
                                 ...prev.planning_periods[quarter],
-                                [field]: Number(e.target.value),
+                                [field]: Number.isFinite(val) ? val : 0,
                               },
                             },
                           }))
                         }
-                      />
+                      >
+                        <NumberInputField
+                          bg={inputBg}
+                          border="1px solid"
+                          borderColor={inputBorder}
+                          borderRadius="md"
+                          color={textPrimary}
+                          _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
+                          readOnly
+                          cursor="default"
+                        />
+                        <NumberInputStepper>
+                          <NumberIncrementStepper color={textMuted} />
+                          <NumberDecrementStepper color={textMuted} />
+                        </NumberInputStepper>
+                      </NumberInput>
                     ))}
                     <Box
                       h="32px"
@@ -310,8 +327,11 @@ export default function SettingsPage() {
         <Box id="size-band-thresholds" mb={12}>
           <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg" p={6}>
             <Heading size="sm" fontWeight="semibold" mb={1} color={textPrimary}>Size Band Thresholds</Heading>
-            <Text fontSize="sm" color={textSecondary} mb={6}>
+            <Text fontSize="sm" color={textSecondary} mb={4}>
               Define work week ranges for each size band (XS, S, M, L, XL)
+            </Text>
+            <Text fontSize="xs" color={textMuted} mb={4}>
+              Use the ↑ ↓ arrows to adjust values.
             </Text>
 
             <Grid templateColumns="80px 1fr 1fr 1fr" gap={3} alignItems="center" mb={2} px={1}>
@@ -329,41 +349,75 @@ export default function SettingsPage() {
                   <Text fontSize="sm" fontWeight="semibold" color={textPrimary} textTransform="uppercase">
                     {band}
                   </Text>
-                  <Input
-                    size="sm" bg={inputBg} border="1px solid" borderColor={inputBorder}
-                    borderRadius="md" color={textPrimary}
-                    _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
-                    type="number"
+                  <NumberInput
+                    size="sm"
+                    w="full"
                     value={min}
-                    onChange={(e) =>
+                    min={0}
+                    onChange={(_, val) =>
                       setFormData((prev) => ({
                         ...prev,
                         size_band_thresholds: {
                           ...prev.size_band_thresholds,
-                          [band]: { ...prev.size_band_thresholds[band], min: Number(e.target.value) },
+                          [band]: {
+                            ...prev.size_band_thresholds[band],
+                            min: Number.isFinite(val) ? val : 0,
+                          },
                         },
                       }))
                     }
-                  />
+                  >
+                    <NumberInputField
+                      bg={inputBg}
+                      border="1px solid"
+                      borderColor={inputBorder}
+                      borderRadius="md"
+                      color={textPrimary}
+                      _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
+                      readOnly
+                      cursor="default"
+                    />
+                    <NumberInputStepper>
+                      <NumberIncrementStepper color={textMuted} />
+                      <NumberDecrementStepper color={textMuted} />
+                    </NumberInputStepper>
+                  </NumberInput>
                   {band === 'xl' ? (
                     <Text fontSize="sm" color={textMuted} px={3}>—</Text>
                   ) : (
-                    <Input
-                      size="sm" bg={inputBg} border="1px solid" borderColor={inputBorder}
-                      borderRadius="md" color={textPrimary}
-                      _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
-                      type="number"
-                      value={max ?? ''}
-                      onChange={(e) =>
+                    <NumberInput
+                      size="sm"
+                      w="full"
+                      value={max ?? 0}
+                      min={0}
+                      onChange={(_, val) =>
                         setFormData((prev) => ({
                           ...prev,
                           size_band_thresholds: {
                             ...prev.size_band_thresholds,
-                            [band]: { ...prev.size_band_thresholds[band], max: Number(e.target.value) },
+                            [band]: {
+                              ...prev.size_band_thresholds[band],
+                              max: Number.isFinite(val) ? val : 0,
+                            },
                           },
                         }))
                       }
-                    />
+                    >
+                      <NumberInputField
+                        bg={inputBg}
+                        border="1px solid"
+                        borderColor={inputBorder}
+                        borderRadius="md"
+                        color={textPrimary}
+                        _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
+                        readOnly
+                        cursor="default"
+                      />
+                      <NumberInputStepper>
+                        <NumberIncrementStepper color={textMuted} />
+                        <NumberDecrementStepper color={textMuted} />
+                      </NumberInputStepper>
+                    </NumberInput>
                   )}
                   <Text fontSize="sm" color={textMuted}>{rangeText}</Text>
                 </Grid>
@@ -380,51 +434,53 @@ export default function SettingsPage() {
               Define the demand for each project type in terms of UX and content design effort
             </Text>
 
-            <Grid templateColumns="1fr 160px 160px" gap={3} alignItems="center" mb={2} px={1}>
-              <Text fontSize="xs" fontWeight="semibold" color={textMuted}>Project Type</Text>
-              <Text fontSize="xs" fontWeight="semibold" color={textMuted}>UX Design Effort</Text>
-              <Text fontSize="xs" fontWeight="semibold" color={textMuted}>Content Design Effort</Text>
-            </Grid>
+            <Box maxW="560px">
+              <Grid templateColumns="1fr 140px 140px" gap={3} alignItems="center" mb={2} px={1}>
+                <Text fontSize="xs" fontWeight="semibold" color={textMuted}>Project Type</Text>
+                <Text fontSize="xs" fontWeight="semibold" color={textMuted}>UX Design Effort</Text>
+                <Text fontSize="xs" fontWeight="semibold" color={textMuted}>Content Design Effort</Text>
+              </Grid>
 
-            {(['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).map((projectType) => {
-              const labels: Record<string, string> = {
-                'net-new': 'New Product',
-                'new-feature': 'New Feature',
-                enhancement: 'Enhancement',
-                optimization: 'Optimization',
-                'fix-polish': 'Fix & Polish',
-              }
-              return (
-                <Grid key={projectType} templateColumns="1fr 160px 160px" gap={3} alignItems="center" mb={3}>
-                  <Text fontSize="sm" color={textPrimary}>{labels[projectType]}</Text>
-                  {(['ux', 'content'] as const).map((discipline) => (
-                    <Select
-                      key={discipline}
-                      size="sm" bg={inputBg} border="1px solid" borderColor={inputBorder}
-                      borderRadius="md" color={textPrimary}
-                      _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
-                      value={formData.project_type_demand[projectType][discipline]}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          project_type_demand: {
-                            ...prev.project_type_demand,
-                            [projectType]: {
-                              ...prev.project_type_demand[projectType],
-                              [discipline]: e.target.value as 'XS' | 'S' | 'M' | 'L' | 'XL',
+              {(['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).map((projectType) => {
+                const labels: Record<string, string> = {
+                  'net-new': 'New Product',
+                  'new-feature': 'New Feature',
+                  enhancement: 'Enhancement',
+                  optimization: 'Optimization',
+                  'fix-polish': 'Fix & Polish',
+                }
+                return (
+                  <Grid key={projectType} templateColumns="1fr 140px 140px" gap={3} alignItems="center" mb={3}>
+                    <Text fontSize="sm" color={textPrimary}>{labels[projectType]}</Text>
+                    {(['ux', 'content'] as const).map((discipline) => (
+                      <Select
+                        key={discipline}
+                        size="sm" bg={inputBg} border="1px solid" borderColor={inputBorder}
+                        borderRadius="md" color={textPrimary}
+                        _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
+                        value={formData.project_type_demand[projectType][discipline]}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            project_type_demand: {
+                              ...prev.project_type_demand,
+                              [projectType]: {
+                                ...prev.project_type_demand[projectType],
+                                [discipline]: e.target.value as 'XS' | 'S' | 'M' | 'L' | 'XL',
+                              },
                             },
-                          },
-                        }))
-                      }
-                    >
-                      {(['XS', 'S', 'M', 'L', 'XL'] as const).map((size) => (
-                        <option key={size} value={size}>{size}</option>
-                      ))}
-                    </Select>
-                  ))}
-                </Grid>
-              )
-            })}
+                          }))
+                        }
+                      >
+                        {(['XS', 'S', 'M', 'L', 'XL'] as const).map((size) => (
+                          <option key={size} value={size}>{size}</option>
+                        ))}
+                      </Select>
+                    ))}
+                  </Grid>
+                )
+              })}
+            </Box>
           </Box>
         </Box>
 

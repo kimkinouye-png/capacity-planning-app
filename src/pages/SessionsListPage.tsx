@@ -193,7 +193,7 @@ function SessionsListPage() {
     content_designers: 2,
   })
 
-  const bgPage = useColorModeValue('gray.50', '#0a0a0f')
+  const bgPage = useColorModeValue('gray.50', 'gray.900')
   const bgCard = useColorModeValue('white', '#1a1d2e')
   const borderColor = useColorModeValue('gray.200', 'rgba(255, 255, 255, 0.08)')
   const cyan = useColorModeValue('cyan.500', '#00d9ff')
@@ -753,7 +753,8 @@ function SessionsListPage() {
 
   if (sessions.length === 0) {
     return (
-      <Box maxW="1200px" mx="auto" px={6} py={8} bg={bgPage} minH="100%">
+      <Box minH="100vh" bg={bgPage} w="full">
+        <Box maxW="1200px" mx="auto" px={6} py={8}>
         {sessionsError && (
           <Alert status="warning" bg={modalBg} border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
             <AlertIcon color="#f59e0b" />
@@ -769,12 +770,14 @@ function SessionsListPage() {
         {pageHeader}
         {createModal}
         {deleteDialog}
+        </Box>
       </Box>
     )
   }
 
   return (
-    <Box maxW="1200px" mx="auto" px={6} py={8} bg={bgPage} minH="100%">
+    <Box minH="100vh" bg={bgPage} w="full">
+      <Box maxW="1200px" mx="auto" px={6} py={8}>
       {sessionsError && sessions.length > 0 && (
         <Alert status="warning" bg={modalBg} border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
           <AlertIcon color="#f59e0b" />
@@ -836,6 +839,7 @@ function SessionsListPage() {
 
       {createModal}
       {deleteDialog}
+      </Box>
     </Box>
   )
 }

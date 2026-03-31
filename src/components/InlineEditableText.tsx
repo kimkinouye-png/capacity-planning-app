@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { HStack, Text, Input, IconButton } from '@chakra-ui/react'
+import { HStack, Text, Input, IconButton, useColorModeValue } from '@chakra-ui/react'
 import { EditIcon } from '@chakra-ui/icons'
 
 interface InlineEditableTextProps {
@@ -19,6 +19,15 @@ export default function InlineEditableText({
   fontSize = 'md',
   fontWeight = 'bold',
 }: InlineEditableTextProps) {
+  const inputBg = useColorModeValue('white', 'gray.800')
+  const inputColor = useColorModeValue('gray.900', 'white')
+  const inputBorder = useColorModeValue('gray.300', 'gray.600')
+  const displayColor = useColorModeValue('gray.900', 'white')
+  const focusRingShadow = useColorModeValue(
+    '0 0 0 1px rgba(6, 182, 212, 0.45)',
+    '0 0 0 1px rgba(0, 217, 255, 0.5)'
+  )
+
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(value)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -74,12 +83,12 @@ export default function InlineEditableText({
         variant="flushed"
         px={2}
         py={1}
-        bg="#1a1a20"
-        borderColor="rgba(0, 217, 255, 0.5)"
-        color="white"
+        bg={inputBg}
+        borderColor={inputBorder}
+        color={inputColor}
         _focus={{
-          borderColor: '#00d9ff',
-          boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)',
+          borderColor: 'cyan.400',
+          boxShadow: focusRingShadow,
         }}
       />
     )
@@ -99,7 +108,7 @@ export default function InlineEditableText({
       }}
       aria-label={ariaLabel ? `${ariaLabel} - Click to edit` : 'Click to edit'}
     >
-      <Text fontSize={fontSize} fontWeight={fontWeight} color="white">
+      <Text fontSize={fontSize} fontWeight={fontWeight} color={displayColor}>
         {value || 'Untitled'}
       </Text>
       {!isDisabled && (

@@ -106,41 +106,34 @@ export default function PasteTableImportModal({
         const originalIndex = parsedRows.indexOf(row)
         const meta = getRowMeta(originalIndex)
 
+        // Use parsed short key if available, otherwise generate from title
         const shortKey =
+          row.item.shortKey ||
           row.item.title
             .substring(0, 5)
             .toUpperCase()
             .replace(/\s+/g, '')
-            .replace(/[^A-Z0-9]/g, '') || 'ITEM'
+            .replace(/[^A-Z0-9]/g, '') ||
+          'ITEM'
 
-        let initiative = ''
-        if (row.item.startDate || row.item.endDate) {
-          const parts: string[] = []
-          if (row.item.startDate) parts.push(`Start: ${row.item.startDate}`)
-          if (row.item.endDate) parts.push(`End: ${row.item.endDate}`)
-          initiative = parts.join(', ')
-        }
+        // Use parsed priority if available, otherwise default P1
+        const priority = (row.item.priority as 'P0' | 'P1' | 'P2' | 'P3') ?? 'P1'
 
-        const isFiveColumn =
-          row.item.uxEffortWeeks !== undefined || row.item.contentEffortWeeks !== undefined
+        // Use parsed project type if available, otherwise use row meta dropdown
+        const projectType = row.item.projectType ?? meta.projectType
 
         return {
           name: row.item.title,
           short_key: shortKey,
-          initiative,
-          priority: 'P1' as const,
+          initiative: row.item.initiative ?? '',
+          priority,
           status: meta.status,
-          projectType: meta.projectType,
-          ...(isFiveColumn
-            ? {
-                uxEffortWeeks: row.item.uxEffortWeeks,
-                contentEffortWeeks: row.item.contentEffortWeeks,
-              }
-            : {
-                effortWeeks: row.item.effortWeeks,
-              }),
+          projectType,
           startDate: row.item.startDate,
           endDate: row.item.endDate,
+          uxEffortWeeks: row.item.uxEffortWeeks,
+          contentEffortWeeks: row.item.contentEffortWeeks,
+          effortWeeks: row.item.effortWeeks,
         }
       })
 

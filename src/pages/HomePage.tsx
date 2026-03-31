@@ -52,7 +52,7 @@ const CalculatorStepIcon = createIcon({
 function HomePage() {
   const navigate = useNavigate()
   const { sessions, error: sessionsError } = usePlanningSessions()
-  const BG = useColorModeValue('gray.50', '#0f1117')
+  const BG = useColorModeValue('gray.50', 'gray.900')
   const CARD_BG = useColorModeValue('white', '#1a1d2e')
   const BORDER = useColorModeValue('gray.200', 'rgba(255, 255, 255, 0.08)')
   const CYAN = useColorModeValue('cyan.500', '#00d9ff')
@@ -207,9 +207,9 @@ function HomePage() {
           mb={{ base: 16, md: 20 }}
         >
           <CardBody p={{ base: 8, md: 10 }} textAlign="center">
-            <Text color={textPrimary} fontSize="xl" fontWeight="semibold" mb={6}>
+            <Heading size="md" color={textPrimary} mb={6}>
               Ready to get started?
-            </Text>
+            </Heading>
             <Stack direction={{ base: 'column', sm: 'row' }} spacing={4} justify="center">
               <Button
                 bg={CYAN}
