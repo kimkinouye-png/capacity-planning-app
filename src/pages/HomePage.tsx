@@ -28,16 +28,12 @@ import {
   AlertTitle,
   AlertDescription,
   createIcon,
+  useColorModeValue,
 } from '@chakra-ui/react'
 import { AttachmentIcon, CalendarIcon, RepeatIcon } from '@chakra-ui/icons'
 import { useNavigate } from 'react-router-dom'
 import type { ElementType, ReactNode } from 'react'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
-
-const BG = '#0f1117'
-const CARD_BG = '#1a1d2e'
-const BORDER = 'rgba(255, 255, 255, 0.08)'
-const CYAN = '#00d9ff'
 
 /** Material-style people icon — not in @chakra-ui/icons */
 const UsersStepIcon = createIcon({
@@ -53,101 +49,115 @@ const CalculatorStepIcon = createIcon({
   d: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm-8 4h2v2H7v-2zm4 0h2v2h-2v-2zm4 0h2v2h-2v-2zm0 4h2v2h-2v-2z',
 })
 
-function StepPreviewCard({ children }: { children: ReactNode }) {
-  return (
-    <Card
-      bg={CARD_BG}
-      border="1px solid"
-      borderColor={BORDER}
-      borderRadius="lg"
-      overflow="hidden"
-    >
-      <CardBody p={{ base: 4, md: 6 }}>{children}</CardBody>
-    </Card>
-  )
-}
-
-function StepRow({
-  step,
-  icon,
-  title,
-  body,
-  preview,
-  reverseOnDesktop,
-}: {
-  step: number
-  icon: ElementType
-  title: string
-  body: string
-  preview: ReactNode
-  reverseOnDesktop?: boolean
-}) {
-  const textColumn = (
-    <VStack align="stretch" spacing={4} textAlign="left" w="full">
-      <HStack spacing={3} justify="flex-start" w="full">
-        <Flex
-          w={10}
-          h={10}
-          borderRadius="full"
-          bg={CYAN}
-          color="#0a0a0f"
-          align="center"
-          justify="center"
-          fontWeight="bold"
-          fontSize="sm"
-          flexShrink={0}
-        >
-          {step}
-        </Flex>
-        <Flex
-          w={12}
-          h={12}
-          borderRadius="full"
-          bg="rgba(0, 217, 255, 0.12)"
-          align="center"
-          justify="center"
-        >
-          <Icon as={icon} w={6} h={6} color={CYAN} />
-        </Flex>
-      </HStack>
-      <Heading size="lg" color="white">
-        {title}
-      </Heading>
-      <Text color="gray.400" lineHeight="tall" maxW="lg">
-        {body}
-      </Text>
-    </VStack>
-  )
-
-  const previewColumn = <StepPreviewCard>{preview}</StepPreviewCard>
-
-  return (
-    <Flex
-      direction={{ base: 'column', md: reverseOnDesktop ? 'row-reverse' : 'row' }}
-      gap={{ base: 8, md: 12 }}
-      align={{ base: 'stretch', md: 'center' }}
-      py={{ base: 10, md: 14 }}
-    >
-      <Box flex={1} minW={0}>
-        {textColumn}
-      </Box>
-      <Box flex={1} minW={0}>
-        {previewColumn}
-      </Box>
-    </Flex>
-  )
-}
-
 function HomePage() {
   const navigate = useNavigate()
   const { sessions, error: sessionsError } = usePlanningSessions()
+  const BG = useColorModeValue('gray.50', '#0f1117')
+  const CARD_BG = useColorModeValue('white', '#1a1d2e')
+  const BORDER = useColorModeValue('gray.200', 'rgba(255, 255, 255, 0.08)')
+  const CYAN = useColorModeValue('cyan.500', '#00d9ff')
+  const textPrimary = useColorModeValue('gray.900', 'white')
+  const textSecondary = useColorModeValue('gray.600', 'gray.400')
+  const iconBg = useColorModeValue('cyan.50', 'teal.900')
+  const stepNumberBg = useColorModeValue('cyan.500', '#00d9ff')
+  const stepNumberColor = useColorModeValue('white', '#0a0a0f')
+  const stepIconBg = useColorModeValue('cyan.50', 'rgba(0, 217, 255, 0.12)')
+  const ctaGradient = useColorModeValue(
+    'linear(to-r, cyan.50, blue.50)',
+    'linear(to-r, rgba(0,217,255,0.15), rgba(99,102,241,0.15))'
+  )
+
+  function StepPreviewCard({ children }: { children: ReactNode }) {
+    return (
+      <Card
+        bg={CARD_BG}
+        border="1px solid"
+        borderColor={BORDER}
+        borderRadius="lg"
+        overflow="hidden"
+      >
+        <CardBody p={{ base: 4, md: 6 }}>{children}</CardBody>
+      </Card>
+    )
+  }
+
+  function StepRow({
+    step,
+    icon,
+    title,
+    body,
+    preview,
+    reverseOnDesktop,
+  }: {
+    step: number
+    icon: ElementType
+    title: string
+    body: string
+    preview: ReactNode
+    reverseOnDesktop?: boolean
+  }) {
+    const textColumn = (
+      <VStack align="stretch" spacing={4} textAlign="left" w="full">
+        <HStack spacing={3} justify="flex-start" w="full">
+          <Flex
+            w={10}
+            h={10}
+            borderRadius="full"
+            bg={stepNumberBg}
+            color={stepNumberColor}
+            align="center"
+            justify="center"
+            fontWeight="bold"
+            fontSize="sm"
+            flexShrink={0}
+          >
+            {step}
+          </Flex>
+          <Flex
+            w={12}
+            h={12}
+            borderRadius="full"
+            bg={stepIconBg}
+            align="center"
+            justify="center"
+          >
+            <Icon as={icon} w={6} h={6} color={CYAN} />
+          </Flex>
+        </HStack>
+        <Heading size="lg" color={textPrimary}>
+          {title}
+        </Heading>
+        <Text color={textSecondary} lineHeight="tall" maxW="lg">
+          {body}
+        </Text>
+      </VStack>
+    )
+
+    const previewColumn = <StepPreviewCard>{preview}</StepPreviewCard>
+
+    return (
+      <Flex
+        direction={{ base: 'column', md: reverseOnDesktop ? 'row-reverse' : 'row' }}
+        gap={{ base: 8, md: 12 }}
+        align={{ base: 'stretch', md: 'center' }}
+        py={{ base: 10, md: 14 }}
+      >
+        <Box flex={1} minW={0}>
+          {textColumn}
+        </Box>
+        <Box flex={1} minW={0}>
+          {previewColumn}
+        </Box>
+      </Flex>
+    )
+  }
 
   return (
     <Box bg={BG} minH="100vh">
       {sessionsError && sessions.length > 0 && (
         <Alert
           status="warning"
-          bg="#141419"
+          bg={CARD_BG}
           border="1px solid"
           borderColor="rgba(245, 158, 11, 0.3)"
           borderRadius="md"
@@ -155,10 +165,10 @@ function HomePage() {
           mt={4}
         >
           <AlertIcon color="#f59e0b" />
-          <AlertTitle color="white" mr={2}>
+          <AlertTitle color={textPrimary} mr={2}>
             Warning:
           </AlertTitle>
-          <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
+          <AlertDescription color={textSecondary}>{sessionsError}</AlertDescription>
         </Alert>
       )}
 
@@ -169,17 +179,17 @@ function HomePage() {
             w={{ base: 20, md: 24 }}
             h={{ base: 20, md: 24 }}
             borderRadius="full"
-            bg="teal.900"
+            bg={iconBg}
             align="center"
             justify="center"
             boxShadow={`0 0 24px rgba(0, 217, 255, 0.25)`}
           >
             <Icon as={CalendarIcon} w={{ base: 10, md: 12 }} h={{ base: 10, md: 12 }} color={CYAN} />
           </Flex>
-          <Heading as="h1" size="2xl" color="white" fontWeight="bold" maxW="3xl">
+          <Heading as="h1" size="2xl" color={textPrimary} fontWeight="bold" maxW="3xl">
             Welcome to Capacity Planner
           </Heading>
-          <Text fontSize={{ base: 'md', md: 'lg' }} color="gray.400" maxW="2xl" lineHeight="tall">
+          <Text fontSize={{ base: 'md', md: 'lg' }} color={textSecondary} maxW="2xl" lineHeight="tall">
             A planning tool that gives design leaders a measurable way to size and visualize how much work is in a
             product roadmap.
           </Text>
@@ -188,6 +198,7 @@ function HomePage() {
         {/* CTA Card */}
         <Card
           bg={CARD_BG}
+          bgGradient={ctaGradient}
           border="1px solid"
           borderColor={BORDER}
           borderRadius="xl"
@@ -196,13 +207,13 @@ function HomePage() {
           mb={{ base: 16, md: 20 }}
         >
           <CardBody p={{ base: 8, md: 10 }} textAlign="center">
-            <Text color="white" fontSize="xl" fontWeight="semibold" mb={6}>
+            <Text color={textPrimary} fontSize="xl" fontWeight="semibold" mb={6}>
               Ready to get started?
             </Text>
             <Stack direction={{ base: 'column', sm: 'row' }} spacing={4} justify="center">
               <Button
                 bg={CYAN}
-                color="#0a0a0f"
+                color={stepNumberColor}
                 _hover={{ bg: '#33e1ff' }}
                 size="lg"
                 flex={1}
@@ -214,7 +225,7 @@ function HomePage() {
                 variant="outline"
                 borderColor={CYAN}
                 borderWidth="1px"
-                color="gray.200"
+                color={textSecondary}
                 _hover={{ bg: 'whiteAlpha.100', borderColor: 'cyan.300' }}
                 size="lg"
                 flex={1}
@@ -238,26 +249,26 @@ function HomePage() {
             <VStack align="stretch" spacing={4} pointerEvents="none">
               <VStack align="stretch" spacing={3}>
                 <Box>
-                  <Text fontSize="xs" color="gray.500" mb={1}>
+                  <Text fontSize="xs" color={textSecondary} mb={1}>
                     Plan Name
                   </Text>
                   <Input value="Q2 2026 Planning" isReadOnly size="sm" bg="whiteAlpha.50" borderColor={BORDER} />
                 </Box>
                 <Box>
-                  <Text fontSize="xs" color="gray.500" mb={1}>
+                  <Text fontSize="xs" color={textSecondary} mb={1}>
                     Quarter
                   </Text>
                   <Input value="Q2'26" isReadOnly size="sm" bg="whiteAlpha.50" borderColor={BORDER} />
                 </Box>
                 <HStack spacing={4}>
                   <Box flex={1}>
-                    <Text fontSize="xs" color="gray.500" mb={1}>
+                    <Text fontSize="xs" color={textSecondary} mb={1}>
                       UX Designers
                     </Text>
                     <Input value="5" isReadOnly size="sm" bg="whiteAlpha.50" borderColor={BORDER} />
                   </Box>
                   <Box flex={1}>
-                    <Text fontSize="xs" color="gray.500" mb={1}>
+                    <Text fontSize="xs" color={textSecondary} mb={1}>
                       Content Designers
                     </Text>
                     <Input value="3" isReadOnly size="sm" bg="whiteAlpha.50" borderColor={BORDER} />
@@ -267,18 +278,18 @@ function HomePage() {
               <Divider borderColor={BORDER} />
               <VStack align="stretch" spacing={2}>
                 <HStack justify="space-between">
-                  <Text fontSize="sm" color="gray.400">
+                  <Text fontSize="sm" color={textSecondary}>
                     UX Design Capacity
                   </Text>
-                  <Text fontSize="sm" color="white" fontWeight="medium">
+                  <Text fontSize="sm" color={textPrimary} fontWeight="medium">
                     80.0 weeks
                   </Text>
                 </HStack>
                 <HStack justify="space-between">
-                  <Text fontSize="sm" color="gray.400">
+                  <Text fontSize="sm" color={textSecondary}>
                     Content Design Capacity
                   </Text>
-                  <Text fontSize="sm" color="white" fontWeight="medium">
+                  <Text fontSize="sm" color={textPrimary} fontWeight="medium">
                     40.0 weeks
                   </Text>
                 </HStack>
@@ -302,16 +313,16 @@ function HomePage() {
                 <Table size="sm" variant="unstyled">
                   <Thead>
                     <Tr borderBottom="1px solid" borderColor={BORDER}>
-                      <Th color="gray.500" fontSize="xs" textTransform="uppercase" py={2}>
+                      <Th color={textSecondary} fontSize="xs" textTransform="uppercase" py={2}>
                         KEY
                       </Th>
-                      <Th color="gray.500" fontSize="xs" textTransform="uppercase" py={2}>
+                      <Th color={textSecondary} fontSize="xs" textTransform="uppercase" py={2}>
                         NAME
                       </Th>
-                      <Th color="gray.500" fontSize="xs" textTransform="uppercase" py={2}>
+                      <Th color={textSecondary} fontSize="xs" textTransform="uppercase" py={2}>
                         INITIATIVE
                       </Th>
-                      <Th color="gray.500" fontSize="xs" textTransform="uppercase" py={2}>
+                      <Th color={textSecondary} fontSize="xs" textTransform="uppercase" py={2}>
                         PRIORITY
                       </Th>
                     </Tr>
@@ -324,16 +335,16 @@ function HomePage() {
                       ['PROJ-104', 'Mobile App', 'Platform', 'P3'],
                     ].map((row) => (
                       <Tr key={row[0]} borderBottom="1px solid" borderColor="whiteAlpha.50">
-                        <Td color="gray.300" py={2} fontSize="sm">
+                        <Td color={textSecondary} py={2} fontSize="sm">
                           {row[0]}
                         </Td>
-                        <Td color="gray.300" py={2} fontSize="sm">
+                        <Td color={textSecondary} py={2} fontSize="sm">
                           {row[1]}
                         </Td>
-                        <Td color="gray.300" py={2} fontSize="sm">
+                        <Td color={textSecondary} py={2} fontSize="sm">
                           {row[2]}
                         </Td>
-                        <Td color="gray.300" py={2} fontSize="sm">
+                        <Td color={textSecondary} py={2} fontSize="sm">
                           {row[3]}
                         </Td>
                       </Tr>
@@ -345,7 +356,7 @@ function HomePage() {
                 <Button size="sm" bg={CYAN} color="#0a0a0f" isDisabled>
                   Import Roadmap
                 </Button>
-                <Button size="sm" variant="outline" borderColor="whiteAlpha.300" color="gray.300" isDisabled>
+                <Button size="sm" variant="outline" borderColor="whiteAlpha.300" color={textSecondary} isDisabled>
                   Cancel
                 </Button>
               </HStack>
@@ -363,7 +374,7 @@ function HomePage() {
           body="Size your initiatives using factor-based complexity scoring for accurate estimates."
           preview={
             <VStack align="stretch" spacing={4} pointerEvents="none" opacity={0.95}>
-              <Text fontSize="sm" color="gray.400">
+              <Text fontSize="sm" color={textSecondary}>
                 Payment Flow Redesign / PROJ-101 • Revenue Initiative
               </Text>
               <Tabs variant="unstyled" defaultIndex={0}>
@@ -379,17 +390,17 @@ function HomePage() {
                   >
                     Product Design
                   </Tab>
-                  <Tab px={4} py={2} borderRadius="md" bg="whiteAlpha.100" color="gray.400" fontSize="sm">
+                  <Tab px={4} py={2} borderRadius="md" bg="whiteAlpha.100" color={textSecondary} fontSize="sm">
                     PM Intake
                   </Tab>
-                  <Tab px={4} py={2} borderRadius="md" bg="whiteAlpha.100" color="gray.400" fontSize="sm">
+                  <Tab px={4} py={2} borderRadius="md" bg="whiteAlpha.100" color={textSecondary} fontSize="sm">
                     Content Design
                   </Tab>
                 </TabList>
               </Tabs>
               <VStack align="stretch" spacing={4} pt={2}>
                 <Box>
-                  <Text fontSize="sm" color="gray.300" mb={2}>
+                  <Text fontSize="sm" color={textSecondary} mb={2}>
                     Product Risk Weight: ×0.4
                   </Text>
                   <HStack spacing={2}>
@@ -404,7 +415,7 @@ function HomePage() {
                         fontSize="sm"
                         fontWeight="medium"
                         bg={n === 3 ? CYAN : 'whiteAlpha.100'}
-                        color={n === 3 ? '#0a0a0f' : 'gray.400'}
+                        color={n === 3 ? stepNumberColor : textSecondary}
                         border="1px solid"
                         borderColor={n === 3 ? CYAN : BORDER}
                       >
@@ -414,7 +425,7 @@ function HomePage() {
                   </HStack>
                 </Box>
                 <Box>
-                  <Text fontSize="sm" color="gray.300" mb={2}>
+                  <Text fontSize="sm" color={textSecondary} mb={2}>
                     Problem Ambiguity Weight: ×0.5
                   </Text>
                   <HStack spacing={2}>
@@ -429,7 +440,7 @@ function HomePage() {
                         fontSize="sm"
                         fontWeight="medium"
                         bg={n === 4 ? CYAN : 'whiteAlpha.100'}
-                        color={n === 4 ? '#0a0a0f' : 'gray.400'}
+                        color={n === 4 ? stepNumberColor : textSecondary}
                         border="1px solid"
                         borderColor={n === 4 ? CYAN : BORDER}
                       >
@@ -441,10 +452,10 @@ function HomePage() {
               </VStack>
               <Divider borderColor={BORDER} />
               <HStack justify="space-between">
-                <Text fontSize="sm" color="gray.400">
+                <Text fontSize="sm" color={textSecondary}>
                   UX Effort Estimate
                 </Text>
-                <Text fontSize="sm" color="white" fontWeight="semibold">
+                <Text fontSize="sm" color={textPrimary} fontWeight="semibold">
                   3.5 weeks
                 </Text>
               </HStack>
@@ -463,28 +474,28 @@ function HomePage() {
           reverseOnDesktop
           preview={
             <VStack align="stretch" spacing={4} pointerEvents="none">
-              <Card bg="#141824" border="1px solid" borderColor={BORDER} borderRadius="md">
+              <Card bg={CARD_BG} border="1px solid" borderColor={BORDER} borderRadius="md">
                 <CardBody p={4}>
                   <HStack justify="space-between" align="flex-start" mb={3} flexWrap="wrap" gap={2}>
                     <Box>
-                      <Text color="white" fontWeight="semibold">
+                      <Text color={textPrimary} fontWeight="semibold">
                         Q2 2026 - Committed
                       </Text>
-                      <Text fontSize="sm" color="gray.500">
+                      <Text fontSize="sm" color={textSecondary}>
                         15 roadmap items
                       </Text>
                     </Box>
-                    <Badge bg="purple.600" color="white" px={2} py={1} borderRadius="md">
+                    <Badge bg="purple.600" color={textPrimary} px={2} py={1} borderRadius="md">
                       Committed
                     </Badge>
                   </HStack>
                   <VStack align="stretch" spacing={3}>
                     <Box>
                       <HStack justify="space-between" mb={1}>
-                        <Text fontSize="xs" color="gray.500">
+                        <Text fontSize="xs" color={textSecondary}>
                           UX Design
                         </Text>
-                        <Text fontSize="xs" color="gray.400">
+                        <Text fontSize="xs" color={textSecondary}>
                           72.0 / 80.0 weeks
                         </Text>
                       </HStack>
@@ -502,10 +513,10 @@ function HomePage() {
                     </Box>
                     <Box>
                       <HStack justify="space-between" mb={1}>
-                        <Text fontSize="xs" color="gray.500">
+                        <Text fontSize="xs" color={textSecondary}>
                           Content Design
                         </Text>
-                        <Text fontSize="xs" color="gray.400">
+                        <Text fontSize="xs" color={textSecondary}>
                           35.0 / 40.0 weeks
                         </Text>
                       </HStack>
@@ -521,25 +532,25 @@ function HomePage() {
                 </CardBody>
               </Card>
 
-              <Card bg="#141824" border="1px solid" borderColor={BORDER} borderRadius="md">
+              <Card bg={CARD_BG} border="1px solid" borderColor={BORDER} borderRadius="md">
                 <CardBody p={4}>
                   <HStack justify="space-between" align="flex-start" mb={3} flexWrap="wrap" gap={2}>
                     <Box>
-                      <Text color="white" fontWeight="semibold">
+                      <Text color={textPrimary} fontWeight="semibold">
                         Q2 2026 - Optimistic
                       </Text>
-                      <Text fontSize="sm" color="gray.500">
+                      <Text fontSize="sm" color={textSecondary}>
                         18 roadmap items
                       </Text>
                     </Box>
-                    <Badge bg="gray.600" color="gray.100" px={2} py={1} borderRadius="md">
+                    <Badge bg="gray.600" color={textPrimary} px={2} py={1} borderRadius="md">
                       Draft
                     </Badge>
                   </HStack>
                   <VStack align="stretch" spacing={3}>
                     <Box>
                       <HStack justify="space-between" mb={1}>
-                        <Text fontSize="xs" color="gray.500">
+                        <Text fontSize="xs" color={textSecondary}>
                           UX Design
                         </Text>
                         <Text fontSize="xs" color="red.300">
@@ -560,7 +571,7 @@ function HomePage() {
                     </Box>
                     <Box>
                       <HStack justify="space-between" mb={1}>
-                        <Text fontSize="xs" color="gray.500">
+                        <Text fontSize="xs" color={textSecondary}>
                           Content Design
                         </Text>
                         <Text fontSize="xs" color="orange.300">
