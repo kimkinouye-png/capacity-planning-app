@@ -177,7 +177,7 @@ export default function SettingsPage() {
               { label: 'Project-Type Demand', id: 'project-type-demand' },
               { label: 'Effort Model Weights', id: 'effort-model-weights' },
               { label: 'Focus Time Ratio', id: 'focus-time-ratio' },
-              { label: 'Danger Zone', id: 'danger-zone' },
+              { label: 'Reset Workspace', id: 'danger-zone' },
             ].map(({ label, id }) => (
               <Flex key={id} align="center" gap={2}>
                 <Text color="cyan.500" fontSize="sm">→</Text>
@@ -517,8 +517,8 @@ export default function SettingsPage() {
 
         {/* DANGER ZONE */}
         <Box id="danger-zone" mb={24}>
-          <Heading size="sm" fontWeight="semibold" color="red.500" mb={1}>Danger zone</Heading>
-          <Text fontSize="sm" color={textSecondary} mb={6}>Irreversible actions. Use with caution.</Text>
+          <Heading size="sm" fontWeight="semibold" color="red.500" mb={1}>Reset workspace</Heading>
+          <Text fontSize="sm" color={textSecondary} mb={6}>Permanently delete all plans and roadmap items. This cannot be undone.</Text>
           <Box
             bg={bgCard} border="1px solid" borderColor="red.300"
             borderRadius="lg" p={5}
