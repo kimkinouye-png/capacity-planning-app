@@ -334,10 +334,11 @@ export default function SettingsPage() {
                         color="gray.300"
                       >
                         {(
-                          (formData.planning_periods[quarter].baseWeeks -
-                            formData.planning_periods[quarter].holidays -
-                            formData.planning_periods[quarter].pto) *
-                          formData.focus_time_ratio
+                          Math.max(0,
+                            (formData.planning_periods[quarter].baseWeeks -
+                              formData.planning_periods[quarter].holidays -
+                              formData.planning_periods[quarter].pto)
+                          ) * formData.focus_time_ratio
                         ).toFixed(1)}
                       </Box>
                     </GridItem>
