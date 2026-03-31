@@ -2,7 +2,6 @@ import {
   Box,
   FormLabel,
   Grid,
-  GridItem,
   Heading,
   Text,
   HStack,
@@ -26,18 +25,11 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure,
+  useColorModeValue,
 } from '@chakra-ui/react'
 import { useState, useEffect } from 'react'
 import { useSettings, DEFAULT_SETTINGS, type Settings } from '../context/SettingsContext'
 import { resetWorkspace } from '../utils/session'
-
-const PROJECT_TYPE_LABELS: Record<string, string> = {
-  'net-new': 'New Product',
-  'new-feature': 'New Feature',
-  enhancement: 'Enhancement',
-  optimization: 'Optimization',
-  'fix-polish': 'Fix & Polish',
-}
 
 export default function SettingsPage() {
   const { settings, loading, error: settingsError, saveSettings, resetToDefaults } = useSettings()
@@ -56,6 +48,16 @@ export default function SettingsPage() {
   })
 
   const [saving, setSaving] = useState(false)
+
+  const bgPage = useColorModeValue('gray.50', 'gray.900')
+  const bgCard = useColorModeValue('white', 'gray.800')
+  const borderColor = useColorModeValue('gray.200', 'gray.700')
+  const textPrimary = useColorModeValue('gray.900', 'white')
+  const textSecondary = useColorModeValue('gray.600', 'gray.400')
+  const textMuted = useColorModeValue('gray.500', 'gray.500')
+  const inputBg = useColorModeValue('white', 'gray.700')
+  const inputBorder = useColorModeValue('gray.200', 'gray.600')
+  const sliderTrackBg = useColorModeValue('gray.200', 'gray.600')
 
   useEffect(() => {
     if (settings) {
@@ -139,11 +141,11 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <Box minH="100vh" bg="gray.900" color="white">
+      <Box minH="100vh" bg={bgPage} color={textPrimary}>
         <Box maxW="860px" mx="auto" px={6} py={8}>
           <HStack spacing={4}>
             <Spinner color="cyan.400" />
-            <Text color="gray.300">Loading settings...</Text>
+            <Text color={textSecondary}>Loading settings...</Text>
           </HStack>
         </Box>
       </Box>
@@ -151,560 +153,436 @@ export default function SettingsPage() {
   }
 
   return (
-    <Box minH="100vh" bg="gray.900" color="white" aria-busy={saving}>
+    <Box minH="100vh" bg={bgPage} color={textPrimary} aria-busy={saving}>
       <Box maxW="860px" mx="auto" px={6} py={8} pb={28}>
 
         {/* Page title */}
         <Flex align="center" gap={3} mb={2}>
           <Heading size="xl" fontWeight="bold">Settings</Heading>
-          <Badge
-            colorScheme="cyan"
-            variant="subtle"
-            fontSize="xs"
-            px={2}
-            py={1}
-            borderRadius="md"
-          >
+          <Badge colorScheme="cyan" variant="subtle" fontSize="xs" px={2} py={1} borderRadius="md">
             Admin
           </Badge>
         </Flex>
-        <Text color="gray.400" fontSize="sm" mb={8}>
-          Configure effort weights, planning periods, size-band thresholds, and project-type demand.
+        <Text color={textSecondary} fontSize="sm" mb={8}>
+          Configure global effort model weights, focus-time ratio, and size-band thresholds
         </Text>
 
         {/* Table of Contents */}
-        <Box
-          bg="gray.800"
-          border="1px solid"
-          borderColor="gray.700"
-          borderRadius="lg"
-          p={5}
-          mb={10}
-        >
-          <Text fontWeight="semibold" fontSize="sm" color="gray.300" mb={3}>
-            On this page
-          </Text>
-          <Flex direction="column" gap={2}>
+        <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg" p={5} mb={10}>
+          <Text fontWeight="semibold" fontSize="sm" color={textSecondary} mb={3}>Table of Contents</Text>
+          <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={2}>
             {[
               { label: 'Planning Periods', id: 'planning-periods' },
-              { label: 'Focus Time Ratio', id: 'focus-time-ratio' },
               { label: 'Size Band Thresholds', id: 'size-band-thresholds' },
               { label: 'Project-Type Demand', id: 'project-type-demand' },
               { label: 'Effort Model Weights', id: 'effort-model-weights' },
+              { label: 'Focus Time Ratio', id: 'focus-time-ratio' },
+              { label: 'Danger Zone', id: 'danger-zone' },
             ].map(({ label, id }) => (
-              <Link
-                key={id}
-                href={`#${id}`}
-                fontSize="sm"
-                color="cyan.400"
-                _hover={{ color: 'cyan.300', textDecoration: 'underline' }}
-              >
-                {label}
-              </Link>
+              <Flex key={id} align="center" gap={2}>
+                <Text color="cyan.500" fontSize="sm">→</Text>
+                <Link
+                  href={`#${id}`}
+                  fontSize="sm"
+                  color="cyan.500"
+                  _hover={{ color: 'cyan.600', textDecoration: 'underline' }}
+                >
+                  {label}
+                </Link>
+              </Flex>
             ))}
-          </Flex>
+          </Grid>
         </Box>
 
         {/* PLANNING PERIODS */}
         <Box id="planning-periods" mb={12}>
-          <Heading size="md" fontWeight="semibold" mb={1}>Planning periods</Heading>
-          <Text fontSize="sm" color="gray.400" mb={6}>
-            Base weeks, holidays, and PTO per quarter. Focus weeks are calculated read-only.
-          </Text>
+          <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg" p={6}>
+            <Heading size="sm" fontWeight="semibold" mb={1} color={textPrimary}>Planning Periods</Heading>
+            <Text fontSize="sm" color={textSecondary} mb={6}>
+              Configure work weeks, holidays, and planned time off for each quarter (Q2'26 – Q1'27). Focus weeks are automatically calculated based on the Focus Time Ratio setting.
+            </Text>
 
-          <Flex direction="column" gap={6}>
-            {Object.entries(formData.planning_periods)
-              .sort(([a], [b]) => {
-                // Sort by year first, then quarter: Q2_26 → [2, 26], Q1_27 → [1, 27]
-                const parse = (k: string) => {
-                  const [q, y] = k.replace('Q', '').split('_').map(Number)
-                  return y * 10 + q
-                }
-                return parse(a) - parse(b)
-              })
-              .map(([quarter, period]) => (
-                <Box
-                  key={quarter}
-                  pb={6}
-                  borderBottom="1px solid"
-                  borderColor="gray.700"
-                  _last={{ borderBottom: 'none', pb: 0 }}
-                >
-                  <Text fontWeight="semibold" fontSize="sm" color="gray.200" mb={4}>
-                    {quarter.replace('_', ' ').replace('Q', 'Q')}
-                  </Text>
-                  <Grid templateColumns="repeat(4, 1fr)" gap={4}>
-                    {/* Base weeks */}
-                    <GridItem>
-                      <FormLabel fontSize="xs" color="gray.400" mb={1}>Base weeks</FormLabel>
-                      <Input
-                        size="sm"
-                        bg="gray.700"
-                        border="1px solid"
-                        borderColor="gray.600"
-                        borderRadius="md"
-                        color="white"
-                        _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
-                        type="number"
-                        value={period.baseWeeks}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            planning_periods: {
-                              ...prev.planning_periods,
-                              [quarter]: {
-                                ...prev.planning_periods[quarter],
-                                baseWeeks: Number(e.target.value),
-                              },
-                            },
-                          }))
-                        }
-                      />
-                    </GridItem>
-
-                    {/* Holidays */}
-                    <GridItem>
-                      <FormLabel fontSize="xs" color="gray.400" mb={1}>Holidays</FormLabel>
-                      <Input
-                        size="sm"
-                        bg="gray.700"
-                        border="1px solid"
-                        borderColor="gray.600"
-                        borderRadius="md"
-                        color="white"
-                        _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
-                        type="number"
-                        value={period.holidays}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            planning_periods: {
-                              ...prev.planning_periods,
-                              [quarter]: {
-                                ...prev.planning_periods[quarter],
-                                holidays: Number(e.target.value),
-                              },
-                            },
-                          }))
-                        }
-                      />
-                    </GridItem>
-
-                    {/* PTO */}
-                    <GridItem>
-                      <FormLabel fontSize="xs" color="gray.400" mb={1}>PTO</FormLabel>
-                      <Input
-                        size="sm"
-                        bg="gray.700"
-                        border="1px solid"
-                        borderColor="gray.600"
-                        borderRadius="md"
-                        color="white"
-                        _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
-                        type="number"
-                        value={period.pto}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            planning_periods: {
-                              ...prev.planning_periods,
-                              [quarter]: {
-                                ...prev.planning_periods[quarter],
-                                pto: Number(e.target.value),
-                              },
-                            },
-                          }))
-                        }
-                      />
-                    </GridItem>
-
-                    {/* Focus weeks (read-only) */}
-                    <GridItem>
-                      <FormLabel fontSize="xs" color="gray.400" mb={1}>Focus weeks (read-only)</FormLabel>
-                      <Box
-                        h="32px"
-                        display="flex"
-                        alignItems="center"
-                        px={3}
-                        bg="gray.800"
-                        borderRadius="md"
-                        border="1px solid"
-                        borderColor="gray.600"
-                        fontSize="sm"
-                        color="gray.300"
-                      >
-                        {(
-                          Math.max(0,
-                            (formData.planning_periods[quarter].baseWeeks -
-                              formData.planning_periods[quarter].holidays -
-                              formData.planning_periods[quarter].pto)
-                          ) * formData.focus_time_ratio
-                        ).toFixed(1)}
-                      </Box>
-                    </GridItem>
-                  </Grid>
-                </Box>
+            {/* Table header */}
+            <Grid templateColumns="100px 1fr 1fr 1fr 1fr" gap={3} mb={2} px={1}>
+              {['Quarter', 'Base Weeks', 'Holidays (days)', 'PTO (days)', 'Focus Weeks'].map((h) => (
+                <Text key={h} fontSize="xs" fontWeight="semibold" color={textMuted}>{h}</Text>
               ))}
-          </Flex>
+            </Grid>
+
+            <Flex direction="column" gap={3}>
+              {Object.entries(formData.planning_periods)
+                .sort(([a], [b]) => {
+                  const parse = (k: string) => {
+                    const [q, y] = k.replace('Q', '').split('_').map(Number)
+                    return y * 10 + q
+                  }
+                  return parse(a) - parse(b)
+                })
+                .map(([quarter, period]) => (
+                  <Grid key={quarter} templateColumns="100px 1fr 1fr 1fr 1fr" gap={3} alignItems="center">
+                    <Text fontSize="sm" fontWeight="medium" color={textPrimary}>
+                      {quarter.replace('_', "'")}
+                    </Text>
+                    {(['baseWeeks', 'holidays', 'pto'] as const).map((field) => (
+                      <Input
+                        key={field}
+                        size="sm"
+                        bg={inputBg}
+                        border="1px solid"
+                        borderColor={inputBorder}
+                        borderRadius="md"
+                        color={textPrimary}
+                        _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
+                        type="number"
+                        value={period[field]}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            planning_periods: {
+                              ...prev.planning_periods,
+                              [quarter]: {
+                                ...prev.planning_periods[quarter],
+                                [field]: Number(e.target.value),
+                              },
+                            },
+                          }))
+                        }
+                      />
+                    ))}
+                    <Box
+                      h="32px"
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                      px={3}
+                      bg="cyan.50"
+                      borderRadius="md"
+                      border="1px solid"
+                      borderColor="cyan.200"
+                      fontSize="sm"
+                      fontWeight="semibold"
+                      color="cyan.600"
+                      _dark={{ bg: 'cyan.900', borderColor: 'cyan.700', color: 'cyan.300' }}
+                    >
+                      {(
+                        Math.max(0,
+                          period.baseWeeks - period.holidays - period.pto
+                        ) * formData.focus_time_ratio
+                      ).toFixed(1)}
+                    </Box>
+                  </Grid>
+                ))}
+            </Flex>
+          </Box>
         </Box>
 
         {/* FOCUS TIME RATIO */}
         <Box id="focus-time-ratio" mb={12}>
-          <Heading size="md" fontWeight="semibold" mb={1}>Focus time ratio</Heading>
-          <Text fontSize="sm" color="gray.400" mb={6}>
-            Ratio used to convert available weeks to focused work weeks. Lower values account for more context switching. Range: 0.4–0.9.
-          </Text>
-
-          <Box maxW="420px">
+          <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg" p={6}>
+            <Heading size="sm" fontWeight="semibold" mb={1} color={textPrimary}>Focus Time Ratio</Heading>
+            <Text fontSize="sm" color={textSecondary} mb={6}>
+              Percentage of available time that can be dedicated to focused project work, accounting for meetings, emails, and administrative tasks
+            </Text>
             <Flex justify="space-between" mb={2}>
-              <FormLabel fontSize="xs" color="gray.400" m={0}>Focus-time ratio</FormLabel>
-              <Text fontSize="sm" fontWeight="semibold" color="cyan.400">
-                {formData.focus_time_ratio.toFixed(2)}
+              <FormLabel fontSize="xs" color={textMuted} m={0}>Focus-Time Ratio</FormLabel>
+              <Text fontSize="sm" fontWeight="semibold" color="cyan.500">
+                {Math.round(formData.focus_time_ratio * 100)}%
               </Text>
             </Flex>
             <Slider
-              min={0.4}
-              max={0.9}
-              step={0.05}
+              min={0.4} max={0.9} step={0.05}
               value={formData.focus_time_ratio}
-              onChange={(val) =>
-                setFormData((prev) => ({ ...prev, focus_time_ratio: val }))
-              }
+              onChange={(val) => setFormData((prev) => ({ ...prev, focus_time_ratio: val }))}
               focusThumbOnChange={false}
             >
-              <SliderTrack bg="gray.600">
+              <SliderTrack bg={sliderTrackBg}>
                 <SliderFilledTrack bg="cyan.400" />
               </SliderTrack>
               <SliderThumb boxSize={4} bg="cyan.400" />
             </Slider>
-            <Flex justify="space-between" mt={1}>
-              <Text fontSize="xs" color="gray.500">0.4 — more switching</Text>
-              <Text fontSize="xs" color="gray.500">0.9 — deep focus</Text>
-            </Flex>
+            <Text fontSize="xs" color={textMuted} mt={2}>
+              Accounts for meetings, context switching, and interruptions. Lower = more overhead.
+            </Text>
           </Box>
         </Box>
 
         {/* SIZE BAND THRESHOLDS */}
         <Box id="size-band-thresholds" mb={12}>
-          <Heading size="md" fontWeight="semibold" mb={1}>Size band thresholds</Heading>
-          <Text fontSize="sm" color="gray.400" mb={6}>
-            Min–max score bands. XL has no upper bound.
-          </Text>
+          <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg" p={6}>
+            <Heading size="sm" fontWeight="semibold" mb={1} color={textPrimary}>Size Band Thresholds</Heading>
+            <Text fontSize="sm" color={textSecondary} mb={6}>
+              Define work week ranges for each size band (XS, S, M, L, XL)
+            </Text>
 
-          <Grid templateColumns="80px 1fr 1fr" gap={3} alignItems="center" maxW="420px">
-            {/* Header row */}
-            <GridItem />
-            <GridItem>
-              <Text fontSize="xs" color="gray.400" fontWeight="semibold">Min</Text>
-            </GridItem>
-            <GridItem>
-              <Text fontSize="xs" color="gray.400" fontWeight="semibold">Max</Text>
-            </GridItem>
+            <Grid templateColumns="80px 1fr 1fr 1fr" gap={3} alignItems="center" mb={2} px={1}>
+              {['Size Band', 'Min Weeks', 'Max Weeks', 'Range'].map((h) => (
+                <Text key={h} fontSize="xs" fontWeight="semibold" color={textMuted}>{h}</Text>
+              ))}
+            </Grid>
 
-            {/* One row per band */}
-            {(['xs', 's', 'm', 'l', 'xl'] as const).flatMap((band) => [
-              <GridItem key={`${band}-label`}>
-                <Text fontSize="sm" fontWeight="semibold" color="gray.200" textTransform="uppercase">
-                  {band}
-                </Text>
-              </GridItem>,
-
-              <GridItem key={`${band}-min`}>
-                <Input
-                  size="sm"
-                  bg="gray.700"
-                  border="1px solid"
-                  borderColor="gray.600"
-                  borderRadius="md"
-                  color="white"
-                  _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
-                  type="number"
-                  value={formData.size_band_thresholds[band].min}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      size_band_thresholds: {
-                        ...prev.size_band_thresholds,
-                        [band]: {
-                          ...prev.size_band_thresholds[band],
-                          min: Number(e.target.value),
-                        },
-                      },
-                    }))
-                  }
-                />
-              </GridItem>,
-
-              <GridItem key={`${band}-max`}>
-                {band === 'xl' ? (
-                  <Box
-                    h="32px"
-                    display="flex"
-                    alignItems="center"
-                    px={3}
-                    fontSize="sm"
-                    color="gray.500"
-                  >
-                    —
-                  </Box>
-                ) : (
+            {(['xs', 's', 'm', 'l', 'xl'] as const).map((band) => {
+              const min = formData.size_band_thresholds[band].min
+              const max = formData.size_band_thresholds[band].max
+              const rangeText = max !== undefined ? `${min}–${max} weeks` : `${min}+ weeks`
+              return (
+                <Grid key={band} templateColumns="80px 1fr 1fr 1fr" gap={3} alignItems="center" mb={3}>
+                  <Text fontSize="sm" fontWeight="semibold" color={textPrimary} textTransform="uppercase">
+                    {band}
+                  </Text>
                   <Input
-                    size="sm"
-                    bg="gray.700"
-                    border="1px solid"
-                    borderColor="gray.600"
-                    borderRadius="md"
-                    color="white"
+                    size="sm" bg={inputBg} border="1px solid" borderColor={inputBorder}
+                    borderRadius="md" color={textPrimary}
                     _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
                     type="number"
-                    value={formData.size_band_thresholds[band].max ?? ''}
+                    value={min}
                     onChange={(e) =>
                       setFormData((prev) => ({
                         ...prev,
                         size_band_thresholds: {
                           ...prev.size_band_thresholds,
-                          [band]: {
-                            ...prev.size_band_thresholds[band],
-                            max: Number(e.target.value),
-                          },
+                          [band]: { ...prev.size_band_thresholds[band], min: Number(e.target.value) },
                         },
                       }))
                     }
                   />
-                )}
-              </GridItem>,
-            ])}
-          </Grid>
+                  {band === 'xl' ? (
+                    <Text fontSize="sm" color={textMuted} px={3}>—</Text>
+                  ) : (
+                    <Input
+                      size="sm" bg={inputBg} border="1px solid" borderColor={inputBorder}
+                      borderRadius="md" color={textPrimary}
+                      _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
+                      type="number"
+                      value={max ?? ''}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          size_band_thresholds: {
+                            ...prev.size_band_thresholds,
+                            [band]: { ...prev.size_band_thresholds[band], max: Number(e.target.value) },
+                          },
+                        }))
+                      }
+                    />
+                  )}
+                  <Text fontSize="sm" color={textMuted}>{rangeText}</Text>
+                </Grid>
+              )
+            })}
+          </Box>
         </Box>
 
-        {/* PROJECT-TYPE DEMAND */}
+        {/* PROJECT TYPE DEMAND */}
         <Box id="project-type-demand" mb={12}>
-          <Heading size="md" fontWeight="semibold" mb={1}>Project-type demand</Heading>
-          <Text fontSize="sm" color="gray.400" mb={6}>
-            Default UX and content size bands by project type.
-          </Text>
+          <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg" p={6}>
+            <Heading size="sm" fontWeight="semibold" mb={1} color={textPrimary}>Project Type Demand</Heading>
+            <Text fontSize="sm" color={textSecondary} mb={6}>
+              Define the demand for each project type in terms of UX and content design effort
+            </Text>
 
-          <Grid templateColumns="160px 1fr 1fr" gap={3} alignItems="center" maxW="480px">
-            {/* Header row */}
-            <GridItem />
-            <GridItem>
-              <Text fontSize="xs" color="gray.400" fontWeight="semibold">UX</Text>
-            </GridItem>
-            <GridItem>
-              <Text fontSize="xs" color="gray.400" fontWeight="semibold">Content</Text>
-            </GridItem>
+            <Grid templateColumns="1fr 160px 160px" gap={3} alignItems="center" mb={2} px={1}>
+              <Text fontSize="xs" fontWeight="semibold" color={textMuted}>Project Type</Text>
+              <Text fontSize="xs" fontWeight="semibold" color={textMuted}>UX Design Effort</Text>
+              <Text fontSize="xs" fontWeight="semibold" color={textMuted}>Content Design Effort</Text>
+            </Grid>
 
-            {/* One row per project type */}
-            {(['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).flatMap((projectType) => [
-              <GridItem key={`${projectType}-label`}>
-                <Text fontSize="sm" color="gray.200">{PROJECT_TYPE_LABELS[projectType]}</Text>
-              </GridItem>,
-              <GridItem key={`${projectType}-ux`}>
-                <Select
-                  size="sm"
-                  bg="gray.700"
-                  border="1px solid"
-                  borderColor="gray.600"
-                  borderRadius="md"
-                  color="white"
-                  _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
-                  value={formData.project_type_demand[projectType].ux}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      project_type_demand: {
-                        ...prev.project_type_demand,
-                        [projectType]: {
-                          ...prev.project_type_demand[projectType],
-                          ux: e.target.value as 'XS' | 'S' | 'M' | 'L' | 'XL',
-                        },
-                      },
-                    }))
-                  }
-                >
-                  {(['XS', 'S', 'M', 'L', 'XL'] as const).map((size) => (
-                    <option key={size} value={size} style={{ background: '#2D3748' }}>
-                      {size}
-                    </option>
+            {(['net-new', 'new-feature', 'enhancement', 'optimization', 'fix-polish'] as const).map((projectType) => {
+              const labels: Record<string, string> = {
+                'net-new': 'New Product',
+                'new-feature': 'New Feature',
+                enhancement: 'Enhancement',
+                optimization: 'Optimization',
+                'fix-polish': 'Fix & Polish',
+              }
+              return (
+                <Grid key={projectType} templateColumns="1fr 160px 160px" gap={3} alignItems="center" mb={3}>
+                  <Text fontSize="sm" color={textPrimary}>{labels[projectType]}</Text>
+                  {(['ux', 'content'] as const).map((discipline) => (
+                    <Select
+                      key={discipline}
+                      size="sm" bg={inputBg} border="1px solid" borderColor={inputBorder}
+                      borderRadius="md" color={textPrimary}
+                      _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
+                      value={formData.project_type_demand[projectType][discipline]}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          project_type_demand: {
+                            ...prev.project_type_demand,
+                            [projectType]: {
+                              ...prev.project_type_demand[projectType],
+                              [discipline]: e.target.value as 'XS' | 'S' | 'M' | 'L' | 'XL',
+                            },
+                          },
+                        }))
+                      }
+                    >
+                      {(['XS', 'S', 'M', 'L', 'XL'] as const).map((size) => (
+                        <option key={size} value={size}>{size}</option>
+                      ))}
+                    </Select>
                   ))}
-                </Select>
-              </GridItem>,
-              <GridItem key={`${projectType}-content`}>
-                <Select
-                  size="sm"
-                  bg="gray.700"
-                  border="1px solid"
-                  borderColor="gray.600"
-                  borderRadius="md"
-                  color="white"
-                  _focus={{ borderColor: 'cyan.400', boxShadow: 'none' }}
-                  value={formData.project_type_demand[projectType].content}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      project_type_demand: {
-                        ...prev.project_type_demand,
-                        [projectType]: {
-                          ...prev.project_type_demand[projectType],
-                          content: e.target.value as 'XS' | 'S' | 'M' | 'L' | 'XL',
-                        },
-                      },
-                    }))
-                  }
-                >
-                  {(['XS', 'S', 'M', 'L', 'XL'] as const).map((size) => (
-                    <option key={size} value={size} style={{ background: '#2D3748' }}>
-                      {size}
-                    </option>
-                  ))}
-                </Select>
-              </GridItem>,
-            ])}
-          </Grid>
+                </Grid>
+              )
+            })}
+          </Box>
         </Box>
 
         {/* EFFORT MODEL WEIGHTS */}
         <Box id="effort-model-weights" mb={12}>
-          <Flex align="center" justify="space-between" mb={1}>
-            <Heading size="md" fontWeight="semibold">Effort model weights</Heading>
-            <Switch
-              isChecked={formData.effort_model_enabled}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, effort_model_enabled: e.target.checked }))
-              }
-              colorScheme="cyan"
-              size="md"
-            />
-          </Flex>
-          <Text fontSize="sm" color="gray.400" mb={6}>
-            Relative importance of each complexity factor. Weights are 1–10; displayed as a multiplier (weight ÷ 10).
-          </Text>
+          <Box bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg" p={6}>
+            <Flex align="center" justify="space-between" mb={1}>
+              <Heading size="sm" fontWeight="semibold" color={textPrimary}>Effort Model Weights</Heading>
+              <Flex align="center" gap={2}>
+                <Text fontSize="xs" color={textMuted}>
+                  {formData.effort_model_enabled ? 'Enabled' : 'Disabled'}
+                </Text>
+                <Switch
+                  isChecked={formData.effort_model_enabled}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, effort_model_enabled: e.target.checked }))}
+                  colorScheme="cyan" size="md"
+                />
+              </Flex>
+            </Flex>
+            <Text fontSize="sm" color={textSecondary} mb={6}>
+              Adjust the weights for different complexity factors. Higher values increase the impact on effort calculations.
+            </Text>
 
-          <Flex direction="column" gap={8} maxW="480px"
-            opacity={formData.effort_model_enabled ? 1 : 0.4}
-            pointerEvents={formData.effort_model_enabled ? 'auto' : 'none'}
-          >
-            {(
-              [
-                { key: 'productRisk',       label: 'Product risk',       description: 'Multiplier on base effort' },
-                { key: 'problemAmbiguity',  label: 'Problem ambiguity',  description: 'Additive weeks (UX)' },
-                { key: 'contentSurface',    label: 'Content surface',    description: 'Multiplier (Content)' },
-                { key: 'localizationScope', label: 'Localization scope', description: 'Multiplier (Content)' },
-              ] as { key: keyof typeof formData.effort_weights; label: string; description: string }[]
-            ).map(({ key, label, description }) => (
-              <Box key={key}>
-                <Flex justify="space-between" mb={1}>
-                  <Box>
-                    <Text fontSize="sm" fontWeight="medium" color="gray.200">{label}</Text>
-                    <Text fontSize="xs" color="gray.500">{description}</Text>
+            <Box
+              opacity={formData.effort_model_enabled ? 1 : 0.4}
+              pointerEvents={formData.effort_model_enabled ? 'auto' : 'none'}
+            >
+              {/* UX Design */}
+              <Text fontSize="sm" fontWeight="semibold" color={textPrimary} mb={4}>UX Design</Text>
+              <Flex direction="column" gap={6} mb={8}>
+                {([
+                  { key: 'productRisk', label: 'Product Risk', description: 'How much impact does this roadmap have on the business?' },
+                  { key: 'problemAmbiguity', label: 'Problem Ambiguity', description: 'If a problem statement is not "clear" enough, how will this impact the design?' },
+                ] as { key: keyof typeof formData.effort_weights; label: string; description: string }[]).map(({ key, label, description }) => (
+                  <Box key={key}>
+                    <Flex justify="space-between" mb={1}>
+                      <Box>
+                        <Text fontSize="sm" fontWeight="medium" color={textPrimary}>{label}</Text>
+                        <Text fontSize="xs" color={textMuted}>{description}</Text>
+                      </Box>
+                      <Text fontSize="sm" fontWeight="semibold" color="cyan.500" minW="60px" textAlign="right">
+                        {formData.effort_weights[key]} <Text as="span" fontSize="xs" color={textMuted}>(×{(formData.effort_weights[key] / 10).toFixed(1)})</Text>
+                      </Text>
+                    </Flex>
+                    <Slider min={1} max={10} step={1} value={formData.effort_weights[key]}
+                      onChange={(val) => setFormData((prev) => ({ ...prev, effort_weights: { ...prev.effort_weights, [key]: val } }))}
+                      focusThumbOnChange={false}
+                    >
+                      <SliderTrack bg={sliderTrackBg}>
+                        <SliderFilledTrack bg="cyan.400" />
+                      </SliderTrack>
+                      <SliderThumb boxSize={4} bg="cyan.400" />
+                    </Slider>
                   </Box>
-                  <Flex align="center" gap={3}>
-                    <Text fontSize="xs" color="gray.500">
-                      ×{(formData.effort_weights[key] / 10).toFixed(1)}
-                    </Text>
-                    <Text fontSize="sm" fontWeight="semibold" color="cyan.400" minW="24px" textAlign="right">
-                      {formData.effort_weights[key]}
-                    </Text>
-                  </Flex>
-                </Flex>
-                <Slider
-                  min={1}
-                  max={10}
-                  step={1}
-                  value={formData.effort_weights[key]}
-                  onChange={(val) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      effort_weights: { ...prev.effort_weights, [key]: val },
-                    }))
-                  }
-                  focusThumbOnChange={false}
-                >
-                  <SliderTrack bg="gray.600">
-                    <SliderFilledTrack bg="cyan.400" />
-                  </SliderTrack>
-                  <SliderThumb boxSize={4} bg="cyan.400" />
-                </Slider>
-                <Flex justify="space-between" mt={1}>
-                  <Text fontSize="xs" color="gray.500">1</Text>
-                  <Text fontSize="xs" color="gray.500">10</Text>
-                </Flex>
-              </Box>
-            ))}
-          </Flex>
-        </Box>
+                ))}
+              </Flex>
 
-        {/* ---- Chunk 7 goes here ---- */}
+              {/* Content Design */}
+              <Text fontSize="sm" fontWeight="semibold" color={textPrimary} mb={4}>Content Design</Text>
+              <Flex direction="column" gap={6}>
+                {([
+                  { key: 'contentSurface', label: 'Content Surface Area', description: 'How large of a surface are teams writing content for?' },
+                  { key: 'localizationScope', label: 'Localization', description: 'Number of languages needed' },
+                ] as { key: keyof typeof formData.effort_weights; label: string; description: string }[]).map(({ key, label, description }) => (
+                  <Box key={key}>
+                    <Flex justify="space-between" mb={1}>
+                      <Box>
+                        <Text fontSize="sm" fontWeight="medium" color={textPrimary}>{label}</Text>
+                        <Text fontSize="xs" color={textMuted}>{description}</Text>
+                      </Box>
+                      <Text fontSize="sm" fontWeight="semibold" color="cyan.500" minW="60px" textAlign="right">
+                        {formData.effort_weights[key]} <Text as="span" fontSize="xs" color={textMuted}>(×{(formData.effort_weights[key] / 10).toFixed(1)})</Text>
+                      </Text>
+                    </Flex>
+                    <Slider min={1} max={10} step={1} value={formData.effort_weights[key]}
+                      onChange={(val) => setFormData((prev) => ({ ...prev, effort_weights: { ...prev.effort_weights, [key]: val } }))}
+                      focusThumbOnChange={false}
+                    >
+                      <SliderTrack bg={sliderTrackBg}>
+                        <SliderFilledTrack bg="cyan.400" />
+                      </SliderTrack>
+                      <SliderThumb boxSize={4} bg="cyan.400" />
+                    </Slider>
+                  </Box>
+                ))}
+              </Flex>
+            </Box>
+          </Box>
+        </Box>
 
         {/* DANGER ZONE */}
         <Box id="danger-zone" mb={24}>
-          <Heading size="md" fontWeight="semibold" color="red.400" mb={1}>
-            Danger zone
-          </Heading>
-          <Text fontSize="sm" color="gray.400" mb={6}>
-            Irreversible actions. Use with caution.
-          </Text>
-
-          <Flex direction="column" gap={4}>
-            {/* Reset workspace */}
-            <Box
-              bg="gray.800"
-              border="1px solid"
-              borderColor="red.800"
-              borderRadius="lg"
-              p={5}
-            >
-              <Flex justify="space-between" align="center">
-                <Box>
-                  <Text fontSize="sm" fontWeight="medium" color="gray.200">
-                    Reset workspace
-                  </Text>
-                  <Text fontSize="xs" color="gray.500" mt={1}>
-                    Permanently delete all plans and roadmap items. This cannot be undone.
-                  </Text>
-                </Box>
-                <Button
-                  size="sm"
-                  bg="red.500"
-                  color="white"
-                  _hover={{ bg: 'red.400' }}
-                  onClick={onResetOpen}
-                >
-                  Reset workspace
-                </Button>
-              </Flex>
-            </Box>
-          </Flex>
+          <Heading size="sm" fontWeight="semibold" color="red.500" mb={1}>Danger zone</Heading>
+          <Text fontSize="sm" color={textSecondary} mb={6}>Irreversible actions. Use with caution.</Text>
+          <Box
+            bg={bgCard} border="1px solid" borderColor="red.300"
+            borderRadius="lg" p={5}
+            _dark={{ borderColor: 'red.800' }}
+          >
+            <Flex justify="space-between" align="center">
+              <Box>
+                <Text fontSize="sm" fontWeight="medium" color={textPrimary}>Reset workspace</Text>
+                <Text fontSize="xs" color={textMuted} mt={1}>
+                  Permanently delete all plans and roadmap items. This cannot be undone.
+                </Text>
+              </Box>
+              <Button size="sm" bg="red.500" color="white" _hover={{ bg: 'red.400' }} onClick={onResetOpen}>
+                Reset workspace
+              </Button>
+            </Flex>
+          </Box>
         </Box>
 
-      {/* end maxW="860px" */}
       </Box>
 
+      {/* STICKY FOOTER */}
+      <Box
+        position="fixed" bottom={0} left={0} right={0}
+        bg={bgCard} borderTop="1px solid" borderColor={borderColor}
+        px={6} py={4} zIndex={100}
+      >
+        <Flex maxW="860px" mx="auto" justify="flex-end" gap={3}>
+          <Button
+            variant="outline" borderColor={inputBorder} color={textSecondary}
+            _hover={{ borderColor: 'gray.400', color: textPrimary }}
+            onClick={() => void handleReset()}
+            isDisabled={saving}
+            leftIcon={<Text>↺</Text>}
+          >
+            Reset to defaults
+          </Button>
+          <Button
+            bg="cyan.500" color="white" fontWeight="semibold"
+            _hover={{ bg: 'cyan.600' }}
+            onClick={() => void handleSave()}
+            isLoading={saving}
+            loadingText="Saving…"
+          >
+            Save Settings
+          </Button>
+        </Flex>
+      </Box>
+
+      {/* Reset workspace modal */}
       <Modal isOpen={isResetOpen} onClose={onResetClose} isCentered>
         <ModalOverlay bg="blackAlpha.700" />
-        <ModalContent bg="gray.800" border="1px solid" borderColor="gray.700" borderRadius="lg">
-          <ModalHeader color="white" fontSize="md" fontWeight="semibold">
-            Reset workspace
-          </ModalHeader>
+        <ModalContent bg={bgCard} border="1px solid" borderColor={borderColor} borderRadius="lg">
+          <ModalHeader color={textPrimary} fontSize="md" fontWeight="semibold">Reset workspace</ModalHeader>
           <ModalBody>
-            <Text fontSize="sm" color="gray.300">
+            <Text fontSize="sm" color={textSecondary}>
               This will permanently delete all plans and roadmap items. This cannot be undone.
             </Text>
           </ModalBody>
           <ModalFooter gap={3}>
-            <Button
-              variant="outline"
-              borderColor="gray.600"
-              color="gray.300"
-              _hover={{ borderColor: 'gray.400', color: 'white' }}
-              onClick={onResetClose}
-            >
+            <Button variant="outline" borderColor={inputBorder} color={textSecondary} onClick={onResetClose}>
               Cancel
             </Button>
-            <Button
-              bg="red.500"
-              color="white"
-              _hover={{ bg: 'red.400' }}
+            <Button bg="red.500" color="white" _hover={{ bg: 'red.400' }}
               onClick={() => {
                 resetWorkspace()
                 onResetClose()
@@ -716,45 +594,6 @@ export default function SettingsPage() {
         </ModalContent>
       </Modal>
 
-      {/* STICKY FOOTER */}
-      <Box
-        position="fixed"
-        bottom={0}
-        left={0}
-        right={0}
-        bg="gray.900"
-        borderTop="1px solid"
-        borderColor="gray.700"
-        px={6}
-        py={4}
-        zIndex={100}
-      >
-        <Flex maxW="860px" mx="auto" justify="flex-end" gap={3}>
-          <Button
-            variant="outline"
-            borderColor="gray.600"
-            color="gray.300"
-            _hover={{ borderColor: 'gray.400', color: 'white' }}
-            onClick={() => void handleReset()}
-            isDisabled={saving}
-          >
-            Reset to defaults
-          </Button>
-          <Button
-            bg="cyan.400"
-            color="gray.900"
-            fontWeight="semibold"
-            _hover={{ bg: 'cyan.300' }}
-            onClick={() => void handleSave()}
-            isLoading={saving}
-            loadingText="Saving…"
-          >
-            Save settings
-          </Button>
-        </Flex>
-      </Box>
-
-    {/* end outer Box bg="gray.900" */}
     </Box>
   )
 }
