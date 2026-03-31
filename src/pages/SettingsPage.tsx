@@ -266,7 +266,7 @@ export default function SettingsPage() {
                     >
                       {(
                         Math.max(0,
-                          period.baseWeeks - period.holidays - period.pto
+                          period.baseWeeks - (period.holidays / 5) - (period.pto / 5)
                         ) * formData.focus_time_ratio
                       ).toFixed(1)}
                     </Box>
