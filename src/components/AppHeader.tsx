@@ -7,6 +7,7 @@ import {
   Button,
   Tooltip,
   useDisclosure,
+  useColorMode,
   Drawer,
   DrawerBody,
   DrawerOverlay,
@@ -15,11 +16,12 @@ import {
   IconButton,
 } from '@chakra-ui/react'
 import { Link, useLocation } from 'react-router-dom'
-import { InfoIcon, HamburgerIcon } from '@chakra-ui/icons'
+import { InfoIcon, HamburgerIcon, SunIcon, MoonIcon } from '@chakra-ui/icons'
 
 export default function AppHeader() {
   const location = useLocation()
   const { isOpen: isDrawerOpen, onOpen: onDrawerOpen, onClose: onDrawerClose } = useDisclosure()
+  const { colorMode, toggleColorMode } = useColorMode()
 
   const navItems = [
     { path: '/scenarios', label: 'Plans' },
@@ -111,6 +113,17 @@ export default function AppHeader() {
                 })}
               </HStack>
 
+              <IconButton
+                aria-label="Toggle color mode"
+                icon={colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
+                variant="ghost"
+                size="sm"
+                color="gray.400"
+                _hover={{ color: 'white', bg: 'gray.700' }}
+                onClick={toggleColorMode}
+                display={{ base: 'none', md: 'flex' }}
+              />
+
               {/* Mobile hamburger */}
               <IconButton
                 aria-label="Open menu"
@@ -156,6 +169,21 @@ export default function AppHeader() {
                   </Box>
                 )
               })}
+              <Box
+                px={4}
+                py={3}
+                borderRadius="md"
+                fontSize="sm"
+                color="gray.300"
+                cursor="pointer"
+                _hover={{ color: 'white', bg: 'gray.700' }}
+                onClick={() => {
+                  toggleColorMode()
+                  onDrawerClose()
+                }}
+              >
+                {colorMode === 'light' ? '🌙 Dark mode' : '☀️ Light mode'}
+              </Box>
             </Flex>
           </DrawerBody>
         </DrawerContent>
