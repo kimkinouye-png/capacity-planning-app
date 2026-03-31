@@ -41,13 +41,14 @@ import {
   Progress,
   Badge,
   Flex,
+  useToast,
+  useColorModeValue,
 } from '@chakra-ui/react'
 import { CalendarIcon, CopyIcon, DeleteIcon } from '@chakra-ui/icons'
 import { useNavigate } from 'react-router-dom'
 import { useState, useMemo, useRef } from 'react'
 import { usePlanningSessions } from '../context/PlanningSessionsContext'
 import { useRoadmapItems } from '../context/RoadmapItemsContext'
-import { useToast } from '@chakra-ui/react'
 import type { PlanningSession, PlanningPeriod } from '../domain/types'
 import { getWeeksForPeriod } from '../config/quarterConfig'
 import { SPRINT_LENGTH_WEEKS } from '../config/sprints'
@@ -55,10 +56,6 @@ import InlineEditableText from '../components/InlineEditableText'
 import { getOrCreateSessionId } from '../utils/session'
 
 const QUARTER_OPTIONS: PlanningPeriod[] = ['2026-Q1', '2026-Q2', '2026-Q3', '2026-Q4']
-
-const CARD_BG = '#1a1d2e'
-const BORDER = 'rgba(255, 255, 255, 0.08)'
-const CYAN = '#00d9ff'
 
 const API_BASE_URL = import.meta.env.DEV
   ? 'http://localhost:8888/.netlify/functions'
@@ -195,6 +192,25 @@ function SessionsListPage() {
     ux_designers: 3,
     content_designers: 2,
   })
+
+  const bgPage = useColorModeValue('gray.50', '#0a0a0f')
+  const bgCard = useColorModeValue('white', '#1a1d2e')
+  const borderColor = useColorModeValue('gray.200', 'rgba(255, 255, 255, 0.08)')
+  const cyan = useColorModeValue('cyan.500', '#00d9ff')
+  const cyanHover = useColorModeValue('cyan.600', '#33e1ff')
+  const textPrimary = useColorModeValue('gray.900', 'white')
+  const textSecondary = useColorModeValue('gray.600', 'gray.400')
+  const textMuted = useColorModeValue('gray.500', 'gray.500')
+  const inputBg = useColorModeValue('white', '#1a1a20')
+  const inputBorder = useColorModeValue('gray.200', 'rgba(255, 255, 255, 0.1)')
+  const inputFocus = useColorModeValue('cyan.400', '#00d9ff')
+  const modalBg = useColorModeValue('white', '#141419')
+  const modalBorder = useColorModeValue('gray.200', 'rgba(255, 255, 255, 0.1)')
+  const cardHoverBorder = useColorModeValue('cyan.300', 'rgba(0, 217, 255, 0.35)')
+  const progressTrack = useColorModeValue('gray.100', 'whiteAlpha.100')
+  const cardBottomBorder = useColorModeValue('gray.100', 'whiteAlpha.100')
+  const iconButtonHoverBg = useColorModeValue('gray.100', 'whiteAlpha.50')
+  const optionNativeColor = useColorModeValue('#171923', '#ffffff')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -367,14 +383,14 @@ function SessionsListPage() {
     return (
       <Card
         key={session.id}
-        bg={CARD_BG}
+        bg={bgCard}
         border="1px solid"
-        borderColor={BORDER}
+        borderColor={borderColor}
         borderRadius="md"
         overflow="hidden"
         transition="all 0.2s ease"
         _hover={{
-          borderColor: 'rgba(0, 217, 255, 0.35)',
+          borderColor: cardHoverBorder,
           boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
         }}
       >
@@ -424,7 +440,7 @@ function SessionsListPage() {
             </Flex>
 
             {/* METADATA */}
-            <HStack spacing={4} color="gray.500" fontSize="sm" flexWrap="wrap">
+            <HStack spacing={4} color={textMuted} fontSize="sm" flexWrap="wrap">
               <HStack spacing={1.5}>
                 <Icon as={CalendarIcon} w={4} h={4} />
                 <Text>{quarterLabel}</Text>
@@ -449,13 +465,13 @@ function SessionsListPage() {
             <VStack align="stretch" spacing={4}>
               <Box>
                 <Flex justify="space-between" align="center" mb={1.5} gap={2}>
-                  <Text fontSize="sm" fontWeight="medium" color="gray.300">
+                  <Text fontSize="sm" fontWeight="medium" color={textSecondary}>
                     UX Design
                   </Text>
                   <Text
                     fontSize="sm"
                     fontWeight="semibold"
-                    color={uxOver ? 'red.400' : CYAN}
+                    color={uxOver ? 'red.400' : cyan}
                     whiteSpace="nowrap"
                   >
                     {formatVal(uxDemand)} / {formatVal(uxCap)} weeks
@@ -465,23 +481,23 @@ function SessionsListPage() {
                   value={uxPct}
                   size="sm"
                   borderRadius="full"
-                  bg="whiteAlpha.100"
+                  bg={progressTrack}
                   sx={{
                     '& > div': {
-                      background: uxOver ? '#ef4444' : CYAN,
+                      background: uxOver ? '#ef4444' : cyan,
                     },
                   }}
                 />
               </Box>
               <Box>
                 <Flex justify="space-between" align="center" mb={1.5} gap={2}>
-                  <Text fontSize="sm" fontWeight="medium" color="gray.300">
+                  <Text fontSize="sm" fontWeight="medium" color={textSecondary}>
                     Content Design
                   </Text>
                   <Text
                     fontSize="sm"
                     fontWeight="semibold"
-                    color={contentOver ? 'red.400' : CYAN}
+                    color={contentOver ? 'red.400' : cyan}
                     whiteSpace="nowrap"
                   >
                     {formatVal(contentDemand)} / {formatVal(contentCap)} weeks
@@ -491,10 +507,10 @@ function SessionsListPage() {
                   value={contentPct}
                   size="sm"
                   borderRadius="full"
-                  bg="whiteAlpha.100"
+                  bg={progressTrack}
                   sx={{
                     '& > div': {
-                      background: contentOver ? '#ef4444' : CYAN,
+                      background: contentOver ? '#ef4444' : cyan,
                     },
                   }}
                 />
@@ -508,11 +524,11 @@ function SessionsListPage() {
               gap={3}
               pt={1}
               borderTop="1px solid"
-              borderColor="whiteAlpha.100"
+              borderColor={cardBottomBorder}
             >
               <Button
                 variant="ghost"
-                color={CYAN}
+                color={cyan}
                 flex={1}
                 justifyContent="center"
                 onClick={() => navigate(`/sessions/${session.id}`)}
@@ -526,10 +542,10 @@ function SessionsListPage() {
                     icon={<CopyIcon />}
                     size="sm"
                     variant="ghost"
-                    color="gray.400"
+                    color={textMuted}
                     isLoading={duplicatingId === session.id}
                     onClick={(e) => handleDuplicate(e, session.id)}
-                    _hover={{ color: CYAN, bg: 'whiteAlpha.50' }}
+                    _hover={{ color: cyan, bg: iconButtonHoverBg }}
                   />
                 </Tooltip>
                 <Tooltip label="Delete scenario" hasArrow>
@@ -560,17 +576,17 @@ function SessionsListPage() {
   const pageHeader = (
     <Flex direction="row" justify="space-between" align="flex-start" gap={4} mb={8}>
       <Box flex="1" minW={0} pr={2}>
-        <Heading size="xl" color="white" fontWeight="bold" letterSpacing="tight">
+        <Heading size="xl" color={textPrimary} fontWeight="bold" letterSpacing="tight">
           Plan → Compare → Commit
         </Heading>
-        <Text mt={2} color="gray.400" fontSize="md" maxW="xl">
+        <Text mt={2} color={textSecondary} fontSize="md" maxW="xl">
           Create different staffing and roadmap scenarios and explore trade-offs before committing to a plan
         </Text>
       </Box>
       <Button
-        bg={CYAN}
-        color="#0a0a0f"
-        _hover={{ bg: '#33e1ff' }}
+        bg={cyan}
+        color="white"
+        _hover={{ bg: cyanHover }}
         size="md"
         flexShrink={0}
         w="auto"
@@ -584,22 +600,22 @@ function SessionsListPage() {
   const createModal = (
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)" />
-      <ModalContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
+      <ModalContent bg={modalBg} border="1px solid" borderColor={modalBorder} boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
         <form onSubmit={handleSubmit}>
-          <ModalHeader color="white" borderBottom="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
+          <ModalHeader color={textPrimary} borderBottom="1px solid" borderColor={modalBorder}>
             Create New Scenario
           </ModalHeader>
-          <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
+          <ModalCloseButton color={textMuted} _hover={{ color: textPrimary }} />
           <ModalBody>
             <Stack spacing={4}>
               <FormControl isRequired>
-                <FormLabel color="gray.300">Name</FormLabel>
+                <FormLabel color={textSecondary}>Name</FormLabel>
                 <Input
-                  bg="#1a1a20"
-                  borderColor="rgba(255, 255, 255, 0.1)"
-                  color="white"
-                  _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
-                  _placeholder={{ color: 'gray.500' }}
+                  bg={inputBg}
+                  borderColor={inputBorder}
+                  color={textPrimary}
+                  _focus={{ borderColor: inputFocus, boxShadow: 'none' }}
+                  _placeholder={{ color: textMuted }}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Payments Q2 2026"
@@ -607,52 +623,52 @@ function SessionsListPage() {
               </FormControl>
 
               <FormControl isRequired>
-                <FormLabel color="gray.300">Planning Period</FormLabel>
+                <FormLabel color={textSecondary}>Planning Period</FormLabel>
                 <Select
-                  bg="#1a1a20"
-                  borderColor="rgba(255, 255, 255, 0.1)"
-                  color="white"
-                  _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                  bg={inputBg}
+                  borderColor={inputBorder}
+                  color={textPrimary}
+                  _focus={{ borderColor: inputFocus, boxShadow: 'none' }}
                   value={formData.planningPeriod}
                   onChange={(e) => setFormData({ ...formData, planningPeriod: e.target.value as PlanningPeriod })}
                 >
                   {QUARTER_OPTIONS.map((period) => (
-                    <option key={period} value={period} style={{ background: '#1a1a20', color: 'white' }}>
+                    <option key={period} value={period} style={{ background: inputBg, color: optionNativeColor }}>
                       {period}
                     </option>
                   ))}
                 </Select>
-                <Text fontSize="sm" color="gray.400" mt={1}>
+                <Text fontSize="sm" color={textSecondary} mt={1}>
                   {getWeeksForPeriod(formData.planningPeriod)} weeks per period
                 </Text>
-                <Text fontSize="sm" color="gray.400" mt={1}>
+                <Text fontSize="sm" color={textSecondary} mt={1}>
                   Assumes {SPRINT_LENGTH_WEEKS}-week sprints (about{' '}
                   {Math.floor(getWeeksForPeriod(formData.planningPeriod) / SPRINT_LENGTH_WEEKS)} sprints per quarter).
                 </Text>
               </FormControl>
 
               <FormControl isRequired>
-                <FormLabel color="gray.300">UX Designers</FormLabel>
+                <FormLabel color={textSecondary}>UX Designers</FormLabel>
                 <NumberInput
                   value={formData.ux_designers}
                   onChange={(_, valueAsNumber) => setFormData({ ...formData, ux_designers: valueAsNumber || 0 })}
                   min={0}
                 >
                   <NumberInputField
-                    bg="#1a1a20"
-                    borderColor="rgba(255, 255, 255, 0.1)"
-                    color="white"
-                    _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                    bg={inputBg}
+                    borderColor={inputBorder}
+                    color={textPrimary}
+                    _focus={{ borderColor: inputFocus, boxShadow: 'none' }}
                   />
                   <NumberInputStepper>
-                    <NumberIncrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
-                    <NumberDecrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
+                    <NumberIncrementStepper color={textMuted} borderColor={inputBorder} />
+                    <NumberDecrementStepper color={textMuted} borderColor={inputBorder} />
                   </NumberInputStepper>
                 </NumberInput>
               </FormControl>
 
               <FormControl isRequired>
-                <FormLabel color="gray.300">Content Designers</FormLabel>
+                <FormLabel color={textSecondary}>Content Designers</FormLabel>
                 <NumberInput
                   value={formData.content_designers}
                   onChange={(_, valueAsNumber) =>
@@ -661,21 +677,21 @@ function SessionsListPage() {
                   min={0}
                 >
                   <NumberInputField
-                    bg="#1a1a20"
-                    borderColor="rgba(255, 255, 255, 0.1)"
-                    color="white"
-                    _focus={{ borderColor: '#00d9ff', boxShadow: '0 0 0 1px rgba(0, 217, 255, 0.5)' }}
+                    bg={inputBg}
+                    borderColor={inputBorder}
+                    color={textPrimary}
+                    _focus={{ borderColor: inputFocus, boxShadow: 'none' }}
                   />
                   <NumberInputStepper>
-                    <NumberIncrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
-                    <NumberDecrementStepper color="gray.400" borderColor="rgba(255, 255, 255, 0.1)" />
+                    <NumberIncrementStepper color={textMuted} borderColor={inputBorder} />
+                    <NumberDecrementStepper color={textMuted} borderColor={inputBorder} />
                   </NumberInputStepper>
                 </NumberInput>
               </FormControl>
             </Stack>
           </ModalBody>
 
-          <ModalFooter borderTop="1px solid" borderColor="rgba(255, 255, 255, 0.1)">
+          <ModalFooter borderTop="1px solid" borderColor={modalBorder}>
             <Button variant="ghost" mr={3} onClick={onClose}>
               Cancel
             </Button>
@@ -691,14 +707,14 @@ function SessionsListPage() {
   const deleteDialog = (
     <AlertDialog isOpen={isDeleteOpen} leastDestructiveRef={cancelDeleteRef} onClose={onDeleteClose}>
       <AlertDialogOverlay bg="rgba(0, 0, 0, 0.8)" backdropFilter="blur(4px)">
-        <AlertDialogContent bg="#141419" border="1px solid" borderColor="rgba(255, 255, 255, 0.1)" boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
-          <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white" borderBottom="1px solid" borderColor="rgba(255, 255, 255, 0.1)" px={6} py={4}>
+        <AlertDialogContent bg={modalBg} border="1px solid" borderColor={modalBorder} boxShadow="0 25px 50px -12px rgba(0, 217, 255, 0.2)">
+          <AlertDialogHeader fontSize="lg" fontWeight="bold" color={textPrimary} borderBottom="1px solid" borderColor={modalBorder} px={6} py={4}>
             Delete this scenario?
           </AlertDialogHeader>
-          <AlertDialogBody color="gray.300" px={6} py={4}>
+          <AlertDialogBody color={textSecondary} px={6} py={4}>
             This scenario has no roadmap items and will be permanently removed.
           </AlertDialogBody>
-          <AlertDialogFooter borderTop="1px solid" borderColor="rgba(255, 255, 255, 0.1)" px={6} py={4}>
+          <AlertDialogFooter borderTop="1px solid" borderColor={modalBorder} px={6} py={4}>
             <Button ref={cancelDeleteRef} onClick={onDeleteClose} variant="outline">
               Cancel
             </Button>
@@ -737,14 +753,14 @@ function SessionsListPage() {
 
   if (sessions.length === 0) {
     return (
-      <Box maxW="1200px" mx="auto" px={6} py={8} bg="#0a0a0f" minH="100%">
+      <Box maxW="1200px" mx="auto" px={6} py={8} bg={bgPage} minH="100%">
         {sessionsError && (
-          <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
+          <Alert status="warning" bg={modalBg} border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
             <AlertIcon color="#f59e0b" />
-            <AlertTitle color="white" mr={2}>
+            <AlertTitle color={textPrimary} mr={2}>
               Warning:
             </AlertTitle>
-            <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
+            <AlertDescription color={textSecondary}>{sessionsError}</AlertDescription>
             <Button size="sm" colorScheme="cyan" ml={4} onClick={() => loadSessions()}>
               Retry Sync
             </Button>
@@ -758,14 +774,14 @@ function SessionsListPage() {
   }
 
   return (
-    <Box maxW="1200px" mx="auto" px={6} py={8} bg="#0a0a0f" minH="100%">
+    <Box maxW="1200px" mx="auto" px={6} py={8} bg={bgPage} minH="100%">
       {sessionsError && sessions.length > 0 && (
-        <Alert status="warning" bg="#141419" border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
+        <Alert status="warning" bg={modalBg} border="1px solid" borderColor="rgba(245, 158, 11, 0.3)" borderRadius="md" mb={4}>
           <AlertIcon color="#f59e0b" />
-          <AlertTitle color="white" mr={2}>
+          <AlertTitle color={textPrimary} mr={2}>
             Warning:
           </AlertTitle>
-          <AlertDescription color="gray.300">{sessionsError}</AlertDescription>
+          <AlertDescription color={textSecondary}>{sessionsError}</AlertDescription>
           <Button size="sm" colorScheme="cyan" ml={4} onClick={() => loadSessions()}>
             Retry Sync
           </Button>
@@ -777,10 +793,10 @@ function SessionsListPage() {
       <VStack align="stretch" spacing={8}>
         {draftSection.length > 0 && (
           <Box>
-            <Heading size="md" color="white" fontWeight="bold">
+            <Heading size="md" color={textPrimary} fontWeight="bold">
               Draft Plans
             </Heading>
-            <Text fontSize="sm" color="gray.500" mt={1} mb={4}>
+            <Text fontSize="sm" color={textMuted} mt={1} mb={4}>
               Work-in-progress scenarios still being refined
             </Text>
             <VStack align="stretch" spacing={4}>
@@ -791,10 +807,10 @@ function SessionsListPage() {
 
         {committedSection.length > 0 && (
           <Box>
-            <Heading size="md" color="white" fontWeight="bold">
+            <Heading size="md" color={textPrimary} fontWeight="bold">
               Committed Plans
             </Heading>
-            <Text fontSize="sm" color="gray.500" mt={1} mb={4}>
+            <Text fontSize="sm" color={textMuted} mt={1} mb={4}>
               Finalized scenarios ready for execution
             </Text>
             <VStack align="stretch" spacing={4}>
@@ -805,10 +821,10 @@ function SessionsListPage() {
 
         {archivedSection.length > 0 && (
           <Box>
-            <Heading size="md" color="white" fontWeight="bold">
+            <Heading size="md" color={textPrimary} fontWeight="bold">
               Archived
             </Heading>
-            <Text fontSize="sm" color="gray.500" mt={1} mb={4}>
+            <Text fontSize="sm" color={textMuted} mt={1} mb={4}>
               Scenarios no longer active
             </Text>
             <VStack align="stretch" spacing={4}>
