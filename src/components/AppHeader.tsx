@@ -8,6 +8,7 @@ import {
   Tooltip,
   useDisclosure,
   useColorMode,
+  useColorModeValue,
   Drawer,
   DrawerBody,
   DrawerOverlay,
@@ -30,6 +31,27 @@ export default function AppHeader() {
     { path: '/settings', label: 'Settings' },
   ]
 
+  const bgHeader = useColorModeValue('white', '#141419')
+  const borderHeader = useColorModeValue('gray.200', 'rgba(255, 255, 255, 0.1)')
+  const brandColor = useColorModeValue('gray.900', 'white')
+  const brandHover = useColorModeValue('cyan.500', '#00d9ff')
+  const subtitleColor = useColorModeValue('gray.500', 'gray.400')
+  const infoIconColor = useColorModeValue('gray.400', 'gray.500')
+  const navInactive = useColorModeValue('gray.600', 'gray.300')
+  const navHoverColor = useColorModeValue('gray.900', 'white')
+  const navHoverBg = useColorModeValue('gray.100', 'gray.700')
+  const activeNavBg = useColorModeValue('cyan.500', 'cyan.400')
+  const activeNavColor = useColorModeValue('white', 'gray.900')
+  const toggleColor = useColorModeValue('gray.500', 'gray.400')
+  const toggleHoverColor = useColorModeValue('gray.900', 'white')
+  const toggleHoverBg = useColorModeValue('gray.100', 'gray.700')
+  const drawerBg = useColorModeValue('white', 'gray.800')
+  const drawerCloseColor = useColorModeValue('gray.500', 'gray.400')
+  const drawerCloseHover = useColorModeValue('gray.900', 'white')
+  const drawerInactive = useColorModeValue('gray.600', 'gray.300')
+  const drawerActiveBg = useColorModeValue('gray.100', 'gray.700')
+  const drawerActiveColor = useColorModeValue('cyan.500', 'cyan.400')
+
   return (
     <>
       <Box
@@ -37,10 +59,10 @@ export default function AppHeader() {
         position="sticky"
         top={0}
         zIndex={40}
-        bg="#141419"
+        bg={bgHeader}
         borderBottom="1px solid"
-        borderColor="rgba(255, 255, 255, 0.1)"
-        boxShadow="xl"
+        borderColor={borderHeader}
+        boxShadow="sm"
       >
         <Box maxW="1400px" mx="auto" px={6} py={4}>
           <Flex direction="row" justify="space-between" align="center">
@@ -52,8 +74,8 @@ export default function AppHeader() {
                   to="/"
                   size="lg"
                   fontWeight="bold"
-                  color="white"
-                  _hover={{ color: '#00d9ff' }}
+                  color={brandColor}
+                  _hover={{ color: brandHover }}
                   transition="color 0.3s ease"
                 >
                   Capacity Planner
@@ -65,12 +87,12 @@ export default function AppHeader() {
                   fontSize="xs"
                   maxW="240px"
                 >
-                  <Box as="span" display="inline-flex" color="gray.500" _hover={{ color: 'gray.400' }} cursor="help">
+                  <Box as="span" display="inline-flex" color={infoIconColor} _hover={{ color: subtitleColor }} cursor="help">
                     <InfoIcon boxSize={3.5} />
                   </Box>
                 </Tooltip>
               </Flex>
-              <Text fontSize="xs" color="gray.400" mt={0.5}>
+              <Text fontSize="xs" color={subtitleColor} mt={0.5}>
                 Plan smarter, deliver better
               </Text>
             </Box>
@@ -88,10 +110,10 @@ export default function AppHeader() {
                       as={Link}
                       to={item.path}
                       size="sm"
-                      bg="cyan.400"
-                      color="gray.900"
+                      bg={activeNavBg}
+                      color={activeNavColor}
                       fontWeight="semibold"
-                      _hover={{ bg: 'cyan.300' }}
+                      _hover={{ opacity: 0.9 }}
                     >
                       {item.label}
                     </Button>
@@ -103,9 +125,9 @@ export default function AppHeader() {
                       px={3}
                       py={1}
                       fontSize="sm"
-                      color="gray.300"
+                      color={navInactive}
                       borderRadius="md"
-                      _hover={{ color: 'white', bg: 'gray.700' }}
+                      _hover={{ color: navHoverColor, bg: navHoverBg }}
                     >
                       {item.label}
                     </Box>
@@ -118,8 +140,8 @@ export default function AppHeader() {
                 icon={colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
                 variant="ghost"
                 size="sm"
-                color="gray.400"
-                _hover={{ color: 'white', bg: 'gray.700' }}
+                color={toggleColor}
+                _hover={{ color: toggleHoverColor, bg: toggleHoverBg }}
                 onClick={toggleColorMode}
                 display={{ base: 'none', md: 'flex' }}
               />
@@ -129,8 +151,8 @@ export default function AppHeader() {
                 aria-label="Open menu"
                 icon={<HamburgerIcon />}
                 variant="ghost"
-                color="gray.300"
-                _hover={{ color: 'white', bg: 'gray.700' }}
+                color={navInactive}
+                _hover={{ color: navHoverColor, bg: navHoverBg }}
                 display={{ base: 'flex', md: 'none' }}
                 onClick={onDrawerOpen}
               />
@@ -142,8 +164,8 @@ export default function AppHeader() {
       {/* Mobile nav drawer */}
       <Drawer isOpen={isDrawerOpen} placement="right" onClose={onDrawerClose}>
         <DrawerOverlay bg="blackAlpha.700" />
-        <DrawerContent bg="gray.800" maxW="260px">
-          <DrawerCloseButton color="gray.400" _hover={{ color: 'white' }} />
+        <DrawerContent bg={drawerBg} maxW="260px">
+          <DrawerCloseButton color={drawerCloseColor} _hover={{ color: drawerCloseHover }} />
           <DrawerBody pt={12} px={4}>
             <Flex direction="column" gap={2}>
               {navItems.map((item) => {
@@ -160,9 +182,9 @@ export default function AppHeader() {
                     borderRadius="md"
                     fontSize="sm"
                     fontWeight={isActive ? 'semibold' : 'normal'}
-                    color={isActive ? 'cyan.400' : 'gray.300'}
-                    bg={isActive ? 'gray.700' : 'transparent'}
-                    _hover={{ color: 'white', bg: 'gray.700' }}
+                    color={isActive ? drawerActiveColor : drawerInactive}
+                    bg={isActive ? drawerActiveBg : 'transparent'}
+                    _hover={{ color: navHoverColor, bg: navHoverBg }}
                     onClick={onDrawerClose}
                   >
                     {item.label}
@@ -174,9 +196,9 @@ export default function AppHeader() {
                 py={3}
                 borderRadius="md"
                 fontSize="sm"
-                color="gray.300"
+                color={drawerInactive}
                 cursor="pointer"
-                _hover={{ color: 'white', bg: 'gray.700' }}
+                _hover={{ color: navHoverColor, bg: navHoverBg }}
                 onClick={() => {
                   toggleColorMode()
                   onDrawerClose()
